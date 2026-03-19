@@ -148,8 +148,8 @@ export function detectViolation(
  * 4. Apply the move
  * 5. Evaluate victory conditions in deterministic order:
  *    a. Checkmate
- *    b. Stalemate / draw conditions
- *    c. King of the Hill center-square victory (if enabled)
+ *    b. King of the Hill center-square victory (if enabled)
+ *    c. Stalemate / draw conditions
  *
  * Important: King of the Hill immediate win takes priority after the move is applied.
  * If the moving player reaches the hill, they win immediately — even if they
