@@ -91,7 +91,7 @@ export function useGame(
 
   const legalMovesFrom = useCallback(
     (square: Square): Square[] => {
-      const moves = getLegalMoves(stateRef.current.fen);
+      const moves = getLegalMoves(state.fen);
       return moves.filter((m) => m.from === square).map((m) => m.to as Square);
     },
     [state.fen],

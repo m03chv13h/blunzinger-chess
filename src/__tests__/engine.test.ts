@@ -303,7 +303,7 @@ describe('Core Blunziger Engine', () => {
       // Place white queen on d1 with black king exposed
       const fen = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
       const checks = getCheckingMoves(fen);
-      // Qh5+ is available  
+      // Qh5+ is available
       expect(checks.length).toBeGreaterThanOrEqual(1);
     });
 
