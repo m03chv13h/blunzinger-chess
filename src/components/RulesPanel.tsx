@@ -1,8 +1,15 @@
 import { useState } from 'react';
+import type { VariantModeId } from '../core/blunziger/types';
+import { getGameModeDefinition } from '../core/blunziger/types';
 import './RulesPanel.css';
 
-export function RulesPanel() {
+interface RulesPanelProps {
+  variantModeId: VariantModeId;
+}
+
+export function RulesPanel({ variantModeId }: RulesPanelProps) {
   const [expanded, setExpanded] = useState(false);
+  const def = getGameModeDefinition(variantModeId);
 
   return (
     <div className="rules-panel">
@@ -12,64 +19,117 @@ export function RulesPanel() {
 
       {expanded && (
         <div className="rules-content">
-          <h3>Blunziger Chess Rules</h3>
+          <h3>{def.name}</h3>
+          <p>{def.description}</p>
 
-          <p>
-            Blunziger Chess is standard chess with one additional rule:
-          </p>
-
-          <h4>Forced Check Rule</h4>
-          <p>
-            If a player has <strong>any legal move that gives check</strong>, they are
-            <strong> expected</strong> to play a checking move. However, the system does NOT
-            force the move — players can still play any legal move.
-          </p>
-
-          <h4>Reporting System</h4>
-          <p>
-            If a player makes a non-checking move when a checking move was available (a
-            "missed forced-check violation"), the <strong>opponent</strong> can press the
-            <strong> "Report Missed Check"</strong> button <em>before making their own move</em>.
-          </p>
-
-          <ul>
-            <li>
-              <strong>Valid report:</strong> The violating player loses immediately.
-            </li>
-            <li>
-              <strong>Invalid report:</strong> The reporter's invalid report counter increases.
-              After reaching the configured threshold (default: 2), the reporter loses.
-            </li>
-          </ul>
-
-          <h4>Key Details</h4>
-          <ul>
-            <li>Moves are never auto-forced — all legal moves are always available</li>
-            <li>Violations are detected after the move is played</li>
-            <li>Reports must be made before the reporter plays their next move</li>
-            <li>Bots always obey the forced-check rule</li>
-          </ul>
+          {variantModeId === 'classic_blunziger' && <ClassicRules />}
+          {variantModeId === 'double_check_pressure' && <DoubleCheckPressureRules />}
+          {variantModeId === 'blitz_blunziger' && <BlitzRules />}
+          {variantModeId === 'penalty_instead_of_loss' && <PenaltyRules />}
+          {variantModeId === 'king_hunter' && <KingHunterRules />}
+          {variantModeId === 'reverse_blunziger' && <ReverseRules />}
 
           <h4>King of the Hill (Optional)</h4>
           <p>
-            When enabled via the checkbox in game settings, <strong>King of the Hill</strong> adds
-            an additional win condition: a player wins immediately if their king reaches one of the
+            When enabled, a player wins immediately if their king reaches one of the
             four center squares: <strong>d4, e4, d5, or e5</strong>.
           </p>
-          <p>
-            This mode works <em>together</em> with the Blunziger forced-check rules — it does not
-            replace them. Both rule sets apply simultaneously.
-          </p>
-          <h4>Rule Precedence</h4>
-          <ul>
-            <li>If a player's move reaches the hill, they win immediately — even if they
-            missed a forced check on that same move.</li>
-            <li>The game ends as soon as the hill is reached; no report can overturn the result.</li>
-            <li>If the hill is not reached, normal Blunziger rules (forced-check detection
-            and reporting) continue to apply.</li>
-          </ul>
         </div>
       )}
     </div>
+  );
+}
+
+function ClassicRules() {
+  return (
+    <>
+      <h4>Forced Check Rule</h4>
+      <p>
+        If a player has <strong>any legal move that gives check</strong>, they are
+        <strong> expected</strong> to play a checking move. If they don't, the opponent
+        can press <strong>"Report Missed Check"</strong> before making their own move.
+      </p>
+      <ul>
+        <li><strong>Valid report:</strong> The violating player loses.</li>
+        <li><strong>Invalid report:</strong> Reporter's invalid report counter increases.
+          After reaching the threshold, the reporter loses.</li>
+      </ul>
+    </>
+  );
+}
+
+function DoubleCheckPressureRules() {
+  return (
+    <>
+      <h4>Double Check Pressure</h4>
+      <p>
+        Normal Blunziger forced-check rules apply, but with an additional twist:
+        if <strong>two or more</strong> checking moves exist and the player misses them,
+        they <strong>lose immediately</strong> (no report needed).
+      </p>
+      <p>
+        If exactly one checking move exists and is missed, normal report-based handling applies.
+      </p>
+    </>
+  );
+}
+
+function BlitzRules() {
+  return (
+    <>
+      <h4>Blitz Blunziger</h4>
+      <p>
+        Standard Blunziger rules with chess clocks. Each side has a countdown timer.
+        If your time reaches zero, you lose.
+      </p>
+    </>
+  );
+}
+
+function PenaltyRules() {
+  return (
+    <>
+      <h4>Penalty Instead of Loss</h4>
+      <p>
+        Missing a forced check does <strong>not</strong> cause an immediate loss.
+        Instead, the opponent receives <strong>one extra consecutive move</strong> as penalty.
+      </p>
+      <p>
+        After the violating player's move, the opponent makes their normal move, then
+        immediately gets a second consecutive move. Turn order then resumes normally.
+      </p>
+      <p>The "Report Missed Check" button is <strong>disabled</strong> in this mode.</p>
+    </>
+  );
+}
+
+function KingHunterRules() {
+  return (
+    <>
+      <h4>King Hunter Mode</h4>
+      <p>
+        Each time a player gives check, they score <strong>1 point</strong>.
+        The game ends after a configured move limit. The player with more points wins.
+        If tied, it's a draw.
+      </p>
+      <p>
+        If checkmate occurs before the move limit, the game ends immediately as normal.
+      </p>
+    </>
+  );
+}
+
+function ReverseRules() {
+  return (
+    <>
+      <h4>Reverse Blunziger</h4>
+      <p>
+        If a checking move exists, the player is <strong>forbidden</strong> from giving check.
+        They must play a non-checking legal move instead. Violation = immediate loss.
+      </p>
+      <p>
+        <strong>Exception:</strong> If ALL legal moves give check, the player may play any legal move.
+      </p>
+    </>
   );
 }

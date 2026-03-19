@@ -5,21 +5,24 @@ import type {
   GameState,
   GameResult,
   ViolationRecord,
-  BlunzigerConfig,
+  VariantConfig,
   InvalidReportCounts,
   GameMode,
   BotLevel,
   Square,
+  VariantModeId,
 } from './types';
 import { DEFAULT_CONFIG, INITIAL_FEN } from './types';
 
 /** The four center squares for King of the Hill. */
 const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
 
+// ── Pure helpers ─────────────────────────────────────────────────────
+
 /**
  * Check whether King of the Hill mode is enabled in the config.
  */
-export function isKingOfTheHillEnabled(config: BlunzigerConfig): boolean {
+export function isKingOfTheHillEnabled(config: VariantConfig): boolean {
   return config.enableKingOfTheHill;
 }
 
@@ -49,30 +52,6 @@ export function didKingReachHill(fen: string, side: Color): boolean {
 }
 
 /**
- * Create the initial game state.
- */
-export function createInitialState(
-  mode: GameMode = 'hvh',
-  config: BlunzigerConfig = DEFAULT_CONFIG,
-  botLevel: BotLevel = 'easy',
-  botColor: Color = 'b',
-): GameState {
-  return {
-    fen: INITIAL_FEN,
-    moveHistory: [],
-    sideToMove: 'w',
-    pendingViolation: null,
-    invalidReports: { w: 0, b: 0 },
-    config,
-    result: null,
-    lastReportFeedback: null,
-    mode,
-    botLevel,
-    botColor,
-  };
-}
-
-/**
  * Get all legal moves from the current position.
  */
 export function getLegalMoves(fen: string): Move[] {
@@ -94,6 +73,19 @@ export function getCheckingMoves(fen: string): Move[] {
 }
 
 /**
+ * Get all legal moves that do NOT give check.
+ */
+export function getNonCheckingMoves(fen: string): Move[] {
+  const chess = new Chess(fen);
+  const moves = chess.moves({ verbose: true });
+  return moves.filter((move) => {
+    const testChess = new Chess(fen);
+    testChess.move(move.san);
+    return !testChess.inCheck();
+  });
+}
+
+/**
  * Is this a forced-check turn? (Does the current side have any checking moves?)
  */
 export function isForcedCheckTurn(fen: string): boolean {
@@ -101,7 +93,26 @@ export function isForcedCheckTurn(fen: string): boolean {
 }
 
 /**
+ * Is this a reverse-forced state? (checking moves exist, so the player must AVOID check)
+ */
+export function isReverseForcedState(fen: string): boolean {
+  return getCheckingMoves(fen).length > 0;
+}
+
+/**
+ * Did a move result in check?
+ */
+function didMoveGiveCheck(fenBefore: string, move: Move): boolean {
+  const chess = new Chess(fenBefore);
+  chess.move(move.san);
+  return chess.inCheck();
+}
+
+// ── Violation detection ──────────────────────────────────────────────
+
+/**
  * Detect whether a move constitutes a violation (non-checking move when checking was available).
+ * Standard Blunziger logic.
  */
 export function detectViolation(
   fenBeforeMove: string,
@@ -110,19 +121,17 @@ export function detectViolation(
 ): ViolationRecord | null {
   const checkingMoves = getCheckingMoves(fenBeforeMove);
   if (checkingMoves.length === 0) {
-    return null; // No checking moves were available, no violation
+    return null;
   }
 
-  // Check if the played move is one of the checking moves
   const isCheckingMove = checkingMoves.some(
     (cm) => cm.from === move.from && cm.to === move.to && cm.promotion === move.promotion,
   );
 
   if (isCheckingMove) {
-    return null; // Played a checking move, no violation
+    return null;
   }
 
-  // Determine the side from the FEN
   const chess = new Chess(fenBeforeMove);
   const violatingSide = chess.turn();
 
@@ -136,31 +145,60 @@ export function detectViolation(
   };
 }
 
+// ── State creation ───────────────────────────────────────────────────
+
 /**
- * Apply a move with Blunziger rules. Returns a new game state.
- * The move is NOT forced - any legal move is allowed.
- * Violations are detected AFTER the move.
+ * Create the initial game state.
+ */
+export function createInitialState(
+  mode: GameMode = 'hvh',
+  config: VariantConfig = DEFAULT_CONFIG,
+  botLevel: BotLevel = 'easy',
+  botColor: Color = 'b',
+  variantModeId: VariantModeId = 'classic_blunziger',
+): GameState {
+  return {
+    fen: INITIAL_FEN,
+    moveHistory: [],
+    sideToMove: 'w',
+    pendingViolation: null,
+    invalidReports: { w: 0, b: 0 },
+    config,
+    result: null,
+    lastReportFeedback: null,
+    mode,
+    botLevel,
+    botColor,
+    variantModeId,
+    scores: { w: 0, b: 0 },
+    clocks: config.enableClock
+      ? { whiteMs: config.initialTimeMs, blackMs: config.initialTimeMs, lastTimestamp: null }
+      : null,
+    extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 0 },
+    plyCount: 0,
+  };
+}
+
+// ── Core move application ────────────────────────────────────────────
+
+/**
+ * Apply a move with variant-aware rules. Returns a new game state.
  *
  * Rule resolution order:
  * 1. Validate move under standard chess legality
- * 2. Detect whether a forced-check opportunity existed before the move
- * 3. If a non-checking move was played when checking was available, record violation
- * 4. Apply the move
- * 5. Evaluate victory conditions in deterministic order:
- *    a. Checkmate
- *    b. King of the Hill center-square victory (if enabled)
- *    c. Stalemate / draw conditions
- *
- * Important: King of the Hill immediate win takes priority after the move is applied.
- * If the moving player reaches the hill, they win immediately — even if they
- * missed a forced check on that move. No later report can overturn the result.
+ * 2. Handle Reverse Blunziger violation (immediate loss if checking when forbidden)
+ * 3. Handle Double Check Pressure (immediate loss if ≥2 checks available and missed)
+ * 4. Handle standard Blunziger violation / Penalty extra-turn
+ * 5. Update scores (King Hunter)
+ * 6. Evaluate termination: checkmate, KOTH, stalemate/draw, move-limit
+ * 7. Handle extra-turn state
  */
 export function applyMoveWithRules(
   state: GameState,
   moveInput: string | { from: Square; to: Square; promotion?: string },
 ): GameState {
   if (state.result) {
-    return state; // Game is over
+    return state;
   }
 
   const chess = new Chess(state.fen);
@@ -168,39 +206,91 @@ export function applyMoveWithRules(
   try {
     const result = chess.move(moveInput);
     if (!result) {
-      return state; // Invalid move
+      return state;
     }
     move = result;
   } catch {
-    return state; // Invalid move
+    return state;
   }
 
   const fenBeforeMove = state.fen;
   const newFen = chess.fen();
   const moveIndex = state.moveHistory.length;
   const movingSide = state.sideToMove;
+  const opponentSide: Color = movingSide === 'w' ? 'b' : 'w';
+  const cfg = state.config;
 
-  // Detect if the previous pending violation becomes non-reportable
-  // (opponent just made a move instead of reporting)
+  // ── Reverse Blunziger check ──
+  if (cfg.reverseForcedCheck) {
+    const checkingMoves = getCheckingMoves(fenBeforeMove);
+    if (checkingMoves.length > 0) {
+      const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+      // If non-checking alternatives exist and the player gave check → violation
+      if (nonCheckingMoves.length > 0 && didMoveGiveCheck(fenBeforeMove, move)) {
+        return {
+          ...state,
+          fen: newFen,
+          moveHistory: [...state.moveHistory, move],
+          sideToMove: chess.turn(),
+          plyCount: state.plyCount + 1,
+          pendingViolation: null,
+          lastReportFeedback: null,
+          result: {
+            winner: opponentSide,
+            reason: 'reverse_blunziger_violation',
+            detail: `${movingSide === 'w' ? 'White' : 'Black'} gave check when non-checking moves were available. Reverse Blunziger violation!`,
+          },
+        };
+      }
+    }
+  }
+
+  // ── Standard Blunziger / Double Check Pressure ──
+  // Expire previous pending violation
   let updatedPendingViolation = state.pendingViolation;
   if (updatedPendingViolation && updatedPendingViolation.reportable) {
-    // The opponent is now making their move, so the previous violation is no longer reportable
     updatedPendingViolation = { ...updatedPendingViolation, reportable: false };
   }
 
-  // Detect violation for the current move
-  const newViolation = detectViolation(fenBeforeMove, move, moveIndex);
+  let newViolation: ViolationRecord | null = null;
+  let immediateResult: GameResult | null = null;
 
-  // Check for game end conditions in deterministic order
-  let result: GameResult | null = null;
-  if (chess.isCheckmate()) {
+  if (cfg.enableBlunziger && !cfg.reverseForcedCheck) {
+    newViolation = detectViolation(fenBeforeMove, move, moveIndex);
+
+    if (newViolation) {
+      // Double Check Pressure: ≥2 checking moves missed → immediate loss
+      if (cfg.doubleCheckPressureImmediateLoss && newViolation.checkingMoves.length >= 2) {
+        immediateResult = {
+          winner: opponentSide,
+          reason: 'double_check_pressure_violation',
+          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed ${newViolation.checkingMoves.length} checking moves (${newViolation.checkingMoves.map((m) => m.san).join(', ')}). Immediate loss under Double Check Pressure!`,
+        };
+      }
+
+      // Penalty mode: grant opponent extra turn instead of reportable violation
+      if (!immediateResult && cfg.missedCheckPenalty === 'extra_move') {
+        newViolation = { ...newViolation, reportable: false };
+      }
+    }
+  }
+
+  // ── Score update (King Hunter) ──
+  const newScores = { ...state.scores };
+  if (cfg.scoringMode === 'checks_count' && didMoveGiveCheck(fenBeforeMove, move)) {
+    newScores[movingSide] = (newScores[movingSide] || 0) + 1;
+  }
+
+  const newPlyCount = state.plyCount + 1;
+
+  // ── Termination conditions ──
+  let result: GameResult | null = immediateResult;
+
+  if (!result && chess.isCheckmate()) {
     result = { winner: movingSide, reason: 'checkmate' };
   }
 
-  // King of the Hill: immediate win if king reaches center (before draw checks,
-  // since KOTH is an active victory condition that overrides draws like
-  // insufficient material in a KvK endgame)
-  if (!result && isKingOfTheHillEnabled(state.config)) {
+  if (!result && isKingOfTheHillEnabled(cfg)) {
     if (didKingReachHill(newFen, movingSide)) {
       result = {
         winner: movingSide,
@@ -210,7 +300,6 @@ export function applyMoveWithRules(
     }
   }
 
-  // Draw conditions (only if no victory has occurred)
   if (!result) {
     if (chess.isStalemate()) {
       result = { winner: 'draw', reason: 'stalemate' };
@@ -225,30 +314,89 @@ export function applyMoveWithRules(
     }
   }
 
-  // If the game ends immediately (including KOTH win), no pending violation matters
+  // ── Move-limit check (King Hunter) ──
+  if (!result && cfg.moveLimit > 0 && newPlyCount >= cfg.moveLimit * 2) {
+    if (newScores.w > newScores.b) {
+      result = {
+        winner: 'w',
+        reason: 'score_limit',
+        detail: `Move limit reached. White wins ${newScores.w}–${newScores.b}.`,
+      };
+    } else if (newScores.b > newScores.w) {
+      result = {
+        winner: 'b',
+        reason: 'score_limit',
+        detail: `Move limit reached. Black wins ${newScores.b}–${newScores.w}.`,
+      };
+    } else {
+      result = {
+        winner: 'draw',
+        reason: 'score_limit_draw',
+        detail: `Move limit reached. Tied ${newScores.w}–${newScores.b}.`,
+      };
+    }
+  }
+
   const effectiveViolation = result ? null : newViolation;
+
+  // ── Extra-turn state (Penalty mode) ──
+  let newExtraTurns = { ...state.extraTurns };
+  // If this was an extra turn being consumed, decrement
+  const extraKey = movingSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+  if (newExtraTurns[extraKey] > 0) {
+    newExtraTurns = { ...newExtraTurns, [extraKey]: newExtraTurns[extraKey] - 1 };
+  }
+
+  // If a violation occurred in penalty mode (and game didn't end), grant opponent extra turn
+  if (!result && newViolation && cfg.missedCheckPenalty === 'extra_move') {
+    const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+    newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
+  }
+
+  // Determine effective side to move (may stay same for extra turns)
+  let effectiveSideToMove = chess.turn();
+  if (!result) {
+    const nextExtraKey = effectiveSideToMove === 'w'
+      ? 'pendingExtraMovesBlack'
+      : 'pendingExtraMovesWhite';
+    // If the side that just moved has pending extra moves, they keep moving
+    const movingSideKey = movingSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+    if (newExtraTurns[movingSideKey] > 0) {
+      effectiveSideToMove = movingSide;
+    }
+    // If the opponent (now to move normally) just got an extra turn from this violation,
+    // the normal chess.turn() gives them the turn already, which is correct.
+    // We only override when the *moving* side has leftover extras.
+    void nextExtraKey; // consumed above logic only
+  }
 
   return {
     ...state,
     fen: newFen,
     moveHistory: [...state.moveHistory, move],
-    sideToMove: chess.turn(),
+    sideToMove: effectiveSideToMove,
     pendingViolation: effectiveViolation,
     lastReportFeedback: null,
     result,
+    scores: newScores,
+    plyCount: newPlyCount,
+    extraTurns: newExtraTurns,
   };
 }
 
+// ── Reporting ────────────────────────────────────────────────────────
+
 /**
  * Can the given side report a missed forced-check violation?
+ * Disabled in penalty mode and reverse mode.
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
+  if (state.config.missedCheckPenalty === 'extra_move') return false;
+  if (state.config.reverseForcedCheck) return false;
   if (!state.pendingViolation) return false;
   if (!state.pendingViolation.reportable) return false;
-  // The reporter must be the opponent of the violator
   if (state.pendingViolation.violatingSide === reportingSide) return false;
-  // The reporter must be the current side to move (hasn't moved yet)
   if (state.sideToMove !== reportingSide) return false;
   return true;
 }
@@ -258,7 +406,6 @@ export function canReport(state: GameState, reportingSide: Color): boolean {
  */
 export function reportViolation(state: GameState, reportingSide: Color): GameState {
   if (canReport(state, reportingSide)) {
-    // Valid report - the violating player loses
     const violation = state.pendingViolation!;
     return {
       ...state,
@@ -275,7 +422,6 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
     };
   }
 
-  // Invalid report - increment counter
   const newCounts: InvalidReportCounts = {
     ...state.invalidReports,
     [reportingSide]: state.invalidReports[reportingSide] + 1,
@@ -323,12 +469,12 @@ export function incrementInvalidReport(state: GameState, side: Color): GameState
   const shouldLose = shouldLoseFromInvalidReports(newCounts, side, state.config);
 
   if (shouldLose) {
-    const opponent: Color = side === 'w' ? 'b' : 'w';
+    const opp: Color = side === 'w' ? 'b' : 'w';
     return {
       ...state,
       invalidReports: newCounts,
       result: {
-        winner: opponent,
+        winner: opp,
         reason: 'invalid-report-threshold',
         detail: `${side === 'w' ? 'White' : 'Black'} made ${newCounts[side]} invalid report(s), reaching the threshold of ${state.config.invalidReportLossThreshold}.`,
       },
@@ -347,9 +493,25 @@ export function incrementInvalidReport(state: GameState, side: Color): GameState
 export function shouldLoseFromInvalidReports(
   counts: InvalidReportCounts,
   side: Color,
-  config: BlunzigerConfig,
+  config: VariantConfig,
 ): boolean {
   return counts[side] >= config.invalidReportLossThreshold;
+}
+
+/**
+ * Apply timeout result.
+ */
+export function applyTimeout(state: GameState, losingSide: Color): GameState {
+  if (state.result) return state;
+  const winner: Color = losingSide === 'w' ? 'b' : 'w';
+  return {
+    ...state,
+    result: {
+      winner,
+      reason: 'timeout',
+      detail: `${losingSide === 'w' ? 'White' : 'Black'} ran out of time.`,
+    },
+  };
 }
 
 /**

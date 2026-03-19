@@ -15,7 +15,7 @@ import {
   didKingReachHill,
   isKingOfTheHillEnabled,
 } from '../core/blunziger/engine';
-import type { GameState, BlunzigerConfig } from '../core/blunziger/types';
+import type { GameState, VariantConfig } from '../core/blunziger/types';
 import { DEFAULT_CONFIG, INITIAL_FEN } from '../core/blunziger/types';
 
 describe('Core Blunziger Engine', () => {
@@ -32,7 +32,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should accept custom config', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 5, enableKingOfTheHill: false };
+      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 5, enableKingOfTheHill: false };
       const state = createInitialState('hvbot', config, 'medium', 'w');
       expect(state.config.invalidReportLossThreshold).toBe(5);
       expect(state.mode).toBe('hvbot');
@@ -246,7 +246,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should end the game when invalid report threshold is reached', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -285,7 +285,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should return invalid feedback when threshold is reached', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -397,8 +397,8 @@ describe('Core Blunziger Engine', () => {
   });
 
   describe('King of the Hill', () => {
-    const kothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: true };
-    const noKothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+    const kothConfig: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: true };
+    const noKothConfig: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
 
     describe('isHillSquare', () => {
       it('should return true for center squares', () => {
