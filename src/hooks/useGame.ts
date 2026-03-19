@@ -127,7 +127,7 @@ export function useGame(
         setBotThinking(false);
         return;
       }
-      const botMove = selectBotMove(current.fen, current.botLevel);
+      const botMove = selectBotMove(current.fen, current.botLevel, current.config);
       if (botMove) {
         const newState = applyMoveWithRules(current, {
           from: botMove.from as Square,

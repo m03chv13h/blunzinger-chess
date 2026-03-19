@@ -53,6 +53,9 @@ export function GameStatus({ state, onReport, botThinking }: GameStatusProps) {
       <div className="report-counters">
         <span>Invalid reports — White: {invalidReports.w} / {config.invalidReportLossThreshold}</span>
         <span>Black: {invalidReports.b} / {config.invalidReportLossThreshold}</span>
+        {config.enableKingOfTheHill && (
+          <span className="koth-indicator">👑 King of the Hill enabled</span>
+        )}
       </div>
     </div>
   );
@@ -76,6 +79,8 @@ function formatReason(reason: string): string {
       return 'Threefold repetition';
     case 'fifty-move-rule':
       return 'Fifty-move rule';
+    case 'king_of_the_hill':
+      return 'King of the Hill';
     default:
       return reason;
   }

@@ -13,7 +13,8 @@ export type GameResultReason =
   | 'resignation'
   | 'insufficient-material'
   | 'threefold-repetition'
-  | 'fifty-move-rule';
+  | 'fifty-move-rule'
+  | 'king_of_the_hill';
 
 export interface GameResult {
   winner: Color | 'draw';
@@ -32,6 +33,7 @@ export interface ViolationRecord {
 
 export interface BlunzigerConfig {
   invalidReportLossThreshold: number;
+  enableKingOfTheHill: boolean;
 }
 
 export interface InvalidReportCounts {
@@ -60,6 +62,7 @@ export interface GameState {
 
 export const DEFAULT_CONFIG: BlunzigerConfig = {
   invalidReportLossThreshold: 2,
+  enableKingOfTheHill: false,
 };
 
 export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';

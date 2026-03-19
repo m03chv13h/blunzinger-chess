@@ -13,6 +13,41 @@ import type {
 } from './types';
 import { DEFAULT_CONFIG, INITIAL_FEN } from './types';
 
+/** The four center squares for King of the Hill. */
+const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
+
+/**
+ * Check whether King of the Hill mode is enabled in the config.
+ */
+export function isKingOfTheHillEnabled(config: BlunzigerConfig): boolean {
+  return config.enableKingOfTheHill;
+}
+
+/**
+ * Check whether a square is one of the four hill center squares (d4, e4, d5, e5).
+ */
+export function isHillSquare(square: Square): boolean {
+  return (HILL_SQUARES as readonly string[]).includes(square);
+}
+
+/**
+ * Check whether a side's king currently occupies a hill square.
+ */
+export function didKingReachHill(fen: string, side: Color): boolean {
+  const chess = new Chess(fen);
+  const board = chess.board();
+  for (const row of board) {
+    for (const cell of row) {
+      if (cell && cell.type === 'k' && cell.color === side) {
+        if (isHillSquare(cell.square as Square)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * Create the initial game state.
  */
@@ -105,6 +140,20 @@ export function detectViolation(
  * Apply a move with Blunziger rules. Returns a new game state.
  * The move is NOT forced - any legal move is allowed.
  * Violations are detected AFTER the move.
+ *
+ * Rule resolution order:
+ * 1. Validate move under standard chess legality
+ * 2. Detect whether a forced-check opportunity existed before the move
+ * 3. If a non-checking move was played when checking was available, record violation
+ * 4. Apply the move
+ * 5. Evaluate victory conditions in deterministic order:
+ *    a. Checkmate
+ *    b. Stalemate / draw conditions
+ *    c. King of the Hill center-square victory (if enabled)
+ *
+ * Important: King of the Hill immediate win takes priority after the move is applied.
+ * If the moving player reaches the hill, they win immediately — even if they
+ * missed a forced check on that move. No later report can overturn the result.
  */
 export function applyMoveWithRules(
   state: GameState,
@@ -129,6 +178,7 @@ export function applyMoveWithRules(
   const fenBeforeMove = state.fen;
   const newFen = chess.fen();
   const moveIndex = state.moveHistory.length;
+  const movingSide = state.sideToMove;
 
   // Detect if the previous pending violation becomes non-reportable
   // (opponent just made a move instead of reporting)
@@ -144,8 +194,7 @@ export function applyMoveWithRules(
   // Check for game end conditions from chess.js
   let result: GameResult | null = null;
   if (chess.isCheckmate()) {
-    const winner = state.sideToMove; // The player who just moved wins
-    result = { winner, reason: 'checkmate' };
+    result = { winner: movingSide, reason: 'checkmate' };
   } else if (chess.isStalemate()) {
     result = { winner: 'draw', reason: 'stalemate' };
   } else if (chess.isDraw()) {
@@ -158,12 +207,26 @@ export function applyMoveWithRules(
     }
   }
 
+  // King of the Hill: if enabled and no higher-priority result, check hill win
+  if (!result && isKingOfTheHillEnabled(state.config)) {
+    if (didKingReachHill(newFen, movingSide)) {
+      result = {
+        winner: movingSide,
+        reason: 'king_of_the_hill',
+        detail: `${movingSide === 'w' ? 'White' : 'Black'}'s king reached a center square!`,
+      };
+    }
+  }
+
+  // If the game ends immediately (including KOTH win), no pending violation matters
+  const effectiveViolation = result ? null : newViolation;
+
   return {
     ...state,
     fen: newFen,
     moveHistory: [...state.moveHistory, move],
     sideToMove: chess.turn(),
-    pendingViolation: newViolation,
+    pendingViolation: effectiveViolation,
     lastReportFeedback: null,
     result,
   };

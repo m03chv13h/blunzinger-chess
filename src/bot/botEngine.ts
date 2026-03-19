@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel } from '../core/blunziger/types';
-import { getLegalMoves, getCheckingMoves } from '../core/blunziger/engine';
+import type { Move, BotLevel, BlunzigerConfig } from '../core/blunziger/types';
+import { getLegalMoves, getCheckingMoves, isKingOfTheHillEnabled, isHillSquare } from '../core/blunziger/engine';
 
 // Piece values for heuristic evaluation
 const PIECE_VALUES: Record<string, number> = {
@@ -14,8 +14,14 @@ const PIECE_VALUES: Record<string, number> = {
 
 /**
  * Select a move for the bot, obeying Blunziger forced-check rules.
+ * When King of the Hill is enabled, prioritize immediate hill-winning moves.
+ *
+ * Rule interaction:
+ * - If checking moves exist, bot MUST pick from those (forced-check rule)
+ * - Among candidate moves, if any move wins by reaching the hill, prioritize it
+ * - If forced-check applies, bot can only reach the hill with a checking move
  */
-export function selectBotMove(fen: string, level: BotLevel): Move | null {
+export function selectBotMove(fen: string, level: BotLevel, config?: BlunzigerConfig): Move | null {
   const legalMoves = getLegalMoves(fen);
   if (legalMoves.length === 0) return null;
 
@@ -24,13 +30,24 @@ export function selectBotMove(fen: string, level: BotLevel): Move | null {
   // If checking moves exist, bot MUST pick from those (bots obey the rules)
   const candidateMoves = checkingMoves.length > 0 ? checkingMoves : legalMoves;
 
+  // King of the Hill: if enabled, check for immediate hill win among candidates
+  if (config && isKingOfTheHillEnabled(config)) {
+    const hillWinners = candidateMoves.filter((m) => {
+      if (m.piece !== 'k') return false;
+      return isHillSquare(m.to);
+    });
+    if (hillWinners.length > 0) {
+      return hillWinners[0];
+    }
+  }
+
   switch (level) {
     case 'easy':
       return selectRandom(candidateMoves);
     case 'medium':
-      return selectMedium(candidateMoves, fen);
+      return selectMedium(candidateMoves, fen, config);
     case 'hard':
-      return selectHard(candidateMoves, fen);
+      return selectHard(candidateMoves, fen, config);
     default:
       return selectRandom(candidateMoves);
   }
@@ -46,10 +63,10 @@ function selectRandom(moves: Move[]): Move {
 /**
  * Medium bot: simple heuristic - prefer captures, checks, central moves.
  */
-function selectMedium(moves: Move[], fen: string): Move {
+function selectMedium(moves: Move[], fen: string, config?: BlunzigerConfig): Move {
   const scored = moves.map((move) => ({
     move,
-    score: scoreMove(move, fen),
+    score: scoreMove(move, fen, config),
   }));
 
   scored.sort((a, b) => b.score - a.score);
@@ -63,7 +80,7 @@ function selectMedium(moves: Move[], fen: string): Move {
 /**
  * Hard bot: deeper evaluation using minimax.
  */
-function selectHard(moves: Move[], fen: string): Move {
+function selectHard(moves: Move[], fen: string, _config?: BlunzigerConfig): Move {
   let bestScore = -Infinity;
   let bestMove = moves[0];
 
@@ -157,8 +174,13 @@ function evaluatePosition(chess: Chess): number {
 /**
  * Score a move for heuristic ordering.
  */
-function scoreMove(move: Move, fen: string): number {
+function scoreMove(move: Move, fen: string, config?: BlunzigerConfig): number {
   let score = 0;
+
+  // King of the Hill: king reaching center is extremely valuable
+  if (config && isKingOfTheHillEnabled(config) && move.piece === 'k' && isHillSquare(move.to)) {
+    score += 1000;
+  }
 
   // Captures are good
   if (move.captured) {

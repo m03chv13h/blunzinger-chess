@@ -49,6 +49,25 @@ export function RulesPanel() {
             <li>Reports must be made before the reporter plays their next move</li>
             <li>Bots always obey the forced-check rule</li>
           </ul>
+
+          <h4>King of the Hill (Optional)</h4>
+          <p>
+            When enabled via the checkbox in game settings, <strong>King of the Hill</strong> adds
+            an additional win condition: a player wins immediately if their king reaches one of the
+            four center squares: <strong>d4, e4, d5, or e5</strong>.
+          </p>
+          <p>
+            This mode works <em>together</em> with the Blunziger forced-check rules — it does not
+            replace them. Both rule sets apply simultaneously.
+          </p>
+          <h4>Rule Precedence</h4>
+          <ul>
+            <li>If a player's move reaches the hill, they win immediately — even if they
+            missed a forced check on that same move.</li>
+            <li>The game ends as soon as the hill is reached; no report can overturn the result.</li>
+            <li>If the hill is not reached, normal Blunziger rules (forced-check detection
+            and reporting) continue to apply.</li>
+          </ul>
         </div>
       )}
     </div>
