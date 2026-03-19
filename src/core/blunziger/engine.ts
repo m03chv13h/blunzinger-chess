@@ -191,23 +191,15 @@ export function applyMoveWithRules(
   // Detect violation for the current move
   const newViolation = detectViolation(fenBeforeMove, move, moveIndex);
 
-  // Check for game end conditions from chess.js
+  // Check for game end conditions in deterministic order
   let result: GameResult | null = null;
   if (chess.isCheckmate()) {
     result = { winner: movingSide, reason: 'checkmate' };
-  } else if (chess.isStalemate()) {
-    result = { winner: 'draw', reason: 'stalemate' };
-  } else if (chess.isDraw()) {
-    if (chess.isInsufficientMaterial()) {
-      result = { winner: 'draw', reason: 'insufficient-material' };
-    } else if (chess.isThreefoldRepetition()) {
-      result = { winner: 'draw', reason: 'threefold-repetition' };
-    } else {
-      result = { winner: 'draw', reason: 'fifty-move-rule' };
-    }
   }
 
-  // King of the Hill: if enabled and no higher-priority result, check hill win
+  // King of the Hill: immediate win if king reaches center (before draw checks,
+  // since KOTH is an active victory condition that overrides draws like
+  // insufficient material in a KvK endgame)
   if (!result && isKingOfTheHillEnabled(state.config)) {
     if (didKingReachHill(newFen, movingSide)) {
       result = {
@@ -215,6 +207,21 @@ export function applyMoveWithRules(
         reason: 'king_of_the_hill',
         detail: `${movingSide === 'w' ? 'White' : 'Black'}'s king reached a center square!`,
       };
+    }
+  }
+
+  // Draw conditions (only if no victory has occurred)
+  if (!result) {
+    if (chess.isStalemate()) {
+      result = { winner: 'draw', reason: 'stalemate' };
+    } else if (chess.isDraw()) {
+      if (chess.isInsufficientMaterial()) {
+        result = { winner: 'draw', reason: 'insufficient-material' };
+      } else if (chess.isThreefoldRepetition()) {
+        result = { winner: 'draw', reason: 'threefold-repetition' };
+      } else {
+        result = { winner: 'draw', reason: 'fifty-move-rule' };
+      }
     }
   }
 

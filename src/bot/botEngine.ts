@@ -47,7 +47,7 @@ export function selectBotMove(fen: string, level: BotLevel, config?: BlunzigerCo
     case 'medium':
       return selectMedium(candidateMoves, fen, config);
     case 'hard':
-      return selectHard(candidateMoves, fen, config);
+      return selectHard(candidateMoves, fen);
     default:
       return selectRandom(candidateMoves);
   }
@@ -80,7 +80,7 @@ function selectMedium(moves: Move[], fen: string, config?: BlunzigerConfig): Mov
 /**
  * Hard bot: deeper evaluation using minimax.
  */
-function selectHard(moves: Move[], fen: string, _config?: BlunzigerConfig): Move {
+function selectHard(moves: Move[], fen: string): Move {
   let bestScore = -Infinity;
   let bestMove = moves[0];
 
