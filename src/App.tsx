@@ -55,7 +55,6 @@ function App() {
         <aside className="right-panel">
           <GameStatus
             state={game.state}
-            canReport={game.canReportNow}
             onReport={game.report}
             botThinking={game.botThinking}
           />

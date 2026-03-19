@@ -3,13 +3,12 @@ import './GameStatus.css';
 
 interface GameStatusProps {
   state: GameState;
-  canReport: boolean;
   onReport: () => void;
   botThinking: boolean;
 }
 
-export function GameStatus({ state, canReport, onReport, botThinking }: GameStatusProps) {
-  const { result, sideToMove, invalidReports, config, pendingViolation } = state;
+export function GameStatus({ state, onReport, botThinking }: GameStatusProps) {
+  const { result, sideToMove, invalidReports, config } = state;
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
 
@@ -34,17 +33,9 @@ export function GameStatus({ state, canReport, onReport, botThinking }: GameStat
             {botThinking && <span className="thinking">🤔 Thinking...</span>}
           </div>
 
-          {pendingViolation && pendingViolation.reportable && (
-            <div className="violation-alert">
-              ⚠️ {sideLabel(pendingViolation.violatingSide)} may have missed a forced check!
-            </div>
-          )}
-
-          {canReport && (
-            <button className="report-btn" onClick={onReport}>
-              🚨 Report Missed Check
-            </button>
-          )}
+          <button className="report-btn" onClick={onReport}>
+            🚨 Report Missed Check
+          </button>
         </>
       )}
 
