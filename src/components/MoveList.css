@@ -1,0 +1,49 @@
+.move-list {
+  width: 220px;
+  max-height: min(80vw, 560px);
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fafafa;
+}
+
+.move-list h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+.move-list-content {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.no-moves {
+  color: #999;
+  text-align: center;
+  font-style: italic;
+}
+
+.move-pair {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.move-pair:nth-child(even) {
+  background: #f0f0f0;
+}
+
+.move-number {
+  color: #888;
+  text-align: right;
+}
+
+.move-white, .move-black {
+  padding-left: 4px;
+}

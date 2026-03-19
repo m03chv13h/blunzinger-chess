@@ -1,0 +1,53 @@
+.rules-panel {
+  margin-top: 12px;
+}
+
+.rules-toggle {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s;
+}
+
+.rules-toggle:hover {
+  background: #138496;
+}
+
+.rules-content {
+  margin-top: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rules-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.rules-content h4 {
+  margin: 12px 0 4px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.rules-content p {
+  margin: 4px 0 8px 0;
+}
+
+.rules-content ul {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.rules-content li {
+  margin-bottom: 4px;
+}

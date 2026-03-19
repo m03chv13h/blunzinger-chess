@@ -1,0 +1,110 @@
+.game-status {
+  padding: 12px;
+  min-width: 250px;
+}
+
+.result-panel {
+  background: #1a1a2e;
+  color: #eee;
+  padding: 16px 20px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.result-title {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+}
+
+.result-winner {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+  margin: 4px 0;
+}
+
+.result-reason {
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.result-detail {
+  font-size: 13px;
+  color: #aaa;
+  margin: 8px 0 0 0;
+}
+
+.turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.turn-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #333;
+}
+
+.white-dot {
+  background: #fff;
+}
+
+.black-dot {
+  background: #333;
+}
+
+.thinking {
+  font-size: 14px;
+  font-weight: 400;
+  color: #888;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.violation-alert {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.report-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+}
+
+.report-btn:hover {
+  background: #c82333;
+}
+
+.report-counters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #666;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
