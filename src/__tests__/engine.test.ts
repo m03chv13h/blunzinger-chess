@@ -11,6 +11,9 @@ import {
   incrementInvalidReport,
   shouldLoseFromInvalidReports,
   opponent,
+  isHillSquare,
+  didKingReachHill,
+  isKingOfTheHillEnabled,
 } from '../core/blunziger/engine';
 import type { GameState, BlunzigerConfig } from '../core/blunziger/types';
 import { DEFAULT_CONFIG, INITIAL_FEN } from '../core/blunziger/types';
@@ -29,7 +32,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should accept custom config', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 5 };
+      const config: BlunzigerConfig = { invalidReportLossThreshold: 5, enableKingOfTheHill: false };
       const state = createInitialState('hvbot', config, 'medium', 'w');
       expect(state.config.invalidReportLossThreshold).toBe(5);
       expect(state.mode).toBe('hvbot');
@@ -243,7 +246,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should end the game when invalid report threshold is reached', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 2 };
+      const config: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -282,7 +285,7 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should return invalid feedback when threshold is reached', () => {
-      const config: BlunzigerConfig = { invalidReportLossThreshold: 2 };
+      const config: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -390,6 +393,213 @@ describe('Core Blunziger Engine', () => {
       const newState = applyMoveWithRules(state, { from: 'e1', to: 'g1' });
       expect(newState.moveHistory).toHaveLength(1);
       expect(newState.moveHistory[0].san).toBe('O-O');
+    });
+  });
+
+  describe('King of the Hill', () => {
+    const kothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: true };
+    const noKothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+
+    describe('isHillSquare', () => {
+      it('should return true for center squares', () => {
+        expect(isHillSquare('d4')).toBe(true);
+        expect(isHillSquare('e4')).toBe(true);
+        expect(isHillSquare('d5')).toBe(true);
+        expect(isHillSquare('e5')).toBe(true);
+      });
+
+      it('should return false for non-center squares', () => {
+        expect(isHillSquare('a1')).toBe(false);
+        expect(isHillSquare('e1')).toBe(false);
+        expect(isHillSquare('d3')).toBe(false);
+        expect(isHillSquare('e6')).toBe(false);
+      });
+    });
+
+    describe('isKingOfTheHillEnabled', () => {
+      it('should return true when enabled', () => {
+        expect(isKingOfTheHillEnabled(kothConfig)).toBe(true);
+      });
+
+      it('should return false when disabled', () => {
+        expect(isKingOfTheHillEnabled(noKothConfig)).toBe(false);
+        expect(isKingOfTheHillEnabled(DEFAULT_CONFIG)).toBe(false);
+      });
+    });
+
+    describe('didKingReachHill', () => {
+      it('should detect white king on d4', () => {
+        // White king on d4, black king on h8
+        const fen = '7k/8/8/8/3K4/8/8/8 w - - 0 1';
+        expect(didKingReachHill(fen, 'w')).toBe(true);
+        expect(didKingReachHill(fen, 'b')).toBe(false);
+      });
+
+      it('should detect black king on e5', () => {
+        // White king on a1, black king on e5
+        const fen = '8/8/8/4k3/8/8/8/K7 w - - 0 1';
+        expect(didKingReachHill(fen, 'b')).toBe(true);
+        expect(didKingReachHill(fen, 'w')).toBe(false);
+      });
+
+      it('should return false when king is not on hill', () => {
+        expect(didKingReachHill(INITIAL_FEN, 'w')).toBe(false);
+        expect(didKingReachHill(INITIAL_FEN, 'b')).toBe(false);
+      });
+    });
+
+    describe('KOTH disabled - reaching center does NOT win', () => {
+      it('should not trigger hill win when KOTH is disabled', () => {
+        // White king on e3, black king on h8, white rook on a1 (sufficient material)
+        const fen = '7k/8/8/8/8/4K3/8/R7 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', noKothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        const newState = applyMoveWithRules(state, { from: 'e3', to: 'd4' });
+        expect(newState.result).toBeNull();
+      });
+    });
+
+    describe('KOTH enabled - reaching center wins', () => {
+      it('should win when white king reaches d4', () => {
+        // White king on d3, white rook on a1, black king on h8
+        const fen = '7k/8/8/8/8/3K4/8/R7 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        const newState = applyMoveWithRules(state, { from: 'd3', to: 'd4' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('w');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+      });
+
+      it('should win when white king reaches e5', () => {
+        // White king on e4, white rook on a1, black king on h8
+        const fen = '7k/8/8/8/4K3/8/8/R7 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        const newState = applyMoveWithRules(state, { from: 'e4', to: 'e5' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('w');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+      });
+
+      it('should win when black king reaches d5', () => {
+        // Black king on d6, black rook on h1, white king on a1
+        const fen = '8/8/3k4/8/8/8/8/K6r b - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'b',
+        };
+        const newState = applyMoveWithRules(state, { from: 'd6', to: 'd5' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('b');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+      });
+
+      it('should win when black king reaches e4', () => {
+        // Black king on e3, black rook on h1, white king on a8
+        const fen = 'K7/8/8/8/8/4k3/8/7r b - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'b',
+        };
+        const newState = applyMoveWithRules(state, { from: 'e3', to: 'e4' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('b');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+      });
+
+      it('should also win with KOTH in K vs K positions (overrides insufficient material)', () => {
+        // Just two kings, normally insufficient material, but KOTH enabled
+        const fen = '7k/8/8/8/8/3K4/8/8 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        const newState = applyMoveWithRules(state, { from: 'd3', to: 'd4' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('w');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+      });
+
+      it('should not trigger if a non-king piece reaches hill square', () => {
+        // White pawn can move to d4 but only king triggers KOTH
+        const state = createInitialState('hvh', kothConfig);
+        const newState = applyMoveWithRules(state, 'd4');
+        expect(newState.result).toBeNull();
+      });
+    });
+
+    describe('KOTH + Blunziger interaction', () => {
+      it('forced-check still works when KOTH is enabled', () => {
+        // 1.e4 f5 — white has Qh5+ but plays d3
+        const state = createInitialState('hvh', kothConfig);
+        let s = applyMoveWithRules(state, 'e4');
+        s = applyMoveWithRules(s, 'f5');
+        expect(isForcedCheckTurn(s.fen)).toBe(true);
+        s = applyMoveWithRules(s, 'd3');
+        expect(s.pendingViolation).not.toBeNull();
+        expect(s.pendingViolation!.violatingSide).toBe('w');
+        expect(s.pendingViolation!.reportable).toBe(true);
+      });
+
+      it('missed forced-check can be reported when KOTH is enabled and no hill win', () => {
+        const state = createInitialState('hvh', kothConfig);
+        let s = applyMoveWithRules(state, 'e4');
+        s = applyMoveWithRules(s, 'f5');
+        s = applyMoveWithRules(s, 'd3');
+        expect(canReport(s, 'b')).toBe(true);
+        const reported = reportViolation(s, 'b');
+        expect(reported.result).not.toBeNull();
+        expect(reported.result!.winner).toBe('b');
+        expect(reported.result!.reason).toBe('valid-report');
+      });
+
+      it('hill win ends game immediately - no pending violation', () => {
+        // Set up: white king on d3, can move to d4 (hill), and some check was available
+        // We'll use a position where white has a checking move but moves king to hill instead
+        // White king d3, white rook a1, black king g8 — Rook can give check from a8
+        // White plays Kd4 instead of giving check
+        const fen = '6k1/8/8/8/8/3K4/8/R7 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        // Confirm checking moves exist
+        expect(getCheckingMoves(fen).length).toBeGreaterThan(0);
+        // White moves king to d4 — hill win
+        const newState = applyMoveWithRules(state, { from: 'd3', to: 'd4' });
+        expect(newState.result).not.toBeNull();
+        expect(newState.result!.winner).toBe('w');
+        expect(newState.result!.reason).toBe('king_of_the_hill');
+        // No pending violation since game ended immediately
+        expect(newState.pendingViolation).toBeNull();
+      });
+
+      it('hill win prevents later reporting', () => {
+        // Same as above — after hill win, canReport returns false
+        const fen = '6k1/8/8/8/8/3K4/8/R7 w - - 0 1';
+        const state: GameState = {
+          ...createInitialState('hvh', kothConfig),
+          fen,
+          sideToMove: 'w',
+        };
+        const newState = applyMoveWithRules(state, { from: 'd3', to: 'd4' });
+        expect(newState.result).not.toBeNull();
+        expect(canReport(newState, 'b')).toBe(false);
+      });
     });
   });
 });

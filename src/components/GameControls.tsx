@@ -32,9 +32,10 @@ export function GameControls({
   const [botLevel, setBotLevel] = useState<BotLevel>(currentBotLevel);
   const [botColor, setBotColor] = useState<Color>(currentBotColor);
   const [threshold, setThreshold] = useState<number>(currentConfig.invalidReportLossThreshold);
+  const [enableKoth, setEnableKoth] = useState<boolean>(currentConfig.enableKingOfTheHill);
 
   const handleStart = () => {
-    onNewGame(mode, { ...DEFAULT_CONFIG, invalidReportLossThreshold: threshold }, botLevel, botColor);
+    onNewGame(mode, { ...DEFAULT_CONFIG, invalidReportLossThreshold: threshold, enableKingOfTheHill: enableKoth }, botLevel, botColor);
   };
 
   return (
@@ -80,6 +81,17 @@ export function GameControls({
           value={threshold}
           onChange={(e) => setThreshold(Math.max(1, parseInt(e.target.value) || 2))}
         />
+      </div>
+
+      <div className="control-group checkbox-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={enableKoth}
+            onChange={(e) => setEnableKoth(e.target.checked)}
+          />
+          Enable King of the Hill
+        </label>
       </div>
 
       <button className="new-game-btn" onClick={handleStart}>

@@ -25,6 +25,41 @@ After a violation occurs, the **opponent** can press **"Report Missed Check"** b
 - Bots always obey the forced-check rule
 - The invalid report threshold is configurable in the UI
 
+## King of the Hill (Optional)
+
+King of the Hill is an **optional variant mode** that can be enabled with a checkbox in the game settings.
+
+When enabled, a player wins immediately if their king reaches one of the **four center squares**:
+
+| Square |
+|--------|
+| **d4** |
+| **e4** |
+| **d5** |
+| **e5** |
+
+### Combining with Blunziger Rules
+
+King of the Hill works **together** with the Blunziger forced-check rules — it does not replace them. The app supports:
+
+- **Blunziger only** (default)
+- **Blunziger + King of the Hill**
+
+### Rule Precedence
+
+When both rule sets are active, the following resolution order applies for each move:
+
+1. Validate move under standard chess legality
+2. Detect whether a forced-check opportunity existed before the move
+3. If a non-checking move was played when checking was available, record a violation
+4. Apply the move
+5. Evaluate victory conditions in deterministic order:
+   - **Checkmate** (highest priority)
+   - **King of the Hill** center-square victory
+   - **Stalemate / draw** conditions
+
+**Important**: If a player's move reaches the hill, they win immediately — **even if they missed a forced check on that same move**. The game ends as soon as the hill is reached; no report can overturn the result. If the hill is not reached, normal Blunziger reporting rules continue to apply.
+
 ## Game Modes
 
 | Mode | Description |
@@ -116,8 +151,8 @@ src/
 ├── hooks/
 │   └── useGame.ts      # React game state hook
 └── __tests__/
-    ├── engine.test.ts  # 32 core logic tests
-    └── bot.test.ts     # 5 bot tests
+    ├── engine.test.ts  # 54 core logic tests (including KOTH)
+    └── bot.test.ts     # 8 bot tests (including KOTH)
 ```
 
 ### Separation of Concerns
@@ -135,11 +170,14 @@ src/
 | `getCheckingMoves(fen)` | Legal moves that give check |
 | `isForcedCheckTurn(fen)` | Whether checking moves exist |
 | `detectViolation(fen, move, idx)` | Check if move is a violation |
-| `applyMoveWithRules(state, move)` | Apply move with Blunziger rules |
+| `applyMoveWithRules(state, move)` | Apply move with Blunziger + KOTH rules |
 | `canReport(state, side)` | Whether side can report |
 | `reportViolation(state, side)` | Process a report |
 | `incrementInvalidReport(state, side)` | Bump invalid counter |
 | `shouldLoseFromInvalidReports(counts, side, config)` | Check threshold |
+| `isKingOfTheHillEnabled(config)` | Whether KOTH mode is on |
+| `isHillSquare(square)` | Whether square is a center hill square |
+| `didKingReachHill(fen, side)` | Whether side's king is on a hill square |
 
 ## Library Choices
 

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
 import { getCheckingMoves, getLegalMoves } from '../core/blunziger/engine';
+import type { BlunzigerConfig } from '../core/blunziger/types';
 import { INITIAL_FEN } from '../core/blunziger/types';
+
+const kothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: true };
 
 describe('Bot Engine', () => {
   describe('selectBotMove', () => {
@@ -59,6 +62,43 @@ describe('Bot Engine', () => {
       const matedFen = 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3';
       const move = selectBotMove(matedFen, 'easy');
       expect(move).toBeNull();
+    });
+  });
+
+  describe('King of the Hill bot behavior', () => {
+    it('should take immediate hill win when legal and available', () => {
+      // White king on d3, can move to d4 (hill), no checking moves exist
+      const fen = '7k/8/8/8/8/3K4/8/8 w - - 0 1';
+      const move = selectBotMove(fen, 'easy', kothConfig);
+      expect(move).not.toBeNull();
+      expect(move!.from).toBe('d3');
+      expect(move!.to).toBe('d4');
+    });
+
+    it('should respect forced-check restriction even with hill available', () => {
+      // White king on d3, rook on a1, black king on g8
+      // Checking moves exist (rook checks), king can go to d4 (hill)
+      // But forced-check: bot must pick a checking move
+      const fen = '6k1/8/8/8/8/3K4/8/R7 w - - 0 1';
+      const checks = getCheckingMoves(fen);
+      expect(checks.length).toBeGreaterThan(0);
+
+      const move = selectBotMove(fen, 'easy', kothConfig);
+      expect(move).not.toBeNull();
+      // Bot must pick a checking move due to forced-check rule
+      const isChecking = checks.some(
+        (c) => c.from === move!.from && c.to === move!.to,
+      );
+      expect(isChecking).toBe(true);
+    });
+
+    it('should prioritize hill win among checking moves if one exists', () => {
+      // Verify medium bot also takes hill win
+      const simpleHillFen = '7k/8/8/8/8/3K4/8/8 w - - 0 1';
+      const mediumMove = selectBotMove(simpleHillFen, 'medium', kothConfig);
+      expect(mediumMove).not.toBeNull();
+      expect(mediumMove!.from).toBe('d3');
+      expect(mediumMove!.to).toBe('d4');
     });
   });
 });
