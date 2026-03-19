@@ -190,18 +190,17 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
   if (canReport(state, reportingSide)) {
     // Valid report - the violating player loses
     const violation = state.pendingViolation!;
-    const detail = `${violation.violatingSide === 'w' ? 'White' : 'Black'} missed a forced check. Available checking move(s): ${violation.checkingMoves.map((m) => m.san).join(', ')}`;
     return {
       ...state,
       result: {
         winner: reportingSide,
         reason: 'valid-report',
-        detail,
+        detail: `${violation.violatingSide === 'w' ? 'White' : 'Black'} missed a forced check. Available checking move(s): ${violation.checkingMoves.map((m) => m.san).join(', ')}`,
       },
       pendingViolation: { ...violation, reportable: false },
       lastReportFeedback: {
         valid: true,
-        message: `Correct! ${detail}`,
+        message: 'Correct! The opponent missed a forced check.',
       },
     };
   }

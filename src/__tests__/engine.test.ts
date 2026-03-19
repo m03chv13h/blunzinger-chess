@@ -269,6 +269,7 @@ describe('Core Blunziger Engine', () => {
       expect(reported.lastReportFeedback).not.toBeNull();
       expect(reported.lastReportFeedback!.valid).toBe(true);
       expect(reported.lastReportFeedback!.message).toContain('Correct');
+      expect(reported.lastReportFeedback!.message).toContain('missed a forced check');
     });
 
     it('should return invalid feedback on an incorrect report', () => {
