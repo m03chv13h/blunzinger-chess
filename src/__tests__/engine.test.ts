@@ -259,6 +259,49 @@ describe('Core Blunziger Engine', () => {
       expect(state.result!.winner).toBe('w');
       expect(state.result!.reason).toBe('invalid-report-threshold');
     });
+
+    it('should return valid feedback on a correct report', () => {
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // white misses Qh5+
+      const reported = reportViolation(s, 'b');
+      expect(reported.lastReportFeedback).not.toBeNull();
+      expect(reported.lastReportFeedback!.valid).toBe(true);
+      expect(reported.lastReportFeedback!.message).toContain('Correct');
+    });
+
+    it('should return invalid feedback on an incorrect report', () => {
+      const state = createInitialState();
+      const s = applyMoveWithRules(state, 'e4'); // no violation
+      const reported = reportViolation(s, 'b');
+      expect(reported.lastReportFeedback).not.toBeNull();
+      expect(reported.lastReportFeedback!.valid).toBe(false);
+      expect(reported.lastReportFeedback!.message).toContain('Wrong');
+    });
+
+    it('should return invalid feedback when threshold is reached', () => {
+      const config: BlunzigerConfig = { invalidReportLossThreshold: 2 };
+      let state = createInitialState('hvh', config);
+      state = applyMoveWithRules(state, 'e4');
+
+      state = reportViolation(state, 'b');
+      expect(state.lastReportFeedback!.valid).toBe(false);
+
+      state = reportViolation(state, 'b');
+      expect(state.lastReportFeedback!.valid).toBe(false);
+      expect(state.lastReportFeedback!.message).toContain('threshold');
+    });
+
+    it('should clear feedback when a new move is made', () => {
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = reportViolation(s, 'b'); // invalid report
+      expect(s.lastReportFeedback).not.toBeNull();
+
+      s = applyMoveWithRules(s, 'e5'); // black makes a move
+      expect(s.lastReportFeedback).toBeNull();
+    });
   });
 
   describe('incrementInvalidReport', () => {

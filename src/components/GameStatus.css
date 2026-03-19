@@ -99,6 +99,26 @@
   background: #c82333;
 }
 
+.report-feedback {
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.feedback-valid {
+  background: #d4edda;
+  border: 1px solid #28a745;
+  color: #155724;
+}
+
+.feedback-invalid {
+  background: #f8d7da;
+  border: 1px solid #dc3545;
+  color: #721c24;
+}
+
 .report-counters {
   display: flex;
   flex-direction: column;

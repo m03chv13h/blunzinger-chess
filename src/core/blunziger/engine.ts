@@ -30,6 +30,7 @@ export function createInitialState(
     invalidReports: { w: 0, b: 0 },
     config,
     result: null,
+    lastReportFeedback: null,
     mode,
     botLevel,
     botColor,
@@ -163,6 +164,7 @@ export function applyMoveWithRules(
     moveHistory: [...state.moveHistory, move],
     sideToMove: chess.turn(),
     pendingViolation: newViolation,
+    lastReportFeedback: null,
     result,
   };
 }
@@ -188,19 +190,56 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
   if (canReport(state, reportingSide)) {
     // Valid report - the violating player loses
     const violation = state.pendingViolation!;
+    const detail = `${violation.violatingSide === 'w' ? 'White' : 'Black'} missed a forced check. Available checking move(s): ${violation.checkingMoves.map((m) => m.san).join(', ')}`;
     return {
       ...state,
       result: {
         winner: reportingSide,
         reason: 'valid-report',
-        detail: `${violation.violatingSide === 'w' ? 'White' : 'Black'} missed a forced check. Available checking move(s): ${violation.checkingMoves.map((m) => m.san).join(', ')}`,
+        detail,
       },
       pendingViolation: { ...violation, reportable: false },
+      lastReportFeedback: {
+        valid: true,
+        message: `Correct! ${detail}`,
+      },
     };
   }
 
   // Invalid report - increment counter
-  return incrementInvalidReport(state, reportingSide);
+  const newCounts: InvalidReportCounts = {
+    ...state.invalidReports,
+    [reportingSide]: state.invalidReports[reportingSide] + 1,
+  };
+
+  const shouldLose = shouldLoseFromInvalidReports(newCounts, reportingSide, state.config);
+  const sideLabel = reportingSide === 'w' ? 'White' : 'Black';
+
+  if (shouldLose) {
+    const opponentSide: Color = reportingSide === 'w' ? 'b' : 'w';
+    return {
+      ...state,
+      invalidReports: newCounts,
+      result: {
+        winner: opponentSide,
+        reason: 'invalid-report-threshold',
+        detail: `${sideLabel} made ${newCounts[reportingSide]} invalid report(s), reaching the threshold of ${state.config.invalidReportLossThreshold}.`,
+      },
+      lastReportFeedback: {
+        valid: false,
+        message: `Wrong! There was no missed check to report. ${sideLabel} loses due to reaching the invalid report threshold.`,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    invalidReports: newCounts,
+    lastReportFeedback: {
+      valid: false,
+      message: `Wrong! There was no missed check to report. (${sideLabel}: ${newCounts[reportingSide]}/${state.config.invalidReportLossThreshold} invalid reports)`,
+    },
+  };
 }
 
 /**

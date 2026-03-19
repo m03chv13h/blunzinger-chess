@@ -39,6 +39,11 @@ export interface InvalidReportCounts {
   b: number;
 }
 
+export interface ReportFeedback {
+  valid: boolean;
+  message: string;
+}
+
 export interface GameState {
   fen: string;
   moveHistory: Move[];
@@ -47,6 +52,7 @@ export interface GameState {
   invalidReports: InvalidReportCounts;
   config: BlunzigerConfig;
   result: GameResult | null;
+  lastReportFeedback: ReportFeedback | null;
   mode: GameMode;
   botLevel: BotLevel;
   botColor: Color;
