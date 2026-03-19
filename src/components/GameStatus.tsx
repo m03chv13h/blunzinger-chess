@@ -8,7 +8,7 @@ interface GameStatusProps {
 }
 
 export function GameStatus({ state, onReport, botThinking }: GameStatusProps) {
-  const { result, sideToMove, invalidReports, config } = state;
+  const { result, sideToMove, invalidReports, config, lastReportFeedback } = state;
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
 
@@ -24,6 +24,11 @@ export function GameStatus({ state, onReport, botThinking }: GameStatusProps) {
             Reason: <strong>{formatReason(result.reason)}</strong>
           </p>
           {result.detail && <p className="result-detail">{result.detail}</p>}
+          {lastReportFeedback && (
+            <div className={`report-feedback ${lastReportFeedback.valid ? 'feedback-valid' : 'feedback-invalid'}`}>
+              {lastReportFeedback.message}
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -32,6 +37,12 @@ export function GameStatus({ state, onReport, botThinking }: GameStatusProps) {
             <span>{sideLabel(sideToMove)} to move</span>
             {botThinking && <span className="thinking">🤔 Thinking...</span>}
           </div>
+
+          {lastReportFeedback && (
+            <div className={`report-feedback ${lastReportFeedback.valid ? 'feedback-valid' : 'feedback-invalid'}`}>
+              {lastReportFeedback.message}
+            </div>
+          )}
 
           <button className="report-btn" onClick={onReport}>
             🚨 Report Missed Check
