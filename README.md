@@ -23,7 +23,14 @@ After a violation occurs, the **opponent** can press **"Report Missed Check"** b
 - Violations are detected **after** the move is played
 - Reports must be made **before** the reporter plays their next move
 - Bots always obey the forced-check rule
-- The invalid report threshold is configurable in the UI
+- The invalid report threshold is configurable in the new game setup
+
+## Game Flow
+
+The app uses a two-step flow:
+
+1. **New Game Setup** — Before any game starts, configure all settings (game mode, bot difficulty, invalid report threshold, King of the Hill, etc.) on a dedicated setup screen. Click **"Start Game"** to begin.
+2. **Active Game** — During play, the board and game UI are shown. All settings are locked and displayed as a read-only summary. Settings **cannot** be changed mid-game. Click **"New Game"** to return to the setup screen and configure a different match.
 
 ## King of the Hill (Optional)
 
@@ -143,16 +150,19 @@ src/
 ├── bot/
 │   └── botEngine.ts    # Bot move selection (easy/medium/hard)
 ├── components/
-│   ├── Chessboard.tsx  # Custom board UI (click-to-move)
-│   ├── GameStatus.tsx  # Turn indicator, report button, result
-│   ├── GameControls.tsx # Mode/config/new game UI
-│   ├── MoveList.tsx    # Move history sidebar
-│   └── RulesPanel.tsx  # Expandable rule explanation
+│   ├── Chessboard.tsx        # Custom board UI (click-to-move)
+│   ├── GameStatus.tsx        # Turn indicator, report button, result
+│   ├── GameControls.tsx      # New Game button + bot-vs-bot controls
+│   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
+│   ├── NewGameSetupScreen.tsx # Pre-game setup form
+│   ├── MoveList.tsx          # Move history sidebar
+│   └── RulesPanel.tsx        # Expandable rule explanation
 ├── hooks/
 │   └── useGame.ts      # React game state hook
 └── __tests__/
-    ├── engine.test.ts  # 54 core logic tests (including KOTH)
-    └── bot.test.ts     # 8 bot tests (including KOTH)
+    ├── engine.test.ts    # 54 core logic tests (including KOTH)
+    ├── bot.test.ts       # 8 bot tests (including KOTH)
+    └── app-flow.test.tsx # 16 UI flow tests (setup → play → new game)
 ```
 
 ### Separation of Concerns
