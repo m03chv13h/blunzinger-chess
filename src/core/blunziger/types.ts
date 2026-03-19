@@ -60,6 +60,22 @@ export interface GameState {
   botColor: Color;
 }
 
+export interface GameSetupConfig {
+  mode: GameMode;
+  botSide: Color;
+  botDifficulty: BotLevel;
+  invalidReportLossThreshold: number;
+  enableKingOfTheHill: boolean;
+}
+
+export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
+  mode: 'hvh',
+  botSide: 'b',
+  botDifficulty: 'easy',
+  invalidReportLossThreshold: 2,
+  enableKingOfTheHill: false,
+};
+
 export const DEFAULT_CONFIG: BlunzigerConfig = {
   invalidReportLossThreshold: 2,
   enableKingOfTheHill: false,

@@ -1,22 +1,75 @@
-import type { Square, Color, GameMode, BotLevel, BlunzigerConfig } from './core/blunziger/types';
+import { useState } from 'react';
+import type { GameSetupConfig } from './core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from './core/blunziger/types';
+import type { Square } from './core/blunziger/types';
 import { Chessboard } from './components/Chessboard';
 import { MoveList } from './components/MoveList';
 import { GameStatus } from './components/GameStatus';
 import { GameControls } from './components/GameControls';
+import { GameSummaryPanel } from './components/GameSummaryPanel';
+import { NewGameSetupScreen } from './components/NewGameSetupScreen';
 import { RulesPanel } from './components/RulesPanel';
 import { useGame } from './hooks/useGame';
 import './App.css';
 
+type AppScreen =
+  | { type: 'setup' }
+  | { type: 'playing'; config: GameSetupConfig };
+
 function App() {
-  const game = useGame();
+  const [screen, setScreen] = useState<AppScreen>({ type: 'setup' });
+  const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
+
+  const activeConfig = screen.type === 'playing' ? screen.config : lastConfig;
+
+  const game = useGame(
+    activeConfig.mode,
+    {
+      invalidReportLossThreshold: activeConfig.invalidReportLossThreshold,
+      enableKingOfTheHill: activeConfig.enableKingOfTheHill,
+    },
+    activeConfig.botDifficulty,
+    activeConfig.botSide,
+  );
+
+  const handleStartGame = (config: GameSetupConfig) => {
+    setLastConfig(config);
+    setScreen({ type: 'playing', config });
+    game.resetGame(
+      config.mode,
+      {
+        invalidReportLossThreshold: config.invalidReportLossThreshold,
+        enableKingOfTheHill: config.enableKingOfTheHill,
+      },
+      config.botDifficulty,
+      config.botSide,
+    );
+  };
+
+  const handleNewGame = () => {
+    setScreen({ type: 'setup' });
+  };
 
   const handleMove = (from: Square, to: Square, promotion?: string): boolean => {
     return game.makeMove(from, to, promotion);
   };
 
-  const handleNewGame = (mode: GameMode, config: BlunzigerConfig, botLevel: BotLevel, botColor: Color) => {
-    game.resetGame(mode, config, botLevel, botColor);
-  };
+  if (screen.type === 'setup') {
+    return (
+      <div className="app">
+        <header className="app-header">
+          <h1>♟ Blunziger Chess</h1>
+          <p className="subtitle">Standard chess + forced check rule</p>
+        </header>
+        <main className="app-main">
+          <NewGameSetupScreen
+            initialConfig={lastConfig}
+            onStartGame={handleStartGame}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -27,17 +80,14 @@ function App() {
 
       <main className="app-main">
         <aside className="left-panel">
+          <GameSummaryPanel config={screen.config} />
           <GameControls
-            currentMode={game.state.mode}
-            currentConfig={game.state.config}
-            currentBotLevel={game.state.botLevel}
-            currentBotColor={game.state.botColor}
             onNewGame={handleNewGame}
             paused={game.paused}
             onPauseToggle={game.setPaused}
             moveDelay={game.moveDelay}
             onMoveDelayChange={game.setMoveDelay}
-            isBotvBot={game.state.mode === 'botvbot'}
+            isBotvBot={screen.config.mode === 'botvbot'}
           />
           <RulesPanel />
         </aside>
@@ -48,7 +98,7 @@ function App() {
             onMove={handleMove}
             legalMovesFrom={game.legalMovesFrom}
             interactive={game.isPlayerTurn}
-            flipped={game.state.mode === 'hvbot' && game.state.botColor === 'w'}
+            flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
           />
         </section>
 
