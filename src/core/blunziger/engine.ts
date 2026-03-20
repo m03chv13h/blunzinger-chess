@@ -108,6 +108,16 @@ function didMoveGiveCheck(fenBefore: string, move: Move): boolean {
   return chess.inCheck();
 }
 
+/**
+ * Swap the active color in a FEN string (w↔b).
+ * Used for extra-turn handling where the same side moves twice consecutively.
+ */
+function swapFenTurn(fen: string): string {
+  const parts = fen.split(' ');
+  parts[1] = parts[1] === 'w' ? 'b' : 'w';
+  return parts.join(' ');
+}
+
 // ── Violation detection ──────────────────────────────────────────────
 
 /**
@@ -341,11 +351,6 @@ export function applyMoveWithRules(
 
   // ── Extra-turn state (Penalty mode) ──
   let newExtraTurns = { ...state.extraTurns };
-  // If this was an extra turn being consumed, decrement
-  const extraKey = movingSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
-  if (newExtraTurns[extraKey] > 0) {
-    newExtraTurns = { ...newExtraTurns, [extraKey]: newExtraTurns[extraKey] - 1 };
-  }
 
   // If a violation occurred in penalty mode (and game didn't end), grant opponent extra turn
   if (!result && newViolation && cfg.missedCheckPenalty === 'extra_move') {
@@ -355,24 +360,22 @@ export function applyMoveWithRules(
 
   // Determine effective side to move (may stay same for extra turns)
   let effectiveSideToMove = chess.turn();
+  let effectiveFen = newFen;
   if (!result) {
-    const nextExtraKey = effectiveSideToMove === 'w'
-      ? 'pendingExtraMovesBlack'
-      : 'pendingExtraMovesWhite';
     // If the side that just moved has pending extra moves, they keep moving
+    // and we consume one extra move in the process
     const movingSideKey = movingSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
     if (newExtraTurns[movingSideKey] > 0) {
+      newExtraTurns = { ...newExtraTurns, [movingSideKey]: newExtraTurns[movingSideKey] - 1 };
       effectiveSideToMove = movingSide;
+      // Swap the active color in the FEN so chess.js accepts the extra move
+      effectiveFen = swapFenTurn(newFen);
     }
-    // If the opponent (now to move normally) just got an extra turn from this violation,
-    // the normal chess.turn() gives them the turn already, which is correct.
-    // We only override when the *moving* side has leftover extras.
-    void nextExtraKey; // consumed above logic only
   }
 
   return {
     ...state,
-    fen: newFen,
+    fen: effectiveFen,
     moveHistory: [...state.moveHistory, move],
     sideToMove: effectiveSideToMove,
     pendingViolation: effectiveViolation,

@@ -68,3 +68,10 @@
 .start-game-btn:hover {
   background: #218838;
 }
+
+.mode-description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+}
