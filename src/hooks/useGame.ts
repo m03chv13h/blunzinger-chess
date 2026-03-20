@@ -77,19 +77,30 @@ export function useGame(
   );
   const clockActiveRef = useRef<number | null>(null); // timestamp of last tick
 
-  // Sync display clocks from state whenever state.clocks changes
+  // Sync display clocks from state whenever state.clocks changes.
+  // When lastTimestamp is null (fresh game), fall back to Date.now() so the
+  // clock tick interval starts counting immediately.
   useEffect(() => {
     if (state.clocks) {
       setClockWhiteMs(state.clocks.whiteMs);
       setClockBlackMs(state.clocks.blackMs);
-      clockActiveRef.current = state.clocks.lastTimestamp;
+      clockActiveRef.current = state.clocks.lastTimestamp ?? Date.now();
     }
   }, [state.clocks]);
 
-  // Clock tick interval
+  // Clock tick interval.
+  //
+  // Clock semantics during complex penalty flows:
+  // - During normal play: the side to move has the active (running) clock.
+  // - During pending piece removal: the chooser is the active side for clock
+  //   purposes (they must take the next required action).
+  // - Extra consecutive turns: the side with extra turns has the active clock.
+  // - If a terminal condition is reached (timeout, checkmate, check limit, etc.),
+  //   the clocks stop immediately.
   useEffect(() => {
     const cfg = stateRef.current.config;
     if (!cfg.overlays.enableClock) return;
+    if (state.result) return; // no interval needed once the game is over
 
     const tickClock = (side: 'w' | 'b', now: number, elapsed: number) => {
       const cur = stateRef.current;
@@ -99,10 +110,18 @@ export function useGame(
       const remaining = Math.max(0, cur.clocks[key] - elapsed);
       setDisplay(remaining);
       if (remaining <= 0) {
+        // Use stateRef for up-to-date clock values (the React state `prev`
+        // may be stale because only the tick updates clocks between renders).
+        const freshClocks = stateRef.current.clocks;
         setState((prev) => {
           if (prev.result) return prev;
           return applyTimeout(
-            { ...prev, clocks: { ...prev.clocks!, [key]: 0, lastTimestamp: now } },
+            {
+              ...prev,
+              clocks: freshClocks
+                ? { ...freshClocks, [key]: 0, lastTimestamp: now }
+                : { whiteMs: 0, blackMs: 0, lastTimestamp: now },
+            },
             side,
           );
         });
@@ -123,6 +142,10 @@ export function useGame(
       const elapsed = clockActiveRef.current ? now - clockActiveRef.current : 0;
       clockActiveRef.current = now;
 
+      // The active clock side is always sideToMove:
+      // - normal turn → side to move
+      // - pending piece removal → chooser (= sideToMove, set by engine)
+      // - extra turns → the side that still has turns (= sideToMove)
       tickClock(cur.sideToMove, now, elapsed);
     }, 100);
 
