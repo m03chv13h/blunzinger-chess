@@ -4,7 +4,7 @@ import {
   applyMoveWithRules,
   applyTimeout,
 } from '../core/blunziger/engine';
-import type { MatchConfig, ClockState } from '../core/blunziger/types';
+import type { MatchConfig, ClockState, Square } from '../core/blunziger/types';
 import { buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ describe('Clock – core timing logic', () => {
     });
     let state = createInitialState('hvh', cfg);
     // Simulate having a pending piece removal
-    state = { ...state, pendingPieceRemoval: { targetSide: 'w', chooserSide: 'b', removableSquares: ['a2' as any], remainingRemovals: 1 } };
+    state = { ...state, pendingPieceRemoval: { targetSide: 'w', chooserSide: 'b', removableSquares: ['a2' as Square], remainingRemovals: 1 } };
     state = applyTimeout(state, 'b');
     expect(state.result!.reason).toBe('timeout');
     expect(state.pendingPieceRemoval).toBeNull();
@@ -187,22 +187,16 @@ describe('Clock – core timing logic', () => {
 
   // ── Time reduction penalty ────────────────────────────────────────
 
-  it('time reduction penalty deducts seconds from violator clock', () => {
+  it('time reduction penalty config is properly set', () => {
     const cfg = clockConfig({
       gameType: 'penalty_on_miss',
       enableTimeReductionPenalty: true,
       timeReductionSeconds: 30,
     });
-    let state = createInitialState('hvh', cfg);
-    // Set up clocks
-    state = { ...state, clocks: { whiteMs: 60_000, blackMs: 300_000, lastTimestamp: Date.now() } };
-
-    // From starting position, white has checking moves available (none actually,
-    // but let's construct a scenario). We need a position where white misses a
-    // forced check. Let's just test that the engine properly applies time penalty
-    // when a violation occurs via applyMoveWithRules.
-    // This is already covered in modes.test.ts; here we verify clocks specifically.
-    expect(state.clocks!.whiteMs).toBe(60_000);
+    // Verify config propagates correctly
+    expect(cfg.penaltyConfig.enableTimeReductionPenalty).toBe(true);
+    expect(cfg.penaltyConfig.timeReductionSeconds).toBe(30);
+    expect(cfg.overlays.enableClock).toBe(true);
   });
 
   it('time penalty causing clock to reach 0 ends the game with timeout_penalty', () => {

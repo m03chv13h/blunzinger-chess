@@ -75,7 +75,7 @@ export function useGame(
   const [clockBlackMs, setClockBlackMs] = useState(
     initialConfig.overlays.enableClock ? initialConfig.overlays.initialTimeMs : 0,
   );
-  const clockActiveRef = useRef<number | null>(null); // timestamp when current turn started
+  const clockActiveRef = useRef<number | null>(null); // wall-clock timestamp when the active side's clock started ticking
   // Committed clock values — survives React re-renders (unlike stateRef which
   // gets overwritten with state on every render).  Updated only on moves,
   // penalties, resets, and other state-committed events.
@@ -120,6 +120,9 @@ export function useGame(
       if (pausedRef.current && cur.mode === 'botvbot') return;
 
       const now = Date.now();
+      // clockActiveRef is null only on the very first tick of a fresh game
+      // (before the sync effect has run). Falling back to `now` yields
+      // elapsed = 0 which is correct — no time has been consumed yet.
       const turnStart = clockActiveRef.current ?? now;
       const elapsed = now - turnStart;
 
