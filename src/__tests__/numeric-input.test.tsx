@@ -160,15 +160,15 @@ describe('Setup screen numeric input editing', () => {
     expect(within(summary).getByText('4')).toBeInTheDocument();
   });
 
-  it('move limit input can be edited cleanly', () => {
+  it('ply limit input can be edited cleanly', () => {
     render(<App />);
 
-    // Switch to a mode that shows move limit — king_hunter has moveLimit > 0
+    // Switch to a variant mode that shows ply limit
     fireEvent.change(screen.getByLabelText('Variant Mode'), {
-      target: { value: 'king_hunter' },
+      target: { value: 'classic_king_hunt_move_limit' },
     });
 
-    const input = screen.getByLabelText('Move Limit (full moves)') as HTMLInputElement;
+    const input = screen.getByLabelText('Ply Limit') as HTMLInputElement;
 
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: '' } });

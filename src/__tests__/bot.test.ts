@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
 import { getCheckingMoves, getLegalMoves } from '../core/blunziger/engine';
-import type { VariantConfig } from '../core/blunziger/types';
-import { DEFAULT_CONFIG, INITIAL_FEN } from '../core/blunziger/types';
+import type { MatchConfig } from '../core/blunziger/types';
+import { DEFAULT_CONFIG, DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
-const kothConfig: VariantConfig = { ...DEFAULT_CONFIG, enableKingOfTheHill: true };
+const kothConfig: MatchConfig = buildMatchConfig({
+  ...DEFAULT_SETUP_CONFIG,
+  enableKingOfTheHill: true,
+});
 
 describe('Bot Engine', () => {
   describe('selectBotMove', () => {
@@ -62,6 +65,34 @@ describe('Bot Engine', () => {
       const matedFen = 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3';
       const move = selectBotMove(matedFen, 'easy');
       expect(move).toBeNull();
+    });
+
+    it('should work with reverse blunzinger config', () => {
+      const reverseConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        variantMode: 'reverse_blunzinger',
+      });
+      const move = selectBotMove(INITIAL_FEN, 'easy', reverseConfig);
+      expect(move).not.toBeNull();
+    });
+
+    it('should work with penalty config', () => {
+      const penaltyConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        gameType: 'penalty_on_miss',
+        enableAdditionalMovePenalty: true,
+      });
+      const move = selectBotMove(INITIAL_FEN, 'hard', penaltyConfig);
+      expect(move).not.toBeNull();
+    });
+
+    it('should work with DCP overlay config', () => {
+      const dcpConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        enableDoubleCheckPressure: true,
+      });
+      const move = selectBotMove(INITIAL_FEN, 'easy', dcpConfig);
+      expect(move).not.toBeNull();
     });
   });
 
