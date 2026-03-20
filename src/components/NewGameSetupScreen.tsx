@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantModeId } from '../core/blunziger/types';
-import { GAME_MODE_DEFINITIONS, getGameModeDefinition } from '../core/blunziger/types';
+import { GAME_MODE_DEFINITIONS, getGameModeDefinition, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
 import './NewGameSetupScreen.css';
 
 interface NewGameSetupScreenProps {
@@ -24,7 +24,9 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
       incrementMs: def.config.incrementMs,
       moveLimit: def.config.moveLimit,
       missedCheckTimePenaltySeconds:
-        def.config.missedCheckPenalty === 'extra_move' && def.config.enableClock ? 5 : 0,
+        def.config.missedCheckPenalty === 'extra_move' && def.config.enableClock
+          ? DEFAULT_SETUP_CONFIG.missedCheckTimePenaltySeconds
+          : 0,
     });
   };
 
