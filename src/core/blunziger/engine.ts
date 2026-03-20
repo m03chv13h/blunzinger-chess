@@ -351,11 +351,29 @@ export function applyMoveWithRules(
 
   // ── Extra-turn state (Penalty mode) ──
   let newExtraTurns = { ...state.extraTurns };
+  let newClocks = state.clocks;
 
   // If a violation occurred in penalty mode (and game didn't end), grant opponent extra turn
   if (!result && newViolation && cfg.missedCheckPenalty === 'extra_move') {
     const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
     newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
+
+    // ── Clock penalty for missed check (penalty + clock mode) ──
+    if (cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
+      const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
+      const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
+      const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+      newClocks = { ...newClocks, [clockKey]: remaining };
+
+      if (remaining <= 0) {
+        const sideLabel = movingSide === 'w' ? 'White' : 'Black';
+        result = {
+          winner: opponentSide,
+          reason: 'timeout_penalty',
+          detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
+        };
+      }
+    }
   }
 
   // Determine effective side to move (may stay same for extra turns)
@@ -384,6 +402,7 @@ export function applyMoveWithRules(
     scores: newScores,
     plyCount: newPlyCount,
     extraTurns: newExtraTurns,
+    clocks: newClocks,
   };
 }
 

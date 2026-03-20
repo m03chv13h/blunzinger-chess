@@ -147,6 +147,8 @@ function formatReason(reason: string): string {
       return 'Reverse Blunziger violation';
     case 'timeout':
       return 'Timeout';
+    case 'timeout_penalty':
+      return 'Timeout (missed check penalty)';
     case 'score_limit':
       return 'Score limit reached';
     case 'score_limit_draw':

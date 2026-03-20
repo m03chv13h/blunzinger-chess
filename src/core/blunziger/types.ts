@@ -25,6 +25,8 @@ export interface VariantConfig {
   initialTimeMs: number;
   incrementMs: number;
   missedCheckPenalty: 'loss' | 'extra_move';
+  /** Seconds subtracted from violator's clock on missed forced check (penalty + clock mode). 0 = disabled. */
+  missedCheckTimePenaltySeconds: number;
   scoringMode: 'none' | 'checks_count';
   gameEndsOnCheckmate: boolean;
   moveLimit: number;
@@ -56,6 +58,7 @@ const BASE_VARIANT_CONFIG: VariantConfig = {
   initialTimeMs: 0,
   incrementMs: 0,
   missedCheckPenalty: 'loss',
+  missedCheckTimePenaltySeconds: 0,
   scoringMode: 'none',
   gameEndsOnCheckmate: true,
   moveLimit: 0,
@@ -147,6 +150,7 @@ export type GameResultReason =
   | 'double_check_pressure_violation'
   | 'reverse_blunziger_violation'
   | 'timeout'
+  | 'timeout_penalty'
   | 'score_limit'
   | 'score_limit_draw';
 
@@ -227,6 +231,8 @@ export interface GameSetupConfig {
   initialTimeMs: number;
   incrementMs: number;
   moveLimit: number;
+  /** Seconds subtracted from violator's clock on missed forced check (penalty + clock mode). */
+  missedCheckTimePenaltySeconds: number;
 }
 
 export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
@@ -239,6 +245,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   initialTimeMs: 5 * 60 * 1000,
   incrementMs: 0,
   moveLimit: 40,
+  missedCheckTimePenaltySeconds: 5,
 };
 
 /** Build a frozen VariantConfig from the setup choices. */
@@ -252,6 +259,9 @@ export function buildVariantConfig(setup: GameSetupConfig): VariantConfig {
       ? { initialTimeMs: setup.initialTimeMs, incrementMs: setup.incrementMs }
       : {}),
     ...(base.moveLimit > 0 ? { moveLimit: setup.moveLimit } : {}),
+    ...(base.missedCheckPenalty === 'extra_move' && base.enableClock
+      ? { missedCheckTimePenaltySeconds: setup.missedCheckTimePenaltySeconds }
+      : {}),
   };
 }
 

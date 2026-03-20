@@ -17,7 +17,7 @@ The app ships with **6 built-in variant modes** selected before each game. Once 
 | **Classic Blunziger** | If a checking move exists, you are expected to play it. Opponent can report a miss for immediate loss. |
 | **Double Check Pressure** | Like Classic, but if ≥2 checking moves exist and you miss them, you lose **immediately** (no report needed). |
 | **Blitz Blunziger** | Classic Blunziger with chess clocks. Time runs out = loss. |
-| **Penalty Instead of Loss** | Missing a forced check gives the opponent one **extra consecutive move** instead of loss. |
+| **Penalty Instead of Loss** | Missing a forced check gives the opponent one **extra consecutive move** instead of loss. With clocks: also subtracts configurable seconds from violator's time. |
 | **King Hunter** | Checks score points. Game ends at a move limit. Higher score wins. |
 | **Reverse Blunziger** | If a checking move exists, you must **avoid** giving check. Violation = immediate loss. |
 
@@ -50,6 +50,7 @@ Classic Blunziger with countdown clocks:
 - After the violating player's move, the opponent makes their normal move, then gets a second consecutive move
 - Turn order resumes normally afterward
 - The "Report Missed Check" button is **disabled** in this mode
+- **Clock Penalty (Blitz):** When combined with chess clocks, a missed forced check also subtracts a configurable number of seconds (default: 5) from the violating player's remaining time. If the clock reaches 0 from this penalty, that player loses immediately (result: `timeout_penalty`). The penalty amount is configurable in the setup screen.
 
 #### King Hunter
 - Each time a player gives check, they score **1 point**
