@@ -162,4 +162,92 @@ describe('App game flow', () => {
       expect(within(summary).getByText('Off')).toBeInTheDocument();
     });
   });
+
+  describe('CLOCK SETUP', () => {
+    it('shows Enable Clock checkbox', () => {
+      const checkbox = screen.getByLabelText('Enable Clock') as HTMLInputElement;
+      expect(checkbox).toBeInTheDocument();
+      expect(checkbox.checked).toBe(false);
+    });
+
+    it('shows single time input when clock is enabled', () => {
+      fireEvent.click(screen.getByLabelText('Enable Clock'));
+      const input = screen.getByLabelText('Initial time (minutes)') as HTMLInputElement;
+      expect(input).toBeInTheDocument();
+      expect(input.value).toBe('5'); // default 5 minutes
+    });
+
+    it('does not show per-side time inputs', () => {
+      fireEvent.click(screen.getByLabelText('Enable Clock'));
+      expect(screen.queryByLabelText(/White time/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Black time/i)).not.toBeInTheDocument();
+    });
+
+    it('hides time input when clock is disabled', () => {
+      expect(screen.queryByLabelText('Initial time (minutes)')).not.toBeInTheDocument();
+    });
+
+    it('clock summary shows chosen time during play', () => {
+      fireEvent.click(screen.getByLabelText('Enable Clock'));
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summary).getByText('5 min')).toBeInTheDocument();
+    });
+  });
+
+  describe('PENALTY CHECKBOXES', () => {
+    it('shows penalty checkboxes for Classic Blunziger', () => {
+      expect(screen.getByLabelText('Additional move')).toBeInTheDocument();
+      expect(screen.getByLabelText('Piece removal')).toBeInTheDocument();
+      expect(screen.getByLabelText('Time reduction')).toBeInTheDocument();
+    });
+
+    it('penalty checkboxes default to unchecked', () => {
+      expect((screen.getByLabelText('Additional move') as HTMLInputElement).checked).toBe(false);
+      expect((screen.getByLabelText('Piece removal') as HTMLInputElement).checked).toBe(false);
+      expect((screen.getByLabelText('Time reduction') as HTMLInputElement).checked).toBe(false);
+    });
+
+    it('time reduction checkbox is disabled when clock is off', () => {
+      expect((screen.getByLabelText('Time reduction') as HTMLInputElement).disabled).toBe(true);
+    });
+
+    it('time reduction checkbox is enabled when clock is on', () => {
+      fireEvent.click(screen.getByLabelText('Enable Clock'));
+      expect((screen.getByLabelText('Time reduction') as HTMLInputElement).disabled).toBe(false);
+    });
+
+    it('time reduction seconds field appears when time reduction is checked and clock is on', () => {
+      fireEvent.click(screen.getByLabelText('Enable Clock'));
+      fireEvent.click(screen.getByLabelText('Time reduction'));
+      expect(screen.getByLabelText('Time reduction (seconds)')).toBeInTheDocument();
+    });
+
+    it('time reduction seconds field hidden when time reduction is unchecked', () => {
+      expect(screen.queryByLabelText('Time reduction (seconds)')).not.toBeInTheDocument();
+    });
+
+    it('penalty checkboxes hidden for Reverse Blunziger', () => {
+      fireEvent.change(screen.getByLabelText('Variant Mode'), { target: { value: 'reverse_blunziger' } });
+      expect(screen.queryByLabelText('Additional move')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Piece removal')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Time reduction')).not.toBeInTheDocument();
+    });
+
+    it('summary shows penalties when enabled', () => {
+      fireEvent.click(screen.getByLabelText('Additional move'));
+      fireEvent.click(screen.getByLabelText('Piece removal'));
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summary).getByText(/Additional move/)).toBeInTheDocument();
+      expect(within(summary).getByText(/Piece removal/)).toBeInTheDocument();
+    });
+
+    it('threshold hidden when penalties are enabled', () => {
+      fireEvent.click(screen.getByLabelText('Additional move'));
+      expect(screen.queryByLabelText('Invalid Report Loss Threshold')).not.toBeInTheDocument();
+    });
+  });
 });

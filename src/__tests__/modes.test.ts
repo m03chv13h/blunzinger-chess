@@ -1211,3 +1211,250 @@ describe('getNonCheckingMoves', () => {
     expect(nonChecks.length).toBeGreaterThan(0);
   });
 });
+
+// ── Combined Penalty Tests ────────────────────────────────────────────
+
+describe('Combined penalty behavior', () => {
+  it('extra move + piece removal combined: both apply on violation', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+      enablePieceRemovalPenalty: true,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White has Qh5+ but misses
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).toBeNull();
+    // Extra move should be granted
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    // Piece removal should be pending
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.targetSide).toBe('w');
+  });
+
+  it('extra move + time reduction combined: both apply on violation', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      timeReductionSeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.clocks!.whiteMs).toBe(295000);
+  });
+
+  it('all three penalties combined: extra move + piece removal + time reduction', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      timeReductionSeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(295000);
+  });
+
+  it('penalties not applied when move ends game (checkmate)', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      timeReductionSeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.extraTurns.pendingExtraMovesWhite).toBe(0);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('piece removal + time reduction: timeout from time reduction clears piece removal', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 3000,
+      incrementMs: 0,
+      timeReductionSeconds: 10,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('extra move can be enabled independently', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('piece removal can be enabled independently', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enablePieceRemovalPenalty: true,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+  });
+
+  it('time reduction can be enabled independently', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      timeReductionSeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.clocks!.whiteMs).toBe(295000);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('no penalties selected falls back to report-based handling', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      // No penalty flags enabled
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.pendingViolation).not.toBeNull();
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(canReport(state, 'b')).toBe(true);
+  });
+
+  it('report button disabled when any penalty is enabled', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableExtraMovePenalty: true,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(canReport(state, 'b')).toBe(false);
+  });
+
+  it('same initial time is assigned to both sides', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableClock: true,
+      initialTimeMs: 300000,
+    };
+    const state = createInitialState('hvh', cfg);
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('time reduction penalty subtracts from violator only', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      timeReductionSeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check
+
+    expect(state.clocks!.whiteMs).toBe(295000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('timeout by time reduction penalty ends game immediately', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableTimeReductionPenalty: true,
+      enableClock: true,
+      initialTimeMs: 3000,
+      incrementMs: 0,
+      timeReductionSeconds: 10,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
+    expect(state.clocks!.whiteMs).toBe(0);
+  });
+
+  it('King of the Hill still combines correctly with clock', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      enableKingOfTheHill: true,
+      enableClock: true,
+      initialTimeMs: 300000,
+    };
+    const state = createInitialState('hvh', cfg);
+    expect(state.config.enableKingOfTheHill).toBe(true);
+    expect(state.config.enableClock).toBe(true);
+    expect(state.clocks).not.toBeNull();
+  });
+});
