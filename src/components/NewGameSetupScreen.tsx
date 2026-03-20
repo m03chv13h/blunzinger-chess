@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantModeId } from '../core/blunziger/types';
 import { GAME_MODE_DEFINITIONS, getGameModeDefinition, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import { NumericInput } from './NumericInput';
 import './NewGameSetupScreen.css';
 
 interface NewGameSetupScreenProps {
@@ -111,15 +112,13 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
         {showThreshold && (
           <div className="setup-group">
             <label htmlFor="threshold-input">Invalid Report Loss Threshold</label>
-            <input
+            <NumericInput
               id="threshold-input"
-              type="number"
+              value={config.invalidReportLossThreshold}
+              onChange={(v) => update({ invalidReportLossThreshold: v })}
               min={1}
               max={10}
-              value={config.invalidReportLossThreshold}
-              onChange={(e) =>
-                update({ invalidReportLossThreshold: Math.max(1, parseInt(e.target.value) || 2) })
-              }
+              fallback={2}
             />
           </div>
         )}
@@ -128,28 +127,24 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           <>
             <div className="setup-group">
               <label htmlFor="time-control-input">Time per side (minutes)</label>
-              <input
+              <NumericInput
                 id="time-control-input"
-                type="number"
+                value={Math.round(config.initialTimeMs / 60000)}
+                onChange={(v) => update({ initialTimeMs: v * 60000 })}
                 min={1}
                 max={60}
-                value={Math.round(config.initialTimeMs / 60000)}
-                onChange={(e) =>
-                  update({ initialTimeMs: Math.max(1, parseInt(e.target.value) || 5) * 60000 })
-                }
+                fallback={5}
               />
             </div>
             <div className="setup-group">
               <label htmlFor="increment-input">Increment (seconds)</label>
-              <input
+              <NumericInput
                 id="increment-input"
-                type="number"
+                value={Math.round(config.incrementMs / 1000)}
+                onChange={(v) => update({ incrementMs: v * 1000 })}
                 min={0}
                 max={30}
-                value={Math.round(config.incrementMs / 1000)}
-                onChange={(e) =>
-                  update({ incrementMs: Math.max(0, parseInt(e.target.value) || 0) * 1000 })
-                }
+                fallback={0}
               />
             </div>
           </>
@@ -158,15 +153,13 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
         {showTimePenalty && (
           <div className="setup-group">
             <label htmlFor="time-penalty-input">Missed check time penalty (seconds)</label>
-            <input
+            <NumericInput
               id="time-penalty-input"
-              type="number"
+              value={config.missedCheckTimePenaltySeconds}
+              onChange={(v) => update({ missedCheckTimePenaltySeconds: v })}
               min={0}
               max={60}
-              value={config.missedCheckTimePenaltySeconds}
-              onChange={(e) =>
-                update({ missedCheckTimePenaltySeconds: Math.max(0, parseInt(e.target.value) || 0) })
-              }
+              fallback={0}
             />
           </div>
         )}
@@ -174,15 +167,13 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
         {showMoveLimit && (
           <div className="setup-group">
             <label htmlFor="movelimit-input">Move Limit (full moves)</label>
-            <input
+            <NumericInput
               id="movelimit-input"
-              type="number"
+              value={config.moveLimit}
+              onChange={(v) => update({ moveLimit: v })}
               min={5}
               max={200}
-              value={config.moveLimit}
-              onChange={(e) =>
-                update({ moveLimit: Math.max(5, parseInt(e.target.value) || 40) })
-              }
+              fallback={40}
             />
           </div>
         )}
