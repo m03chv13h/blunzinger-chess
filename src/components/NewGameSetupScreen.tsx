@@ -24,7 +24,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
       incrementMs: def.config.incrementMs,
       moveLimit: def.config.moveLimit,
       missedCheckTimePenaltySeconds:
-        def.config.missedCheckPenalty === 'extra_move' && def.config.enableClock
+        def.config.missedCheckPenalty !== 'loss'
           ? DEFAULT_SETUP_CONFIG.missedCheckTimePenaltySeconds
           : 0,
     });
@@ -35,10 +35,10 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   };
 
   const activeDef = getGameModeDefinition(config.variantModeId);
-  const showClock = activeDef.config.enableClock;
+  const showClock = activeDef.config.enableClock || config.enableClock;
   const showMoveLimit = activeDef.config.moveLimit > 0;
   const showThreshold = activeDef.config.enableBlunziger && activeDef.config.missedCheckPenalty === 'loss';
-  const showTimePenalty = activeDef.config.missedCheckPenalty === 'extra_move' && activeDef.config.enableClock;
+  const showTimePenalty = activeDef.config.missedCheckPenalty !== 'loss' && showClock;
   // KOTH can combine with any mode except those where it materially conflicts
   const showKoth = true;
 
@@ -199,6 +199,19 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
             </label>
           </div>
         )}
+
+        {/* ── Blitz (Clock Overlay) ── */}
+        <div className="setup-group checkbox-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={config.enableClock || activeDef.config.enableClock}
+              disabled={activeDef.config.enableClock}
+              onChange={(e) => update({ enableClock: e.target.checked })}
+            />
+            Enable Blitz (Chess Clocks)
+          </label>
+        </div>
 
         <button className="start-game-btn" onClick={handleStart}>
           ▶ Start Game

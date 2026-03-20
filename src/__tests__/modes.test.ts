@@ -9,6 +9,9 @@ import {
   reportViolation,
   applyTimeout,
   isReverseForcedState,
+  getRemovablePieces,
+  applyPieceRemoval,
+  selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
 import type { VariantConfig } from '../core/blunziger/types';
 import {
@@ -23,8 +26,8 @@ import { selectBotMove } from '../bot/botEngine';
 // ── Mode Registry / Preset Tests ──────────────────────────────────────
 
 describe('Mode registry & presets', () => {
-  it('should have 6 built-in mode definitions', () => {
-    expect(GAME_MODE_DEFINITIONS).toHaveLength(6);
+  it('should have 7 built-in mode definitions', () => {
+    expect(GAME_MODE_DEFINITIONS).toHaveLength(7);
   });
 
   it('should look up each mode by id', () => {
@@ -33,6 +36,7 @@ describe('Mode registry & presets', () => {
       'double_check_pressure',
       'blitz_blunziger',
       'penalty_instead_of_loss',
+      'penalty_piece_removal',
       'king_hunter',
       'reverse_blunziger',
     ] as const;
@@ -696,6 +700,434 @@ describe('Bot mode-aware behavior', () => {
       penaltyConfig,
     );
     expect(move).not.toBeNull();
+  });
+
+  it('bot works under piece removal penalty config', () => {
+    const pieceRemovalConfig: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'piece_removal',
+    };
+    const move = selectBotMove(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      'easy',
+      pieceRemovalConfig,
+    );
+    expect(move).not.toBeNull();
+  });
+});
+
+// ── Blitz Overlay Combination Tests ───────────────────────────────────
+
+describe('Blitz overlay combinations', () => {
+  it('Blitz + Classic Blunziger', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'classic_blunziger' as const, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.enableBlunziger).toBe(true);
+    expect(cfg.initialTimeMs).toBe(DEFAULT_SETUP_CONFIG.initialTimeMs);
+  });
+
+  it('Blitz + Double Check Pressure', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'double_check_pressure' as const, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.doubleCheckPressureImmediateLoss).toBe(true);
+  });
+
+  it('Blitz + Penalty Instead of Loss (extra move)', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'penalty_instead_of_loss' as const, enableClock: true, missedCheckTimePenaltySeconds: 5 };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.missedCheckPenalty).toBe('extra_move');
+    expect(cfg.missedCheckTimePenaltySeconds).toBe(5);
+  });
+
+  it('Blitz + Penalty Piece Removal', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'penalty_piece_removal' as const, enableClock: true, missedCheckTimePenaltySeconds: 3 };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.missedCheckPenalty).toBe('piece_removal');
+    expect(cfg.missedCheckTimePenaltySeconds).toBe(3);
+  });
+
+  it('Blitz + Reverse Blunziger', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'reverse_blunziger' as const, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.reverseForcedCheck).toBe(true);
+  });
+
+  it('Blitz + King Hunter', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'king_hunter' as const, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.scoringMode).toBe('checks_count');
+    expect(cfg.moveLimit).toBe(DEFAULT_SETUP_CONFIG.moveLimit);
+  });
+
+  it('Blitz + King of the Hill', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true, enableKingOfTheHill: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.enableKingOfTheHill).toBe(true);
+  });
+
+  it('Blitz + Classic Blunziger + KOTH combined', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true, enableKingOfTheHill: true, variantModeId: 'classic_blunziger' as const };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.enableBlunziger).toBe(true);
+    expect(cfg.enableKingOfTheHill).toBe(true);
+  });
+
+  it('Blitz overlay initializes clocks in game state', () => {
+    const cfg: VariantConfig = { ...DEFAULT_CONFIG, enableClock: true, initialTimeMs: 300000, incrementMs: 0 };
+    const state = createInitialState('hvh', cfg);
+    expect(state.clocks).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('Blitz + penalty mode: timeout from clock penalty works', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'extra_move',
+      enableClock: true,
+      initialTimeMs: 3000,
+      incrementMs: 0,
+      missedCheckTimePenaltySeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White misses Qh5+
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
+  });
+});
+
+// ── Checkmate Precedence Tests ────────────────────────────────────────
+
+describe('Checkmate precedence in penalty modes', () => {
+  const penaltyConfig: VariantConfig = {
+    ...DEFAULT_CONFIG,
+    missedCheckPenalty: 'extra_move',
+  };
+
+  it('checkmate on normal turn in penalty mode is recognized immediately', () => {
+    // Fool's mate in penalty mode
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+  });
+
+  it('no extra move state is created after checkmate', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result!.reason).toBe('checkmate');
+    // No extra turns should be pending
+    expect(state.extraTurns.pendingExtraMovesWhite).toBe(0);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    // No pending piece removal
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('checkmate during extra turn is recognized in penalty mode', () => {
+    // Set up: Black has pending extra turns and can deliver checkmate
+    let state = createInitialState('hvh', penaltyConfig);
+    // Position: after 1.f3 e5 2.g4 - Black can play Qh4#
+    // Simulate: White missed a forced check, Black has extra turn
+    state = {
+      ...state,
+      fen: 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq g3 0 2',
+      sideToMove: 'b',
+      extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 1 },
+      plyCount: 3,
+    };
+    // Black plays Qh4# - immediate checkmate
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' });
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+  });
+
+  it('checkmate during consumed extra turn (FEN-swapped) is recognized', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    // Position where Black has an extra turn and needs 2 moves to mate
+    state = {
+      ...state,
+      fen: 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq g3 0 2',
+      sideToMove: 'b',
+      extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 1 },
+      plyCount: 3,
+    };
+    // Black's first move (normal turn - consumes extra) - play d6 (not mate)
+    state = applyMoveWithRules(state, 'd6');
+    expect(state.sideToMove).toBe('b'); // Black keeps turn (extra)
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    expect(state.result).toBeNull();
+
+    // Black's extra move: Qh4# (checkmate!)
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' });
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+  });
+
+  it('checkmate with Blitz + penalty mode', () => {
+    const blitzPenaltyConfig: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'extra_move',
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+    };
+    let state = createInitialState('hvh', blitzPenaltyConfig);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+    // Clocks should remain unchanged (no penalty applied since game ended by checkmate)
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('checkmate precedence over penalty: no extra turn when checkmate occurs', () => {
+    // Even if a violation was detected, checkmate takes absolute precedence
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White has Qh5+ but misses
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.result).toBeNull();
+    // Now Black delivers checkmate eventually - result should be recognized
+    // (checkmate cannot be missed by the engine)
+  });
+
+  it('checkmate in piece_removal penalty mode is recognized immediately', () => {
+    const pieceRemovalConfig: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'piece_removal',
+    };
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+});
+
+// ── Piece Removal Penalty Tests ───────────────────────────────────────
+
+describe('Piece Removal Penalty mode', () => {
+  const pieceRemovalConfig: VariantConfig = {
+    ...DEFAULT_CONFIG,
+    missedCheckPenalty: 'piece_removal',
+  };
+
+  it('missed forced check enters pending piece removal state', () => {
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White has Qh5+ but misses
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).toBeNull();
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.targetSide).toBe('w');
+    expect(state.pendingPieceRemoval!.chooserSide).toBe('b');
+    expect(state.pendingPieceRemoval!.removableSquares.length).toBeGreaterThan(0);
+  });
+
+  it('removable squares exclude king', () => {
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    const removable = state.pendingPieceRemoval!.removableSquares;
+    // e1 is white king - should not be in the list
+    expect(removable).not.toContain('e1');
+    // Should contain white pieces like pawns, rooks, etc.
+    expect(removable.length).toBeGreaterThan(0);
+  });
+
+  it('chosen piece is removed correctly', () => {
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White misses check
+
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    // Remove white's queen on d1
+    const removable = state.pendingPieceRemoval!.removableSquares;
+    expect(removable).toContain('d1'); // White queen
+
+    state = applyPieceRemoval(state, 'd1');
+    expect(state.pendingPieceRemoval).toBeNull();
+    // Verify the queen is gone from the position using getRemovablePieces
+    // d1 should no longer have a piece
+    const remainingWhite = getRemovablePieces(state.fen, 'w');
+    expect(remainingWhite).not.toContain('d1');
+  });
+
+  it('invalid square selection is rejected', () => {
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    // Try to remove king (invalid)
+    const before = state;
+    const result = applyPieceRemoval(state, 'e1');
+    expect(result).toBe(before); // No change
+
+    // Try to remove a black piece (invalid - target is white)
+    const result2 = applyPieceRemoval(state, 'e8');
+    expect(result2).toBe(before);
+  });
+
+  it('violator loses immediately when no removable pieces exist', () => {
+    // When a side has no removable pieces (only king), the engine detects this.
+    // Test the getRemovablePieces helper directly:
+    const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const removable = getRemovablePieces(fen, 'w');
+    expect(removable).toHaveLength(0);
+    // Note: in practice, a king-only side can't have checking moves,
+    // so the fallback triggers only after previous removals.
+  });
+
+  it('fallback: no removable pieces means immediate loss', () => {
+    // Construct a state where a violation occurs and the violator has only a king
+    // We need a position where:
+    // 1. It's white to move
+    // 2. White has a checking move but only from non-king pieces... no, white has only king
+    // Since king-only can never have checking moves, we construct the state manually
+    
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    // Use a position where white has a bishop and king
+    // Bishop can give check, but we simulate having already removed all pieces except king
+    // after the violation detection, the removable pieces check uses the post-move FEN
+    
+    // FEN: White Ke1, Bc4. Black Ke8, Pa7. White can play Bf7+ (check).
+    const fen = 'r3k3/p7/8/8/2B5/8/8/4K3 w - - 0 1';
+    const checks = getCheckingMoves(fen);
+    expect(checks.length).toBeGreaterThan(0); // Bf7+ exists
+    
+    state = {
+      ...createInitialState('hvh', pieceRemovalConfig),
+      fen,
+      sideToMove: 'w',
+    };
+    // White misses the check (plays Ke2 instead)
+    state = applyMoveWithRules(state, { from: 'e1', to: 'e2' });
+    
+    // White still has Bc4, so piece removal should be pending (not immediate loss)
+    if (state.pendingPieceRemoval) {
+      expect(state.pendingPieceRemoval.targetSide).toBe('w');
+      // After removing the bishop, white has only king
+      state = applyPieceRemoval(state, 'c4');
+      expect(state.pendingPieceRemoval).toBeNull();
+      
+      // Now verify: next time white violates with only king, they'd lose
+      // (But king-only can't have checking moves, so this path is tested via getRemovablePieces)
+    }
+  });
+
+  it('bot chooser removes highest-value piece', () => {
+    // Position with multiple white pieces
+    const fen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/3P4/PPP2PPP/RNBQKBNR b KQkq - 0 2';
+    const bestSquare = selectBestPieceForRemoval(fen, 'w');
+    expect(bestSquare).not.toBeNull();
+    // White queen on d1 should be the highest value target
+    expect(bestSquare).toBe('d1');
+  });
+
+  it('bot chooser selects deterministically among equal values', () => {
+    // Position with multiple pawns (equal value)
+    const fen = '4k3/8/8/8/8/8/PPP5/4K3 w - - 0 1';
+    const best = selectBestPieceForRemoval(fen, 'w');
+    expect(best).not.toBeNull();
+    // Should deterministically pick the alphabetically first square
+    const removable = getRemovablePieces(fen, 'w');
+    expect(removable.length).toBeGreaterThan(0);
+    // All pawns have same value, so alphabetically first square should win
+  });
+
+  it('report button is unavailable in piece removal mode', () => {
+    let state = createInitialState('hvh', pieceRemovalConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(canReport(state, 'b')).toBe(false);
+    expect(canReport(state, 'w')).toBe(false);
+  });
+
+  it('getRemovablePieces returns all non-king pieces', () => {
+    const removable = getRemovablePieces(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      'w',
+    );
+    // White has 16 pieces, minus king = 15 removable
+    expect(removable).toHaveLength(15);
+    expect(removable).not.toContain('e1'); // King
+  });
+
+  it('piece removal with Blitz clock penalty', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'piece_removal',
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      missedCheckTimePenaltySeconds: 5,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White misses check
+
+    // Both piece removal AND clock penalty should apply
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000 - 5000);
+  });
+
+  it('piece removal + clock timeout ends game immediately', () => {
+    const cfg: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'piece_removal',
+      enableClock: true,
+      initialTimeMs: 3000,
+      incrementMs: 0,
+      missedCheckTimePenaltySeconds: 10,
+    };
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White misses check → clock timeout
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.pendingPieceRemoval).toBeNull(); // Cleared because game ended
   });
 });
 

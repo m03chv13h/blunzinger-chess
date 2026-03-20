@@ -97,6 +97,9 @@ function App() {
             legalMovesFrom={game.legalMovesFrom}
             interactive={game.isPlayerTurn}
             flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
+            pendingPieceRemoval={game.pendingPieceRemoval}
+            removableSquares={game.removableSquares}
+            onPieceRemoval={game.selectPieceForRemoval}
           />
         </section>
 

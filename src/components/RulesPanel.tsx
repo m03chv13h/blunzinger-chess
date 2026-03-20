@@ -26,6 +26,7 @@ export function RulesPanel({ variantModeId }: RulesPanelProps) {
           {variantModeId === 'double_check_pressure' && <DoubleCheckPressureRules />}
           {variantModeId === 'blitz_blunziger' && <BlitzRules />}
           {variantModeId === 'penalty_instead_of_loss' && <PenaltyRules />}
+          {variantModeId === 'penalty_piece_removal' && <PieceRemovalRules />}
           {variantModeId === 'king_hunter' && <KingHunterRules />}
           {variantModeId === 'reverse_blunziger' && <ReverseRules />}
 
@@ -135,6 +136,30 @@ function ReverseRules() {
       </p>
       <p>
         <strong>Exception:</strong> If ALL legal moves give check, the player may play any legal move.
+      </p>
+    </>
+  );
+}
+
+function PieceRemovalRules() {
+  return (
+    <>
+      <h4>Penalty: Piece Removal</h4>
+      <p>
+        Missing a forced check does <strong>not</strong> cause an immediate loss.
+        Instead, one of the <strong>violating player's pieces</strong> is removed from the board.
+      </p>
+      <ul>
+        <li>The <strong>opponent</strong> chooses which piece to remove.</li>
+        <li><strong>Kings can never be removed.</strong></li>
+        <li>If the violator has no removable pieces (only their king remains), the violator <strong>loses immediately</strong>.</li>
+      </ul>
+      <p>The "Report Missed Check" button is <strong>disabled</strong> in this mode.</p>
+      <h4>Clock Penalty (Blitz)</h4>
+      <p>
+        When combined with chess clocks, a missed forced check also <strong>subtracts a
+        configurable number of seconds</strong> from the violating player's remaining time.
+        If the clock reaches 0 from this penalty, that player loses immediately on time.
       </p>
     </>
   );

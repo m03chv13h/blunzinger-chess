@@ -11,6 +11,7 @@ import type {
   BotLevel,
   Square,
   VariantModeId,
+  PendingPieceRemoval,
 } from './types';
 import { DEFAULT_CONFIG, INITIAL_FEN } from './types';
 
@@ -83,6 +84,94 @@ export function getNonCheckingMoves(fen: string): Move[] {
     testChess.move(move.san);
     return !testChess.inCheck();
   });
+}
+
+/**
+ * Get squares containing pieces of the given side that can be removed (excludes king).
+ */
+export function getRemovablePieces(fen: string, side: Color): Square[] {
+  const chess = new Chess(fen);
+  const board = chess.board();
+  const squares: Square[] = [];
+  for (const row of board) {
+    for (const cell of row) {
+      if (cell && cell.color === side && cell.type !== 'k') {
+        squares.push(cell.square as Square);
+      }
+    }
+  }
+  return squares;
+}
+
+/** Piece values for removal heuristic (prefer removing highest-value pieces). */
+const REMOVAL_PIECE_VALUES: Record<string, number> = {
+  q: 9, r: 5, b: 3, n: 3, p: 1,
+};
+
+/**
+ * Select the best piece to remove from the target side (bot heuristic).
+ * Prefers highest-value piece. Deterministic tie-breaking by square name.
+ */
+export function selectBestPieceForRemoval(fen: string, targetSide: Color): Square | null {
+  const removable = getRemovablePieces(fen, targetSide);
+  if (removable.length === 0) return null;
+  const chess = new Chess(fen);
+  let bestSquare = removable[0];
+  let bestValue = 0;
+  for (const sq of removable) {
+    const piece = chess.get(sq);
+    if (piece) {
+      const val = REMOVAL_PIECE_VALUES[piece.type] ?? 0;
+      if (val > bestValue || (val === bestValue && sq < bestSquare)) {
+        bestValue = val;
+        bestSquare = sq;
+      }
+    }
+  }
+  return bestSquare;
+}
+
+/**
+ * Remove a piece from the board at the given square.
+ * Returns a new game state with the piece removed.
+ * If the removal leaves the game in a terminal state, that is evaluated.
+ */
+export function applyPieceRemoval(state: GameState, square: Square): GameState {
+  if (!state.pendingPieceRemoval) return state;
+  const { targetSide, removableSquares } = state.pendingPieceRemoval;
+
+  // Validate the square is in the removable list
+  if (!removableSquares.includes(square)) return state;
+
+  const chess = new Chess(state.fen);
+  const piece = chess.get(square);
+  if (!piece || piece.color !== targetSide || piece.type === 'k') return state;
+
+  chess.remove(square);
+  const newFen = chess.fen();
+
+  let result: GameResult | null = state.result;
+
+  // Check if the removal creates a terminal condition
+  if (!result) {
+    const postChess = new Chess(newFen);
+    if (postChess.isCheckmate()) {
+      result = { winner: opponent(targetSide), reason: 'checkmate' };
+    } else if (postChess.isStalemate()) {
+      result = { winner: 'draw', reason: 'stalemate' };
+    } else if (postChess.isDraw()) {
+      if (postChess.isInsufficientMaterial()) {
+        result = { winner: 'draw', reason: 'insufficient-material' };
+      }
+    }
+  }
+
+  return {
+    ...state,
+    fen: newFen,
+    pendingPieceRemoval: null,
+    result,
+  };
 }
 
 /**
@@ -185,6 +274,7 @@ export function createInitialState(
       ? { whiteMs: config.initialTimeMs, blackMs: config.initialTimeMs, lastTimestamp: null }
       : null,
     extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 0 },
+    pendingPieceRemoval: null,
     plyCount: 0,
   };
 }
@@ -278,8 +368,8 @@ export function applyMoveWithRules(
         };
       }
 
-      // Penalty mode: grant opponent extra turn instead of reportable violation
-      if (!immediateResult && cfg.missedCheckPenalty === 'extra_move') {
+      // Penalty mode: non-reportable violation (extra_move or piece_removal)
+      if (!immediateResult && cfg.missedCheckPenalty !== 'loss') {
         newViolation = { ...newViolation, reportable: false };
       }
     }
@@ -349,29 +439,66 @@ export function applyMoveWithRules(
 
   const effectiveViolation = result ? null : newViolation;
 
-  // ── Extra-turn state (Penalty mode) ──
+  // ── Extra-turn state (Penalty mode: extra_move) ──
   let newExtraTurns = { ...state.extraTurns };
   let newClocks = state.clocks;
+  let pendingPieceRemoval: PendingPieceRemoval | null = null;
 
-  // If a violation occurred in penalty mode (and game didn't end), grant opponent extra turn
-  if (!result && newViolation && cfg.missedCheckPenalty === 'extra_move') {
-    const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
-    newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
+  // If a violation occurred and game didn't end, apply the configured penalty
+  if (!result && newViolation) {
+    if (cfg.missedCheckPenalty === 'extra_move') {
+      const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+      newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
 
-    // ── Clock penalty for missed check (penalty + clock mode) ──
-    if (cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
-      const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
-      const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
-      const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
-      newClocks = { ...newClocks, [clockKey]: remaining };
+      // ── Clock penalty for missed check (penalty + clock mode) ──
+      if (cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
+        const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
+        const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+        newClocks = { ...newClocks, [clockKey]: remaining };
 
-      if (remaining <= 0) {
-        const sideLabel = movingSide === 'w' ? 'White' : 'Black';
+        if (remaining <= 0) {
+          const sideLabel = movingSide === 'w' ? 'White' : 'Black';
+          result = {
+            winner: opponentSide,
+            reason: 'timeout_penalty',
+            detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
+          };
+        }
+      }
+    } else if (cfg.missedCheckPenalty === 'piece_removal') {
+      const removableSquares = getRemovablePieces(newFen, movingSide);
+      if (removableSquares.length === 0) {
+        // No removable pieces → violator loses immediately
         result = {
           winner: opponentSide,
-          reason: 'timeout_penalty',
-          detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
+          reason: 'piece_removal_no_piece_loss',
+          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed a forced check but has no removable pieces (only the king remains). Immediate loss.`,
         };
+      } else {
+        pendingPieceRemoval = {
+          targetSide: movingSide,
+          chooserSide: opponentSide,
+          removableSquares,
+        };
+      }
+
+      // ── Clock penalty for missed check (penalty + clock mode) ──
+      if (!result && cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
+        const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
+        const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+        newClocks = { ...newClocks, [clockKey]: remaining };
+
+        if (remaining <= 0) {
+          const sideLabel = movingSide === 'w' ? 'White' : 'Black';
+          result = {
+            winner: opponentSide,
+            reason: 'timeout_penalty',
+            detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
+          };
+          pendingPieceRemoval = null;
+        }
       }
     }
   }
@@ -379,7 +506,7 @@ export function applyMoveWithRules(
   // Determine effective side to move (may stay same for extra turns)
   let effectiveSideToMove = chess.turn();
   let effectiveFen = newFen;
-  if (!result) {
+  if (!result && !pendingPieceRemoval) {
     // If the side that just moved has pending extra moves, they keep moving
     // and we consume one extra move in the process
     const movingSideKey = movingSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
@@ -403,6 +530,7 @@ export function applyMoveWithRules(
     plyCount: newPlyCount,
     extraTurns: newExtraTurns,
     clocks: newClocks,
+    pendingPieceRemoval,
   };
 }
 
@@ -414,7 +542,7 @@ export function applyMoveWithRules(
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
-  if (state.config.missedCheckPenalty === 'extra_move') return false;
+  if (state.config.missedCheckPenalty !== 'loss') return false;
   if (state.config.reverseForcedCheck) return false;
   if (!state.pendingViolation) return false;
   if (!state.pendingViolation.reportable) return false;

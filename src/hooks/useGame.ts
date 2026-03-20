@@ -16,6 +16,8 @@ import {
   reportViolation,
   getLegalMoves,
   applyTimeout,
+  applyPieceRemoval,
+  selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
 import { selectBotMove } from '../bot/botEngine';
 
@@ -41,6 +43,12 @@ export interface UseGameReturn {
   /** Live clock values (updated every 100ms during active play). */
   clockWhiteMs: number;
   clockBlackMs: number;
+  /** Select a piece to remove during piece removal penalty. */
+  selectPieceForRemoval: (square: Square) => boolean;
+  /** Whether the game is waiting for a piece removal selection. */
+  pendingPieceRemoval: boolean;
+  /** Squares that are valid targets for piece removal. */
+  removableSquares: Square[];
 }
 
 export function useGame(
@@ -130,6 +138,8 @@ export function useGame(
     (from: Square, to: Square, promotion?: string): boolean => {
       const current = stateRef.current;
       if (current.result) return false;
+      // Block normal moves while a piece removal selection is pending
+      if (current.pendingPieceRemoval) return false;
 
       // Apply clock time before move
       let stateBeforeMove = current;
@@ -180,6 +190,15 @@ export function useGame(
     }
   }, []);
 
+  const selectPieceForRemoval = useCallback((square: Square): boolean => {
+    const current = stateRef.current;
+    if (!current.pendingPieceRemoval) return false;
+    const newState = applyPieceRemoval(current, square);
+    if (newState === current) return false;
+    setState(newState);
+    return true;
+  }, []);
+
   const resetGame = useCallback(
     (
       mode?: GameMode,
@@ -219,6 +238,12 @@ export function useGame(
   // Determine if it's a human's turn
   const isPlayerTurn = (() => {
     if (state.result) return false;
+    if (state.pendingPieceRemoval) {
+      // During piece removal, the chooser is the active player
+      if (state.mode === 'hvh') return true;
+      if (state.mode === 'hvbot') return state.pendingPieceRemoval.chooserSide !== state.botColor;
+      return false;
+    }
     if (state.mode === 'hvh') return true;
     if (state.mode === 'hvbot') return state.sideToMove !== state.botColor;
     return false;
@@ -228,6 +253,32 @@ export function useGame(
   useEffect(() => {
     if (state.result) return;
     if (pausedRef.current && state.mode === 'botvbot') return;
+
+    // Handle pending piece removal when bot is the chooser
+    if (state.pendingPieceRemoval && (
+      (state.mode === 'hvbot' && state.pendingPieceRemoval.chooserSide === state.botColor) ||
+      state.mode === 'botvbot'
+    )) {
+      setBotThinking(true);
+      const delay = state.mode === 'botvbot' ? moveDelayRef.current : 400;
+      const timer = setTimeout(() => {
+        const current = stateRef.current;
+        if (!current.pendingPieceRemoval) {
+          setBotThinking(false);
+          return;
+        }
+        const targetSquare = selectBestPieceForRemoval(
+          current.fen,
+          current.pendingPieceRemoval.targetSide,
+        );
+        if (targetSquare) {
+          const newState = applyPieceRemoval(current, targetSquare);
+          setState(newState);
+        }
+        setBotThinking(false);
+      }, delay);
+      return () => clearTimeout(timer);
+    }
 
     let isBotTurn = false;
     if (state.mode === 'hvbot' && state.sideToMove === state.botColor) {
@@ -286,7 +337,7 @@ export function useGame(
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [state.fen, state.result, state.mode, state.botColor, state.botLevel, paused]);
+  }, [state.fen, state.result, state.mode, state.botColor, state.botLevel, paused, state.pendingPieceRemoval]);
 
   return {
     state,
@@ -303,5 +354,8 @@ export function useGame(
     setMoveDelay,
     clockWhiteMs,
     clockBlackMs,
+    selectPieceForRemoval,
+    pendingPieceRemoval: !!state.pendingPieceRemoval,
+    removableSquares: state.pendingPieceRemoval?.removableSquares ?? [],
   };
 }

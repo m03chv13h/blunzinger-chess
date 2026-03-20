@@ -1,25 +1,43 @@
 # Blunziger Chess ♟
 
-A browser-based chess variant with a **multi-mode game system** built on top of standard chess.
+A browser-based chess variant with a **compositional multi-mode game system** built on top of standard chess.
 
 ## What is Blunziger Chess?
 
-Blunziger Chess is standard chess with additional variant rules organized into **named game modes**. The core concept: forced-check constraints and scoring systems that add strategic depth.
+Blunziger Chess is standard chess with additional variant rules organized into **composable game modes**. The core concept: forced-check constraints, penalty systems, and scoring overlays that add strategic depth.
 
 ## Game Mode System
 
-The app ships with **6 built-in variant modes** selected before each game. Once a game starts, the mode and its config are **locked for the duration of the match**.
+The app ships with **7 built-in variant presets** selected before each game. Modes are internally composed from independent rule layers: base rules, penalties, time control, and optional win conditions. Once a game starts, the mode and its config are **locked for the duration of the match**.
 
-### Built-in Modes
+### Compositional Architecture
 
-| Mode | Key Rule |
-|------|----------|
+Internally, the mode system is organized into composable layers:
+
+| Layer | Options |
+|-------|---------|
+| **Core play rules** | Classic Blunziger (forced check), Reverse Blunziger (forbidden check) |
+| **Tactical modifier** | Double Check Pressure (≥2 checks missed = immediate loss) |
+| **Penalty model** | Report loss, Extra move, Piece removal |
+| **Time control overlay** | Blitz (chess clocks) — combinable with all modes |
+| **Win condition overlays** | King of the Hill, King Hunter (score-based) |
+
+### Built-in Presets
+
+| Preset | Key Rule |
+|--------|----------|
 | **Classic Blunziger** | If a checking move exists, you are expected to play it. Opponent can report a miss for immediate loss. |
 | **Double Check Pressure** | Like Classic, but if ≥2 checking moves exist and you miss them, you lose **immediately** (no report needed). |
 | **Blitz Blunziger** | Classic Blunziger with chess clocks. Time runs out = loss. |
-| **Penalty Instead of Loss** | Missing a forced check gives the opponent one **extra consecutive move** instead of loss. With clocks: also subtracts configurable seconds from violator's time. |
+| **Penalty: Extra Move** | Missing a forced check gives the opponent one **extra consecutive move** instead of loss. |
+| **Penalty: Piece Removal** | Missing a forced check removes one of the violator's pieces — opponent chooses which one. |
 | **King Hunter** | Checks score points. Game ends at a move limit. Higher score wins. |
 | **Reverse Blunziger** | If a checking move exists, you must **avoid** giving check. Violation = immediate loss. |
+
+### Combinable Overlays
+
+- **Blitz (Chess Clocks)**: Can be enabled as an overlay with **any** base preset via a checkbox in setup
+- **King of the Hill**: Can be enabled as an overlay with any mode via a checkbox in setup
 
 ### Mode Details
 
@@ -44,13 +62,32 @@ Classic Blunziger with countdown clocks:
 - Time reaching zero → loss by **timeout**
 - Clocks pause when the game ends
 
-#### Penalty Instead of Loss
+#### Penalty: Extra Move
 - Missing a forced check does **not** cause loss
 - Instead, the opponent receives **one extra consecutive move**
 - After the violating player's move, the opponent makes their normal move, then gets a second consecutive move
 - Turn order resumes normally afterward
 - The "Report Missed Check" button is **disabled** in this mode
 - **Clock Penalty (Blitz):** When combined with chess clocks, a missed forced check also subtracts a configurable number of seconds (default: 5) from the violating player's remaining time. If the clock reaches 0 from this penalty, that player loses immediately (result: `timeout_penalty`). The penalty amount is configurable in the setup screen.
+
+#### Penalty: Piece Removal
+- Missing a forced check does **not** cause loss
+- Instead, one of the **violating player's pieces** is removed from the board
+- The **opponent** chooses which piece to remove
+- **Kings can never be removed**
+- If the violator has no removable pieces (only king remains), the violator **loses immediately**
+- The "Report Missed Check" button is **disabled** in this mode
+- **Clock Penalty (Blitz):** When combined with chess clocks, a time penalty may also apply (same as Extra Move mode)
+
+**Piece Removal Flow:**
+1. Player commits a forced-check violation
+2. Immediate terminal conditions (checkmate, etc.) are checked first
+3. If the game is not over, a pending piece-removal state is entered
+4. The opponent selects one removable piece from the violator's side
+5. The piece is removed from the board
+6. The game continues (or ends if the removal creates a terminal condition)
+
+**Bot Behavior:** When a bot is the chooser, it automatically selects the highest-value removable piece (queen > rook > bishop/knight > pawn), with deterministic tie-breaking.
 
 #### King Hunter
 - Each time a player gives check, they score **1 point**
@@ -74,22 +111,43 @@ King of the Hill can be **combined** with any mode via a checkbox in setup:
 
 ### Rule Precedence
 
-When multiple rule systems are active, resolution order per move:
+When multiple rule systems are active, the authoritative move resolution order is:
+
 1. Validate move under standard chess legality
-2. Detect mode-specific violations (Reverse Blunziger, Double Check Pressure)
-3. Detect standard Blunziger violations
-4. Apply the move
-5. Update scores (King Hunter)
-6. Evaluate termination: Checkmate → KOTH → Stalemate/Draw → Move limit
+2. Determine pre-move forced-check context
+3. Apply move
+4. Detect mode-specific violations (Reverse Blunziger, Double Check Pressure)
+5. Detect standard Blunziger violations
+6. Update scores (King Hunter)
+7. **Evaluate immediate terminal conditions (checkmate → KOTH → stalemate/draw → move limit)**
+8. **If the game is already over: STOP — do NOT enter penalty, extra-turn, report, or piece-removal flows**
+9. If the game is not over and a violation occurred: apply the configured penalty
+10. If penalty handling creates a terminal condition (e.g., clock timeout): resolve that
+
+**Important:** Checkmate always takes absolute precedence over any penalty flow. A move that produces checkmate ends the game immediately, regardless of whether a forced-check violation also occurred.
+
+### Supported Combinations
+
+All of these combinations are cleanly supported:
+
+- Blitz + Classic Blunziger
+- Blitz + Double Check Pressure
+- Blitz + Penalty: Extra Move
+- Blitz + Penalty: Piece Removal
+- Blitz + Reverse Blunziger
+- Blitz + King Hunter
+- Blitz + King of the Hill
+- Any base preset + King of the Hill
+- Blitz + base preset + King of the Hill
 
 ### Mode Combination Limitations
 
 - **Reverse Blunziger** disables the standard Blunziger forced-check rule (they are mutually exclusive)
-- King of the Hill can be enabled alongside any mode
+- Only one primary missed-check penalty type is active at a time (report loss, extra move, or piece removal)
 
 ## Game Flow
 
-1. **New Game Setup** — Select a variant mode, player mode, and mode-specific options. Click **"Start Game"**.
+1. **New Game Setup** — Select a variant preset, player mode, optional overlays (Blitz, KOTH), and mode-specific options. Click **"Start Game"**.
 2. **Active Game** — Board and game UI are shown. Settings are locked as a read-only summary. Click **"New Game"** to return to setup.
 
 ## Player Modes
@@ -112,8 +170,9 @@ Bots obey all mode restrictions:
 - **Classic/DCP**: Must play checking moves when available
 - **Reverse Blunziger**: Must play non-checking moves when checking alternatives exist
 - **King Hunter**: Prefers checking moves more strongly (higher scoring weight)
-- **Penalty mode**: Functions correctly with extra turns
+- **Penalty modes**: Functions correctly with extra turns and piece removal
 - **Blitz**: Consumes time normally
+- **Piece removal (chooser)**: Automatically selects highest-value removable piece
 
 ## Getting Started
 
@@ -184,19 +243,19 @@ src/
 ├── bot/
 │   └── botEngine.ts    # Bot move selection (mode-aware, easy/medium/hard)
 ├── components/
-│   ├── Chessboard.tsx        # Custom board UI (click-to-move)
-│   ├── GameStatus.tsx        # Turn, clocks, scores, report, result
+│   ├── Chessboard.tsx        # Custom board UI (click-to-move, piece removal)
+│   ├── GameStatus.tsx        # Turn, clocks, scores, report, result, piece removal prompt
 │   ├── GameControls.tsx      # New Game button + bot-vs-bot controls
 │   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
-│   ├── NewGameSetupScreen.tsx # Pre-game setup with variant mode selector
+│   ├── NewGameSetupScreen.tsx # Pre-game setup with variant selector + overlays
 │   ├── MoveList.tsx          # Move history sidebar
 │   └── RulesPanel.tsx        # Mode-specific rule explanation
 ├── hooks/
-│   └── useGame.ts      # React game state hook (clocks, scores, extra turns)
+│   └── useGame.ts      # React game state hook (clocks, scores, extra turns, piece removal)
 └── __tests__/
     ├── engine.test.ts    # 54 core logic tests
     ├── bot.test.ts       # 8 bot tests
-    ├── modes.test.ts     # 38 mode-specific tests
+    ├── modes.test.ts     # 79 mode-specific tests (incl. composition, piece removal, checkmate precedence)
     └── app-flow.test.tsx # 16 UI flow tests
 ```
 
@@ -214,8 +273,9 @@ src/
 | `VariantConfig` | Full configuration for a variant (replaces old `BlunzigerConfig`) |
 | `VariantModeId` | Identifier for a built-in mode preset |
 | `GameModeDefinition` | Name, description, and default config for a preset |
-| `GameState` | Complete game state including scores, clocks, extra turns |
-| `GameSetupConfig` | What the user selects before starting a game |
+| `GameState` | Complete game state including scores, clocks, extra turns, pending piece removal |
+| `GameSetupConfig` | What the user selects before starting a game (incl. Blitz overlay toggle) |
+| `PendingPieceRemoval` | State for piece removal penalty (target side, chooser side, removable squares) |
 
 ### Pure Functions (core module)
 
@@ -224,10 +284,13 @@ src/
 | `getLegalMoves(fen)` | All legal moves from position |
 | `getCheckingMoves(fen)` | Legal moves that give check |
 | `getNonCheckingMoves(fen)` | Legal moves that do NOT give check |
+| `getRemovablePieces(fen, side)` | Squares with removable pieces (excludes king) |
 | `isForcedCheckTurn(fen)` | Whether checking moves exist |
 | `isReverseForcedState(fen)` | Same as above (used for reverse mode context) |
 | `detectViolation(fen, move, idx)` | Check if move is a standard Blunziger violation |
 | `applyMoveWithRules(state, move)` | Apply move with full mode-aware rules |
+| `applyPieceRemoval(state, square)` | Remove a piece during piece removal penalty |
+| `selectBestPieceForRemoval(fen, side)` | Bot heuristic for choosing which piece to remove |
 | `canReport(state, side)` | Whether side can report (disabled in penalty/reverse modes) |
 | `reportViolation(state, side)` | Process a report |
 | `applyTimeout(state, losingSide)` | End game due to clock timeout |

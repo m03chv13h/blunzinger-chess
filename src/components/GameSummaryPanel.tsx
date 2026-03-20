@@ -20,9 +20,9 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
   const variantDef = getGameModeDefinition(config.variantModeId);
-  const showClock = variantDef.config.enableClock;
+  const showClock = variantDef.config.enableClock || config.enableClock;
   const showMoveLimit = variantDef.config.moveLimit > 0;
-  const showTimePenalty = variantDef.config.missedCheckPenalty === 'extra_move' && variantDef.config.enableClock;
+  const showTimePenalty = variantDef.config.missedCheckPenalty !== 'loss' && showClock;
 
   return (
     <div className="game-summary">
@@ -58,10 +58,19 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
             <dd>{Math.round(config.initialTimeMs / 60000)}+{Math.round(config.incrementMs / 1000)}</dd>
           </div>
         )}
-        {showTimePenalty && (
+        {config.enableClock && !variantDef.config.enableClock && (
+          <div className="summary-item">
+            <dt>Blitz Overlay</dt>
+            <dd>Enabled</dd>
+          </div>
+        )}
+        {variantDef.config.missedCheckPenalty !== 'loss' && (
           <div className="summary-item">
             <dt>Missed Check Penalty</dt>
-            <dd>{config.missedCheckTimePenaltySeconds}s</dd>
+            <dd>
+              {variantDef.config.missedCheckPenalty === 'extra_move' ? 'Extra Move' : 'Piece Removal'}
+              {showTimePenalty && ` + ${config.missedCheckTimePenaltySeconds}s`}
+            </dd>
           </div>
         )}
         {showMoveLimit && (
