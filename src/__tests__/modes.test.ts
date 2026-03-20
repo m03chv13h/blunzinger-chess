@@ -70,6 +70,7 @@ describe('Mode registry & presets', () => {
   it('old standalone modes are not variant modes', () => {
     expect(() => getVariantModeDefinition('blitz_blunziger' as never)).toThrow('Unknown variant mode');
     expect(() => getVariantModeDefinition('double_check_pressure' as never)).toThrow('Unknown variant mode');
+    expect(() => getVariantModeDefinition('king_hunter' as never)).toThrow('Unknown variant mode');
   });
 
   it('clock config is independent and composable', () => {
