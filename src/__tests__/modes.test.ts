@@ -26,17 +26,14 @@ import { selectBotMove } from '../bot/botEngine';
 // ── Mode Registry / Preset Tests ──────────────────────────────────────
 
 describe('Mode registry & presets', () => {
-  it('should have 7 built-in mode definitions', () => {
-    expect(GAME_MODE_DEFINITIONS).toHaveLength(7);
+  it('should have 4 built-in mode definitions', () => {
+    expect(GAME_MODE_DEFINITIONS).toHaveLength(4);
   });
 
   it('should look up each mode by id', () => {
     const ids = [
       'classic_blunziger',
       'double_check_pressure',
-      'blitz_blunziger',
-      'penalty_instead_of_loss',
-      'penalty_piece_removal',
       'king_hunter',
       'reverse_blunziger',
     ] as const;
@@ -67,11 +64,27 @@ describe('Mode registry & presets', () => {
     expect(cfg.moveLimit).toBe(50);
   });
 
-  it('buildVariantConfig does not apply missedCheckTimePenaltySeconds for non-penalty modes', () => {
-    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'blitz_blunziger' as const, missedCheckTimePenaltySeconds: 10 };
+  it('buildVariantConfig disables time reduction penalty when clock is off', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableTimeReductionPenalty: true, enableClock: false };
     const cfg = buildVariantConfig(setup);
-    // blitz mode has missedCheckPenalty='loss', so the time penalty should stay at default (0)
-    expect(cfg.missedCheckTimePenaltySeconds).toBe(0);
+    expect(cfg.enableTimeReductionPenalty).toBe(false);
+  });
+
+  it('blitz is no longer a standalone mode', () => {
+    expect(GAME_MODE_DEFINITIONS.find(d => d.id === ('blitz_blunziger' as string))).toBeUndefined();
+  });
+
+  it('clock config is independent and composable', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.enableClock).toBe(true);
+    expect(cfg.initialTimeMs).toBe(5 * 60 * 1000);
+  });
+
+  it('default clock time is 5 minutes when enabled', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true };
+    const cfg = buildVariantConfig(setup);
+    expect(cfg.initialTimeMs).toBe(300000);
   });
 });
 
@@ -196,10 +209,10 @@ describe('Blitz Blunziger mode', () => {
 
 // ── Penalty Instead of Loss ───────────────────────────────────────────
 
-describe('Penalty Instead of Loss mode', () => {
+describe('Extra Move Penalty', () => {
   const penaltyConfig: VariantConfig = {
     ...DEFAULT_CONFIG,
-    missedCheckPenalty: 'extra_move',
+    enableExtraMovePenalty: true,
   };
 
   it('missed forced check grants opponent extra turn', () => {
@@ -278,14 +291,15 @@ describe('Penalty Instead of Loss mode', () => {
 
 // ── Penalty + Clock (Time Penalty) ────────────────────────────────────
 
-describe('Penalty Instead of Loss + Clock time penalty', () => {
+describe('Extra Move Penalty + Clock time reduction', () => {
   const penaltyClockConfig: VariantConfig = {
     ...DEFAULT_CONFIG,
-    missedCheckPenalty: 'extra_move',
+    enableExtraMovePenalty: true,
+    enableTimeReductionPenalty: true,
     enableClock: true,
     initialTimeMs: 300000, // 5 minutes
     incrementMs: 0,
-    missedCheckTimePenaltySeconds: 5,
+    timeReductionSeconds: 5,
   };
 
   it('missed forced check subtracts configured seconds from violator clock', () => {
@@ -319,7 +333,7 @@ describe('Penalty Instead of Loss + Clock time penalty', () => {
     const lowTimeConfig: VariantConfig = {
       ...penaltyClockConfig,
       initialTimeMs: 3000, // 3 seconds
-      missedCheckTimePenaltySeconds: 10, // 10 second penalty
+      timeReductionSeconds: 10, // 10 second penalty
     };
     let state = createInitialState('hvh', lowTimeConfig);
     state = applyMoveWithRules(state, 'e4');
@@ -337,7 +351,7 @@ describe('Penalty Instead of Loss + Clock time penalty', () => {
     const exactTimeConfig: VariantConfig = {
       ...penaltyClockConfig,
       initialTimeMs: 5000, // exactly 5 seconds
-      missedCheckTimePenaltySeconds: 5, // 5 second penalty
+      timeReductionSeconds: 5, // 5 second penalty
     };
     let state = createInitialState('hvh', exactTimeConfig);
     state = applyMoveWithRules(state, 'e4');
@@ -368,10 +382,10 @@ describe('Penalty Instead of Loss + Clock time penalty', () => {
     expect(state.clocks!.blackMs).toBe(300000);
   });
 
-  it('no time penalty when missedCheckTimePenaltySeconds is 0', () => {
+  it('no time reduction when enableTimeReductionPenalty is false', () => {
     const noPenaltyConfig: VariantConfig = {
       ...penaltyClockConfig,
-      missedCheckTimePenaltySeconds: 0,
+      enableTimeReductionPenalty: false,
     };
     let state = createInitialState('hvh', noPenaltyConfig);
     state = applyMoveWithRules(state, 'e4');
@@ -384,14 +398,13 @@ describe('Penalty Instead of Loss + Clock time penalty', () => {
     expect(state.clocks!.whiteMs).toBe(300000);
   });
 
-  it('does not apply time penalty in non-penalty modes', () => {
+  it('does not apply time reduction in non-penalty modes', () => {
     const classicClockConfig: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'loss',
       enableClock: true,
       initialTimeMs: 300000,
       incrementMs: 0,
-      missedCheckTimePenaltySeconds: 5, // configured but should be ignored
+      // No penalty flags enabled → classic report-based mode
     };
     let state = createInitialState('hvh', classicClockConfig);
     state = applyMoveWithRules(state, 'e4');
@@ -429,7 +442,7 @@ describe('Penalty Instead of Loss + Clock time penalty', () => {
     const lowTimeConfig: VariantConfig = {
       ...penaltyClockConfig,
       initialTimeMs: 2000, // 2 seconds
-      missedCheckTimePenaltySeconds: 5,
+      timeReductionSeconds: 5,
     };
     let state = createInitialState('hvbot', lowTimeConfig, 'easy', 'w');
     // White is the bot; put white in a position where it misses check
@@ -689,10 +702,10 @@ describe('Bot mode-aware behavior', () => {
     expect(move).not.toBeNull();
   });
 
-  it('bot works under penalty mode config', () => {
+  it('bot works under extra move penalty config', () => {
     const penaltyConfig: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'extra_move',
+      enableExtraMovePenalty: true,
     };
     const move = selectBotMove(
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -705,7 +718,7 @@ describe('Bot mode-aware behavior', () => {
   it('bot works under piece removal penalty config', () => {
     const pieceRemovalConfig: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'piece_removal',
+      enablePieceRemovalPenalty: true,
     };
     const move = selectBotMove(
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -734,20 +747,22 @@ describe('Blitz overlay combinations', () => {
     expect(cfg.doubleCheckPressureImmediateLoss).toBe(true);
   });
 
-  it('Blitz + Penalty Instead of Loss (extra move)', () => {
-    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'penalty_instead_of_loss' as const, enableClock: true, missedCheckTimePenaltySeconds: 5 };
+  it('Clock + Extra Move Penalty', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true, enableExtraMovePenalty: true, enableTimeReductionPenalty: true, timeReductionSeconds: 5 };
     const cfg = buildVariantConfig(setup);
     expect(cfg.enableClock).toBe(true);
-    expect(cfg.missedCheckPenalty).toBe('extra_move');
-    expect(cfg.missedCheckTimePenaltySeconds).toBe(5);
+    expect(cfg.enableExtraMovePenalty).toBe(true);
+    expect(cfg.enableTimeReductionPenalty).toBe(true);
+    expect(cfg.timeReductionSeconds).toBe(5);
   });
 
-  it('Blitz + Penalty Piece Removal', () => {
-    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'penalty_piece_removal' as const, enableClock: true, missedCheckTimePenaltySeconds: 3 };
+  it('Clock + Piece Removal Penalty', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, enableClock: true, enablePieceRemovalPenalty: true, enableTimeReductionPenalty: true, timeReductionSeconds: 3 };
     const cfg = buildVariantConfig(setup);
     expect(cfg.enableClock).toBe(true);
-    expect(cfg.missedCheckPenalty).toBe('piece_removal');
-    expect(cfg.missedCheckTimePenaltySeconds).toBe(3);
+    expect(cfg.enablePieceRemovalPenalty).toBe(true);
+    expect(cfg.enableTimeReductionPenalty).toBe(true);
+    expect(cfg.timeReductionSeconds).toBe(3);
   });
 
   it('Blitz + Reverse Blunziger', () => {
@@ -788,14 +803,15 @@ describe('Blitz overlay combinations', () => {
     expect(state.clocks!.blackMs).toBe(300000);
   });
 
-  it('Blitz + penalty mode: timeout from clock penalty works', () => {
+  it('Clock + penalty mode: timeout from time reduction penalty works', () => {
     const cfg: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'extra_move',
+      enableExtraMovePenalty: true,
+      enableTimeReductionPenalty: true,
       enableClock: true,
       initialTimeMs: 3000,
       incrementMs: 0,
-      missedCheckTimePenaltySeconds: 5,
+      timeReductionSeconds: 5,
     };
     let state = createInitialState('hvh', cfg);
     state = applyMoveWithRules(state, 'e4');
@@ -813,7 +829,7 @@ describe('Blitz overlay combinations', () => {
 describe('Checkmate precedence in penalty modes', () => {
   const penaltyConfig: VariantConfig = {
     ...DEFAULT_CONFIG,
-    missedCheckPenalty: 'extra_move',
+    enableExtraMovePenalty: true,
   };
 
   it('checkmate on normal turn in penalty mode is recognized immediately', () => {
@@ -884,10 +900,10 @@ describe('Checkmate precedence in penalty modes', () => {
     expect(state.result!.winner).toBe('b');
   });
 
-  it('checkmate with Blitz + penalty mode', () => {
+  it('checkmate with Clock + penalty mode', () => {
     const blitzPenaltyConfig: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'extra_move',
+      enableExtraMovePenalty: true,
       enableClock: true,
       initialTimeMs: 300000,
       incrementMs: 0,
@@ -921,7 +937,7 @@ describe('Checkmate precedence in penalty modes', () => {
   it('checkmate in piece_removal penalty mode is recognized immediately', () => {
     const pieceRemovalConfig: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'piece_removal',
+      enablePieceRemovalPenalty: true,
     };
     let state = createInitialState('hvh', pieceRemovalConfig);
     state = applyMoveWithRules(state, 'f3');
@@ -940,7 +956,7 @@ describe('Checkmate precedence in penalty modes', () => {
 describe('Piece Removal Penalty mode', () => {
   const pieceRemovalConfig: VariantConfig = {
     ...DEFAULT_CONFIG,
-    missedCheckPenalty: 'piece_removal',
+    enablePieceRemovalPenalty: true,
   };
 
   it('missed forced check enters pending piece removal state', () => {
@@ -1092,14 +1108,15 @@ describe('Piece Removal Penalty mode', () => {
     expect(removable).not.toContain('e1'); // King
   });
 
-  it('piece removal with Blitz clock penalty', () => {
+  it('piece removal with clock time reduction penalty', () => {
     const cfg: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'piece_removal',
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
       enableClock: true,
       initialTimeMs: 300000,
       incrementMs: 0,
-      missedCheckTimePenaltySeconds: 5,
+      timeReductionSeconds: 5,
     };
     let state = createInitialState('hvh', cfg);
     state = applyMoveWithRules(state, 'e4');
@@ -1114,11 +1131,12 @@ describe('Piece Removal Penalty mode', () => {
   it('piece removal + clock timeout ends game immediately', () => {
     const cfg: VariantConfig = {
       ...DEFAULT_CONFIG,
-      missedCheckPenalty: 'piece_removal',
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
       enableClock: true,
       initialTimeMs: 3000,
       incrementMs: 0,
-      missedCheckTimePenaltySeconds: 10,
+      timeReductionSeconds: 10,
     };
     let state = createInitialState('hvh', cfg);
     state = applyMoveWithRules(state, 'e4');

@@ -24,7 +24,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
   const showReportButton =
     config.enableBlunziger &&
     !config.reverseForcedCheck &&
-    config.missedCheckPenalty === 'loss';
+    !(config.enableExtraMovePenalty || config.enablePieceRemovalPenalty || config.enableTimeReductionPenalty);
 
   const showScores = config.scoringMode === 'checks_count';
   const showClocks = config.enableClock;
@@ -83,7 +83,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
           </div>
 
           {/* Extra-turn indicator */}
-          {config.missedCheckPenalty === 'extra_move' && (() => {
+          {config.enableExtraMovePenalty && (() => {
             const { pendingExtraMovesWhite: ew, pendingExtraMovesBlack: eb } = state.extraTurns;
             if (ew <= 0 && eb <= 0) return null;
             const msg = ew > 0
@@ -101,7 +101,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
           )}
 
           {/* Piece removal mode indicator */}
-          {config.missedCheckPenalty === 'piece_removal' && !state.pendingPieceRemoval && !result && (
+          {config.enablePieceRemovalPenalty && !state.pendingPieceRemoval && !result && (
             <div className="penalty-mode-indicator">♟ Penalty: Piece Removal active</div>
           )}
 

@@ -20,9 +20,16 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
   const variantDef = getGameModeDefinition(config.variantModeId);
-  const showClock = variantDef.config.enableClock || config.enableClock;
+  const showClock = config.enableClock;
   const showMoveLimit = variantDef.config.moveLimit > 0;
-  const showTimePenalty = variantDef.config.missedCheckPenalty !== 'loss' && showClock;
+  const hasAnyPenalty = config.enableExtraMovePenalty || config.enablePieceRemovalPenalty || config.enableTimeReductionPenalty;
+
+  const penaltyLabels: string[] = [];
+  if (config.enableExtraMovePenalty) penaltyLabels.push('Additional move');
+  if (config.enablePieceRemovalPenalty) penaltyLabels.push('Piece removal');
+  if (config.enableTimeReductionPenalty) {
+    penaltyLabels.push(`Time reduction: ${config.timeReductionSeconds}s`);
+  }
 
   return (
     <div className="game-summary">
@@ -48,29 +55,22 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
             <dd>{config.botSide === 'b' ? 'White' : 'Black'}</dd>
           </div>
         )}
-        <div className="summary-item">
-          <dt>Invalid Report Threshold</dt>
-          <dd>{config.invalidReportLossThreshold}</dd>
-        </div>
+        {!hasAnyPenalty && !variantDef.config.reverseForcedCheck && variantDef.config.enableBlunziger && (
+          <div className="summary-item">
+            <dt>Invalid Report Threshold</dt>
+            <dd>{config.invalidReportLossThreshold}</dd>
+          </div>
+        )}
         {showClock && (
           <div className="summary-item">
-            <dt>Time Control</dt>
-            <dd>{Math.round(config.initialTimeMs / 60000)}+{Math.round(config.incrementMs / 1000)}</dd>
+            <dt>Clock</dt>
+            <dd>{Math.round(config.initialTimeMs / 60000)} min</dd>
           </div>
         )}
-        {config.enableClock && !variantDef.config.enableClock && (
+        {hasAnyPenalty && (
           <div className="summary-item">
-            <dt>Blitz Overlay</dt>
-            <dd>Enabled</dd>
-          </div>
-        )}
-        {variantDef.config.missedCheckPenalty !== 'loss' && (
-          <div className="summary-item">
-            <dt>Missed Check Penalty</dt>
-            <dd>
-              {variantDef.config.missedCheckPenalty === 'extra_move' ? 'Extra Move' : 'Piece Removal'}
-              {showTimePenalty && ` + ${config.missedCheckTimePenaltySeconds}s`}
-            </dd>
+            <dt>Penalties</dt>
+            <dd>{penaltyLabels.join(', ')}</dd>
           </div>
         )}
         {showMoveLimit && (

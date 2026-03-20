@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantModeId } from '../core/blunziger/types';
-import { GAME_MODE_DEFINITIONS, getGameModeDefinition, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import { GAME_MODE_DEFINITIONS, getGameModeDefinition } from '../core/blunziger/types';
 import { NumericInput } from './NumericInput';
 import './NewGameSetupScreen.css';
 
@@ -21,13 +21,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
       variantModeId: id,
       // Carry forward mode-specific defaults from preset
       invalidReportLossThreshold: def.config.invalidReportLossThreshold,
-      initialTimeMs: def.config.initialTimeMs,
-      incrementMs: def.config.incrementMs,
       moveLimit: def.config.moveLimit,
-      missedCheckTimePenaltySeconds:
-        def.config.missedCheckPenalty !== 'loss'
-          ? DEFAULT_SETUP_CONFIG.missedCheckTimePenaltySeconds
-          : 0,
     });
   };
 
@@ -36,12 +30,14 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   };
 
   const activeDef = getGameModeDefinition(config.variantModeId);
-  const showClock = activeDef.config.enableClock || config.enableClock;
+  const showClock = config.enableClock;
   const showMoveLimit = activeDef.config.moveLimit > 0;
-  const showThreshold = activeDef.config.enableBlunziger && activeDef.config.missedCheckPenalty === 'loss';
-  const showTimePenalty = activeDef.config.missedCheckPenalty !== 'loss' && showClock;
-  // KOTH can combine with any mode except those where it materially conflicts
-  const showKoth = true;
+  // Show threshold when Blunziger is enabled, not reverse, and no penalties are checked (report-based)
+  const hasAnyPenalty = config.enableExtraMovePenalty || config.enablePieceRemovalPenalty || config.enableTimeReductionPenalty;
+  const showThreshold = activeDef.config.enableBlunziger && !activeDef.config.reverseForcedCheck && !hasAnyPenalty;
+  // Penalty checkboxes shown when Blunziger forced-check rule is active (not reverse)
+  const showPenalties = activeDef.config.enableBlunziger && !activeDef.config.reverseForcedCheck;
+  const showTimeReductionSeconds = config.enableTimeReductionPenalty && showClock;
 
   return (
     <div className="setup-screen">
@@ -123,47 +119,6 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </div>
         )}
 
-        {showClock && (
-          <>
-            <div className="setup-group">
-              <label htmlFor="time-control-input">Time per side (minutes)</label>
-              <NumericInput
-                id="time-control-input"
-                value={Math.round(config.initialTimeMs / 60000)}
-                onChange={(v) => update({ initialTimeMs: v * 60000 })}
-                min={1}
-                max={60}
-                fallback={5}
-              />
-            </div>
-            <div className="setup-group">
-              <label htmlFor="increment-input">Increment (seconds)</label>
-              <NumericInput
-                id="increment-input"
-                value={Math.round(config.incrementMs / 1000)}
-                onChange={(v) => update({ incrementMs: v * 1000 })}
-                min={0}
-                max={30}
-                fallback={0}
-              />
-            </div>
-          </>
-        )}
-
-        {showTimePenalty && (
-          <div className="setup-group">
-            <label htmlFor="time-penalty-input">Missed check time penalty (seconds)</label>
-            <NumericInput
-              id="time-penalty-input"
-              value={config.missedCheckTimePenaltySeconds}
-              onChange={(v) => update({ missedCheckTimePenaltySeconds: v })}
-              min={0}
-              max={60}
-              fallback={0}
-            />
-          </div>
-        )}
-
         {showMoveLimit && (
           <div className="setup-group">
             <label htmlFor="movelimit-input">Move Limit (full moves)</label>
@@ -178,31 +133,89 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </div>
         )}
 
-        {showKoth && (
-          <div className="setup-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={config.enableKingOfTheHill}
-                onChange={(e) => update({ enableKingOfTheHill: e.target.checked })}
-              />
-              Enable King of the Hill
-            </label>
-          </div>
-        )}
-
-        {/* ── Blitz (Clock Overlay) ── */}
+        {/* ── King of the Hill ── */}
         <div className="setup-group checkbox-group">
           <label>
             <input
               type="checkbox"
-              checked={config.enableClock || activeDef.config.enableClock}
-              disabled={activeDef.config.enableClock}
-              onChange={(e) => update({ enableClock: e.target.checked })}
+              checked={config.enableKingOfTheHill}
+              onChange={(e) => update({ enableKingOfTheHill: e.target.checked })}
             />
-            Enable Blitz (Chess Clocks)
+            Enable King of the Hill
           </label>
         </div>
+
+        {/* ── Clock ── */}
+        <div className="setup-group checkbox-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={config.enableClock}
+              onChange={(e) => update({ enableClock: e.target.checked })}
+            />
+            Enable Clock
+          </label>
+        </div>
+
+        {showClock && (
+          <div className="setup-group">
+            <label htmlFor="time-control-input">Initial time (minutes)</label>
+            <NumericInput
+              id="time-control-input"
+              value={Math.round(config.initialTimeMs / 60000)}
+              onChange={(v) => update({ initialTimeMs: v * 60000 })}
+              min={1}
+              max={60}
+              fallback={5}
+            />
+          </div>
+        )}
+
+        {/* ── Penalty Checkboxes ── */}
+        {showPenalties && (
+          <fieldset className="setup-group penalty-group">
+            <legend>Penalties on missed forced check</legend>
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableExtraMovePenalty}
+                onChange={(e) => update({ enableExtraMovePenalty: e.target.checked })}
+              />
+              Additional move
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enablePieceRemovalPenalty}
+                onChange={(e) => update({ enablePieceRemovalPenalty: e.target.checked })}
+              />
+              Piece removal
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableTimeReductionPenalty}
+                disabled={!config.enableClock}
+                onChange={(e) => update({ enableTimeReductionPenalty: e.target.checked })}
+              />
+              Time reduction
+            </label>
+
+            {showTimeReductionSeconds && (
+              <div className="setup-group">
+                <label htmlFor="time-reduction-input">Time reduction (seconds)</label>
+                <NumericInput
+                  id="time-reduction-input"
+                  value={config.timeReductionSeconds}
+                  onChange={(v) => update({ timeReductionSeconds: v })}
+                  min={1}
+                  max={60}
+                  fallback={5}
+                />
+              </div>
+            )}
+          </fieldset>
+        )}
 
         <button className="start-game-btn" onClick={handleStart}>
           ▶ Start Game
