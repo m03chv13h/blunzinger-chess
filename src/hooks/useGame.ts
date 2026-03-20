@@ -75,20 +75,32 @@ export function useGame(
   const [clockBlackMs, setClockBlackMs] = useState(
     initialConfig.overlays.enableClock ? initialConfig.overlays.initialTimeMs : 0,
   );
-  const clockActiveRef = useRef<number | null>(null); // timestamp of last tick
+  const clockActiveRef = useRef<number | null>(null); // timestamp when current turn started
+  // Committed clock values — survives React re-renders (unlike stateRef which
+  // gets overwritten with state on every render).  Updated only on moves,
+  // penalties, resets, and other state-committed events.
+  const clockCommittedRef = useRef<{ whiteMs: number; blackMs: number } | null>(null);
 
-  // Sync display clocks from state whenever state.clocks changes.
+  // Sync display clocks and committed ref from state whenever state.clocks changes.
   // When lastTimestamp is null (fresh game), fall back to Date.now() so the
   // clock tick interval starts counting immediately.
   useEffect(() => {
     if (state.clocks) {
+      clockCommittedRef.current = { whiteMs: state.clocks.whiteMs, blackMs: state.clocks.blackMs };
       setClockWhiteMs(state.clocks.whiteMs);
       setClockBlackMs(state.clocks.blackMs);
       clockActiveRef.current = state.clocks.lastTimestamp ?? Date.now();
+    } else {
+      clockCommittedRef.current = null;
     }
   }, [state.clocks]);
 
   // Clock tick interval.
+  //
+  // Uses a timestamp-based model:  display = committedTime - (now - turnStart).
+  // The interval only triggers re-renders; it never mutates refs or stateRef.
+  // This avoids the stale-state bug where stateRef.current gets overwritten
+  // by React re-renders, resetting the incremental clock deductions.
   //
   // Clock semantics during complex penalty flows:
   // - During normal play: the side to move has the active (running) clock.
@@ -102,51 +114,40 @@ export function useGame(
     if (!cfg.overlays.enableClock) return;
     if (state.result) return; // no interval needed once the game is over
 
-    const tickClock = (side: 'w' | 'b', now: number, elapsed: number) => {
-      const cur = stateRef.current;
-      if (!cur.clocks) return;
-      const key = side === 'w' ? 'whiteMs' : 'blackMs';
-      const setDisplay = side === 'w' ? setClockWhiteMs : setClockBlackMs;
-      const remaining = Math.max(0, cur.clocks[key] - elapsed);
-      setDisplay(remaining);
-      if (remaining <= 0) {
-        // Use stateRef for up-to-date clock values (the React state `prev`
-        // may be stale because only the tick updates clocks between renders).
-        const freshClocks = stateRef.current.clocks;
-        setState((prev) => {
-          if (prev.result) return prev;
-          return applyTimeout(
-            {
-              ...prev,
-              clocks: freshClocks
-                ? { ...freshClocks, [key]: 0, lastTimestamp: now }
-                : { whiteMs: 0, blackMs: 0, lastTimestamp: now },
-            },
-            side,
-          );
-        });
-      } else {
-        stateRef.current = {
-          ...cur,
-          clocks: { ...cur.clocks, [key]: remaining, lastTimestamp: now },
-        };
-      }
-    };
-
     const intervalId = setInterval(() => {
       const cur = stateRef.current;
-      if (cur.result || !cur.clocks) return;
+      if (cur.result || !clockCommittedRef.current) return;
       if (pausedRef.current && cur.mode === 'botvbot') return;
 
       const now = Date.now();
-      const elapsed = clockActiveRef.current ? now - clockActiveRef.current : 0;
-      clockActiveRef.current = now;
+      const turnStart = clockActiveRef.current ?? now;
+      const elapsed = now - turnStart;
 
       // The active clock side is always sideToMove:
       // - normal turn → side to move
       // - pending piece removal → chooser (= sideToMove, set by engine)
       // - extra turns → the side that still has turns (= sideToMove)
-      tickClock(cur.sideToMove, now, elapsed);
+      const side = cur.sideToMove;
+      const key = side === 'w' ? 'whiteMs' : 'blackMs';
+      const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
+
+      if (side === 'w') setClockWhiteMs(remaining);
+      else setClockBlackMs(remaining);
+
+      if (remaining <= 0) {
+        setState((prev) => {
+          if (prev.result) return prev;
+          return applyTimeout(
+            {
+              ...prev,
+              clocks: prev.clocks
+                ? { ...prev.clocks, [key]: 0, lastTimestamp: now }
+                : { whiteMs: 0, blackMs: 0, lastTimestamp: now },
+            },
+            side,
+          );
+        });
+      }
     }, 100);
 
     return () => clearInterval(intervalId);
@@ -163,11 +164,11 @@ export function useGame(
 
       // Apply clock time before move
       let stateBeforeMove = current;
-      if (current.clocks && clockActiveRef.current) {
+      if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
         const now = Date.now();
         const elapsed = now - clockActiveRef.current;
         const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
-        const remaining = Math.max(0, current.clocks[key] - elapsed);
+        const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
         if (remaining <= 0) {
           const timeoutState = applyTimeout(
             { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
@@ -190,9 +191,12 @@ export function useGame(
       const newState = applyMoveWithRules(stateBeforeMove, { from, to, promotion });
       if (newState === stateBeforeMove) return false;
 
-      // Reset clock timestamp for the new side
+      // Reset clock timestamp for the new side and commit to refs
       if (newState.clocks) {
-        newState.clocks = { ...newState.clocks, lastTimestamp: Date.now() };
+        const ts = Date.now();
+        newState.clocks = { ...newState.clocks, lastTimestamp: ts };
+        clockActiveRef.current = ts;
+        clockCommittedRef.current = { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs };
       }
 
       setState(newState);
@@ -235,6 +239,9 @@ export function useGame(
       setState(newState);
       setBotThinking(false);
       clockActiveRef.current = newState.clocks ? Date.now() : null;
+      clockCommittedRef.current = newState.clocks
+        ? { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs }
+        : null;
       if (newState.clocks) {
         setClockWhiteMs(newState.clocks.whiteMs);
         setClockBlackMs(newState.clocks.blackMs);
@@ -319,11 +326,11 @@ export function useGame(
       if (botMove) {
         // Apply clock time for bot
         let stateBeforeMove = current;
-        if (current.clocks && clockActiveRef.current) {
+        if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
           const now = Date.now();
           const elapsed = now - clockActiveRef.current;
           const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
-          const remaining = Math.max(0, current.clocks[key] - elapsed);
+          const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
           if (remaining <= 0) {
             setState(applyTimeout(
               { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
@@ -346,7 +353,10 @@ export function useGame(
         });
 
         if (newState.clocks) {
-          newState.clocks = { ...newState.clocks, lastTimestamp: Date.now() };
+          const ts = Date.now();
+          newState.clocks = { ...newState.clocks, lastTimestamp: ts };
+          clockActiveRef.current = ts;
+          clockCommittedRef.current = { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs };
         }
 
         setState(newState);
