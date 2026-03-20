@@ -24,7 +24,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
   const showReportButton =
     config.enableBlunziger &&
     !config.reverseForcedCheck &&
-    config.missedCheckPenalty !== 'extra_move';
+    config.missedCheckPenalty === 'loss';
 
   const showScores = config.scoringMode === 'checks_count';
   const showClocks = config.enableClock;
@@ -92,6 +92,19 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
             return <div className="extra-turn-indicator">⚡ {msg}</div>;
           })()}
 
+          {/* Piece removal prompt */}
+          {state.pendingPieceRemoval && (
+            <div className="piece-removal-indicator">
+              🎯 {state.pendingPieceRemoval.chooserSide === 'w' ? 'White' : 'Black'} must choose a{' '}
+              {state.pendingPieceRemoval.targetSide === 'w' ? 'White' : 'Black'} piece to remove
+            </div>
+          )}
+
+          {/* Piece removal mode indicator */}
+          {config.missedCheckPenalty === 'piece_removal' && !state.pendingPieceRemoval && !result && (
+            <div className="penalty-mode-indicator">♟ Penalty: Piece Removal active</div>
+          )}
+
           {lastReportFeedback && (
             <div className={`report-feedback ${lastReportFeedback.valid ? 'feedback-valid' : 'feedback-invalid'}`}>
               {lastReportFeedback.message}
@@ -149,6 +162,8 @@ function formatReason(reason: string): string {
       return 'Timeout';
     case 'timeout_penalty':
       return 'Timeout (missed check penalty)';
+    case 'piece_removal_no_piece_loss':
+      return 'No removable pieces (penalty loss)';
     case 'score_limit':
       return 'Score limit reached';
     case 'score_limit_draw':

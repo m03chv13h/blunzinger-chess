@@ -155,3 +155,8 @@
   background: #e0e0e0;
   border-color: #999;
 }
+
+.removal-target {
+  background: rgba(255, 0, 0, 0.3) !important;
+  cursor: pointer !important;
+}

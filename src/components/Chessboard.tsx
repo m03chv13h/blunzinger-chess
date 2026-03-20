@@ -17,9 +17,21 @@ interface ChessboardProps {
   legalMovesFrom: (square: Square) => Square[];
   interactive: boolean;
   flipped?: boolean;
+  pendingPieceRemoval?: boolean;
+  removableSquares?: Square[];
+  onPieceRemoval?: (square: Square) => boolean;
 }
 
-export function Chessboard({ fen, onMove, legalMovesFrom, interactive, flipped = false }: ChessboardProps) {
+export function Chessboard({
+  fen,
+  onMove,
+  legalMovesFrom,
+  interactive,
+  flipped = false,
+  pendingPieceRemoval,
+  removableSquares,
+  onPieceRemoval,
+}: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
   const [promotionData, setPromotionData] = useState<{ from: Square; to: Square } | null>(null);
@@ -34,6 +46,14 @@ export function Chessboard({ fen, onMove, legalMovesFrom, interactive, flipped =
     (square: Square) => {
       if (!interactive) return;
       if (promotionData) return;
+
+      // Handle piece removal selection
+      if (pendingPieceRemoval && removableSquares && onPieceRemoval) {
+        if (removableSquares.includes(square)) {
+          onPieceRemoval(square);
+        }
+        return;
+      }
 
       if (selectedSquare) {
         // Try to make the move
@@ -74,7 +94,7 @@ export function Chessboard({ fen, onMove, legalMovesFrom, interactive, flipped =
         }
       }
     },
-    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData],
+    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData, pendingPieceRemoval, removableSquares, onPieceRemoval],
   );
 
   const handlePromotion = useCallback(
@@ -102,6 +122,7 @@ export function Chessboard({ fen, onMove, legalMovesFrom, interactive, flipped =
             const isHighlighted = highlightedMoves.includes(square);
             const isLastMove =
               lastMoveObj && (lastMoveObj.from === square || lastMoveObj.to === square);
+            const isRemovalTarget = pendingPieceRemoval && removableSquares?.includes(square);
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 
@@ -114,6 +135,7 @@ export function Chessboard({ fen, onMove, legalMovesFrom, interactive, flipped =
                   isSelected ? 'selected' : '',
                   isHighlighted ? 'highlighted' : '',
                   isLastMove ? 'last-move' : '',
+                  isRemovalTarget ? 'removal-target' : '',
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}
