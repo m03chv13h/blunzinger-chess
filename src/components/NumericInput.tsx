@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 interface NumericInputProps {
   id?: string;
@@ -26,10 +26,10 @@ export function NumericInput({
 }: NumericInputProps) {
   const [raw, setRaw] = useState(String(value));
   // Track the last external value so we only sync when the prop actually changes
-  const [prevValue, setPrevValue] = useState(value);
+  const prevValueRef = useRef(value);
 
-  if (value !== prevValue) {
-    setPrevValue(value);
+  if (value !== prevValueRef.current) {
+    prevValueRef.current = value;
     setRaw(String(value));
   }
 
