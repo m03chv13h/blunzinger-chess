@@ -1,4 +1,5 @@
 import type { GameSetupConfig } from '../core/blunziger/types';
+import { getGameModeDefinition } from '../core/blunziger/types';
 import './GameSummaryPanel.css';
 
 interface GameSummaryPanelProps {
@@ -18,10 +19,18 @@ const LEVEL_LABELS: Record<string, string> = {
 };
 
 export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
+  const variantDef = getGameModeDefinition(config.variantModeId);
+  const showClock = variantDef.config.enableClock;
+  const showMoveLimit = variantDef.config.moveLimit > 0;
+
   return (
     <div className="game-summary">
       <h3>Game Settings</h3>
       <dl className="summary-list">
+        <div className="summary-item">
+          <dt>Variant</dt>
+          <dd>{variantDef.name}</dd>
+        </div>
         <div className="summary-item">
           <dt>Mode</dt>
           <dd>{MODE_LABELS[config.mode]}</dd>
@@ -42,6 +51,18 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
           <dt>Invalid Report Threshold</dt>
           <dd>{config.invalidReportLossThreshold}</dd>
         </div>
+        {showClock && (
+          <div className="summary-item">
+            <dt>Time Control</dt>
+            <dd>{Math.round(config.initialTimeMs / 60000)}+{Math.round(config.incrementMs / 1000)}</dd>
+          </div>
+        )}
+        {showMoveLimit && (
+          <div className="summary-item">
+            <dt>Move Limit</dt>
+            <dd>{config.moveLimit}</dd>
+          </div>
+        )}
         <div className="summary-item">
           <dt>King of the Hill</dt>
           <dd>{config.enableKingOfTheHill ? 'On' : 'Off'}</dd>

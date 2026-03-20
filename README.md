@@ -1,73 +1,97 @@
 # Blunziger Chess ♟
 
-A browser-based chess variant that adds a **forced-check rule** on top of standard chess.
+A browser-based chess variant with a **multi-mode game system** built on top of standard chess.
 
 ## What is Blunziger Chess?
 
-Blunziger Chess is standard chess with one additional rule:
+Blunziger Chess is standard chess with additional variant rules organized into **named game modes**. The core concept: forced-check constraints and scoring systems that add strategic depth.
 
-> **If you have any legal move that gives check, you are expected to play a checking move.**
+## Game Mode System
 
-However, the system **never forces** the move — players can still choose any legal move. If they don't play a checking move when one is available, that's a *missed forced-check violation*.
+The app ships with **6 built-in variant modes** selected before each game. Once a game starts, the mode and its config are **locked for the duration of the match**.
 
-### Reporting System
+### Built-in Modes
 
-After a violation occurs, the **opponent** can press **"Report Missed Check"** before making their next move:
+| Mode | Key Rule |
+|------|----------|
+| **Classic Blunziger** | If a checking move exists, you are expected to play it. Opponent can report a miss for immediate loss. |
+| **Double Check Pressure** | Like Classic, but if ≥2 checking moves exist and you miss them, you lose **immediately** (no report needed). |
+| **Blitz Blunziger** | Classic Blunziger with chess clocks. Time runs out = loss. |
+| **Penalty Instead of Loss** | Missing a forced check gives the opponent one **extra consecutive move** instead of loss. |
+| **King Hunter** | Checks score points. Game ends at a move limit. Higher score wins. |
+| **Reverse Blunziger** | If a checking move exists, you must **avoid** giving check. Violation = immediate loss. |
 
-- **Valid report**: The violating player **loses immediately**.
-- **Invalid report** (no violation existed, or conditions not met): The reporter's invalid-report counter increments. After reaching the configured threshold (default: **2**), the reporter loses.
+### Mode Details
 
-### Key Points
+#### Classic Blunziger
+> If you have any legal move that gives check, you are expected to play a checking move.
 
 - Moves are **never auto-forced** — all legal moves are always available
 - Violations are detected **after** the move is played
-- Reports must be made **before** the reporter plays their next move
-- Bots always obey the forced-check rule
-- The invalid report threshold is configurable in the new game setup
+- Opponent presses **"Report Missed Check"** before making their next move
+- **Valid report**: violating player loses immediately
+- **Invalid report**: reporter's counter increments; reaching the threshold (default: 2) → reporter loses
 
-## Game Flow
+#### Double Check Pressure
+Same as Classic Blunziger, plus:
+- If **2 or more** checking moves exist and the player misses them → **immediate loss** (no report needed)
+- If exactly **1** checking move exists and is missed → normal report-based handling
 
-The app uses a two-step flow:
+#### Blitz Blunziger
+Classic Blunziger with countdown clocks:
+- Each side starts with a configurable time (default: 5 minutes)
+- Optional increment per move
+- Time reaching zero → loss by **timeout**
+- Clocks pause when the game ends
 
-1. **New Game Setup** — Before any game starts, configure all settings (game mode, bot difficulty, invalid report threshold, King of the Hill, etc.) on a dedicated setup screen. Click **"Start Game"** to begin.
-2. **Active Game** — During play, the board and game UI are shown. All settings are locked and displayed as a read-only summary. Settings **cannot** be changed mid-game. Click **"New Game"** to return to the setup screen and configure a different match.
+#### Penalty Instead of Loss
+- Missing a forced check does **not** cause loss
+- Instead, the opponent receives **one extra consecutive move**
+- After the violating player's move, the opponent makes their normal move, then gets a second consecutive move
+- Turn order resumes normally afterward
+- The "Report Missed Check" button is **disabled** in this mode
 
-## King of the Hill (Optional)
+#### King Hunter
+- Each time a player gives check, they score **1 point**
+- Game ends after a configurable move limit (full moves, default: 40)
+- Higher score wins; tied score = draw
+- Checkmate before the move limit ends the game immediately
+- Blunziger forced-check rules still apply by default
 
-King of the Hill is an **optional variant mode** that can be enabled with a checkbox in the game settings.
+#### Reverse Blunziger
+- If a checking move exists, you are **forbidden** from giving check
+- You must play a non-checking legal move instead
+- Violation (giving check when non-checking alternatives exist) = **immediate loss**
+- **Exception**: If ALL legal moves give check, any move is allowed
+- Reporting is **disabled** — violations are detected automatically
 
-When enabled, a player wins immediately if their king reaches one of the **four center squares**:
+### King of the Hill (Optional Overlay)
 
-| Square |
-|--------|
-| **d4** |
-| **e4** |
-| **d5** |
-| **e5** |
-
-### Combining with Blunziger Rules
-
-King of the Hill works **together** with the Blunziger forced-check rules — it does not replace them. The app supports:
-
-- **Blunziger only** (default)
-- **Blunziger + King of the Hill**
+King of the Hill can be **combined** with any mode via a checkbox in setup:
+- A player wins immediately if their king reaches d4, e4, d5, or e5
+- KOTH win overrides pending violations and draws
 
 ### Rule Precedence
 
-When both rule sets are active, the following resolution order applies for each move:
-
+When multiple rule systems are active, resolution order per move:
 1. Validate move under standard chess legality
-2. Detect whether a forced-check opportunity existed before the move
-3. If a non-checking move was played when checking was available, record a violation
+2. Detect mode-specific violations (Reverse Blunziger, Double Check Pressure)
+3. Detect standard Blunziger violations
 4. Apply the move
-5. Evaluate victory conditions in deterministic order:
-   - **Checkmate** (highest priority)
-   - **King of the Hill** center-square victory
-   - **Stalemate / draw** conditions
+5. Update scores (King Hunter)
+6. Evaluate termination: Checkmate → KOTH → Stalemate/Draw → Move limit
 
-**Important**: If a player's move reaches the hill, they win immediately — **even if they missed a forced check on that same move**. The game ends as soon as the hill is reached; no report can overturn the result. If the hill is not reached, normal Blunziger reporting rules continue to apply.
+### Mode Combination Limitations
 
-## Game Modes
+- **Reverse Blunziger** disables the standard Blunziger forced-check rule (they are mutually exclusive)
+- King of the Hill can be enabled alongside any mode
+
+## Game Flow
+
+1. **New Game Setup** — Select a variant mode, player mode, and mode-specific options. Click **"Start Game"**.
+2. **Active Game** — Board and game UI are shown. Settings are locked as a read-only summary. Click **"New Game"** to return to setup.
+
+## Player Modes
 
 | Mode | Description |
 |------|-------------|
@@ -77,9 +101,18 @@ When both rule sets are active, the following resolution order applies for each 
 
 ### Bot Levels
 
-- **Easy**: Random legal move (respecting forced-check rule)
+- **Easy**: Random legal move (respecting mode rules)
 - **Medium**: Heuristic evaluation (captures, checks, central control)
 - **Hard**: Minimax with alpha-beta pruning (depth 3)
+
+### Bot Mode Awareness
+
+Bots obey all mode restrictions:
+- **Classic/DCP**: Must play checking moves when available
+- **Reverse Blunziger**: Must play non-checking moves when checking alternatives exist
+- **King Hunter**: Prefers checking moves more strongly (higher scoring weight)
+- **Penalty mode**: Functions correctly with extra turns
+- **Blitz**: Consumes time normally
 
 ## Getting Started
 
@@ -144,25 +177,26 @@ jobs:
 ```
 src/
 ├── core/blunziger/     # Pure TypeScript — no React/DOM deps
-│   ├── types.ts        # GameState, ViolationRecord, configs
-│   ├── engine.ts       # All pure game logic functions
+│   ├── types.ts        # VariantConfig, GameModeDefinition, GameState, preset registry
+│   ├── engine.ts       # All pure game logic functions (mode-aware)
 │   └── index.ts        # Re-exports
 ├── bot/
-│   └── botEngine.ts    # Bot move selection (easy/medium/hard)
+│   └── botEngine.ts    # Bot move selection (mode-aware, easy/medium/hard)
 ├── components/
 │   ├── Chessboard.tsx        # Custom board UI (click-to-move)
-│   ├── GameStatus.tsx        # Turn indicator, report button, result
+│   ├── GameStatus.tsx        # Turn, clocks, scores, report, result
 │   ├── GameControls.tsx      # New Game button + bot-vs-bot controls
 │   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
-│   ├── NewGameSetupScreen.tsx # Pre-game setup form
+│   ├── NewGameSetupScreen.tsx # Pre-game setup with variant mode selector
 │   ├── MoveList.tsx          # Move history sidebar
-│   └── RulesPanel.tsx        # Expandable rule explanation
+│   └── RulesPanel.tsx        # Mode-specific rule explanation
 ├── hooks/
-│   └── useGame.ts      # React game state hook
+│   └── useGame.ts      # React game state hook (clocks, scores, extra turns)
 └── __tests__/
-    ├── engine.test.ts    # 54 core logic tests (including KOTH)
-    ├── bot.test.ts       # 8 bot tests (including KOTH)
-    └── app-flow.test.tsx # 16 UI flow tests (setup → play → new game)
+    ├── engine.test.ts    # 54 core logic tests
+    ├── bot.test.ts       # 8 bot tests
+    ├── modes.test.ts     # 38 mode-specific tests
+    └── app-flow.test.tsx # 16 UI flow tests
 ```
 
 ### Separation of Concerns
@@ -170,7 +204,17 @@ src/
 - **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Can be reused server-side.
 - **`bot/`**: Bot logic, depends only on `core/` and `chess.js`.
 - **`components/`**: React UI, depends on `core/` through the `useGame` hook.
-- **`hooks/`**: Bridges core logic and React state.
+- **`hooks/`**: Bridges core logic and React state. Manages clocks.
+
+### Type System
+
+| Type | Purpose |
+|------|---------|
+| `VariantConfig` | Full configuration for a variant (replaces old `BlunzigerConfig`) |
+| `VariantModeId` | Identifier for a built-in mode preset |
+| `GameModeDefinition` | Name, description, and default config for a preset |
+| `GameState` | Complete game state including scores, clocks, extra turns |
+| `GameSetupConfig` | What the user selects before starting a game |
 
 ### Pure Functions (core module)
 
@@ -178,13 +222,14 @@ src/
 |----------|-------------|
 | `getLegalMoves(fen)` | All legal moves from position |
 | `getCheckingMoves(fen)` | Legal moves that give check |
+| `getNonCheckingMoves(fen)` | Legal moves that do NOT give check |
 | `isForcedCheckTurn(fen)` | Whether checking moves exist |
-| `detectViolation(fen, move, idx)` | Check if move is a violation |
-| `applyMoveWithRules(state, move)` | Apply move with Blunziger + KOTH rules |
-| `canReport(state, side)` | Whether side can report |
+| `isReverseForcedState(fen)` | Same as above (used for reverse mode context) |
+| `detectViolation(fen, move, idx)` | Check if move is a standard Blunziger violation |
+| `applyMoveWithRules(state, move)` | Apply move with full mode-aware rules |
+| `canReport(state, side)` | Whether side can report (disabled in penalty/reverse modes) |
 | `reportViolation(state, side)` | Process a report |
-| `incrementInvalidReport(state, side)` | Bump invalid counter |
-| `shouldLoseFromInvalidReports(counts, side, config)` | Check threshold |
+| `applyTimeout(state, losingSide)` | End game due to clock timeout |
 | `isKingOfTheHillEnabled(config)` | Whether KOTH mode is on |
 | `isHillSquare(square)` | Whether square is a center hill square |
 | `didKingReachHill(fen, side)` | Whether side's king is on a hill square |
@@ -215,6 +260,7 @@ The `core/blunziger/` module is designed to be **backend-compatible**:
 - All functions are deterministic and stateless
 - `GameState` is serializable (JSON-safe)
 - Move validation is reproducible from state alone
+- `VariantConfig` and `GameModeDefinition` are portable
 
 A future backend could:
 - Import `core/blunziger/` directly into a Node.js server

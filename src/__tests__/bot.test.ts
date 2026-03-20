@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
 import { getCheckingMoves, getLegalMoves } from '../core/blunziger/engine';
-import type { BlunzigerConfig } from '../core/blunziger/types';
-import { INITIAL_FEN } from '../core/blunziger/types';
+import type { VariantConfig } from '../core/blunziger/types';
+import { DEFAULT_CONFIG, INITIAL_FEN } from '../core/blunziger/types';
 
-const kothConfig: BlunzigerConfig = { invalidReportLossThreshold: 2, enableKingOfTheHill: true };
+const kothConfig: VariantConfig = { ...DEFAULT_CONFIG, enableKingOfTheHill: true };
 
 describe('Bot Engine', () => {
   describe('selectBotMove', () => {
