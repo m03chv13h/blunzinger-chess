@@ -4,9 +4,8 @@ import type {
   GameState,
   GameMode,
   BotLevel,
-  VariantConfig,
+  MatchConfig,
   Square,
-  VariantModeId,
 } from '../core/blunziger/types';
 import { DEFAULT_CONFIG } from '../core/blunziger/types';
 import {
@@ -27,10 +26,9 @@ export interface UseGameReturn {
   report: () => void;
   resetGame: (
     mode?: GameMode,
-    config?: VariantConfig,
+    config?: MatchConfig,
     botLevel?: BotLevel,
     botColor?: Color,
-    variantModeId?: VariantModeId,
   ) => void;
   canReportNow: boolean;
   legalMovesFrom: (square: Square) => Square[];
@@ -53,13 +51,12 @@ export interface UseGameReturn {
 
 export function useGame(
   initialMode: GameMode = 'hvh',
-  initialConfig: VariantConfig = DEFAULT_CONFIG,
+  initialConfig: MatchConfig = DEFAULT_CONFIG,
   initialBotLevel: BotLevel = 'easy',
   initialBotColor: Color = 'b',
-  initialVariantModeId: VariantModeId = 'classic_blunziger',
 ): UseGameReturn {
   const [state, setState] = useState<GameState>(() =>
-    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor, initialVariantModeId),
+    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor),
   );
   const [botThinking, setBotThinking] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -73,10 +70,10 @@ export function useGame(
 
   // ── Clock state (live display) ─────────────────────────────────────
   const [clockWhiteMs, setClockWhiteMs] = useState(
-    initialConfig.enableClock ? initialConfig.initialTimeMs : 0,
+    initialConfig.overlays.enableClock ? initialConfig.overlays.initialTimeMs : 0,
   );
   const [clockBlackMs, setClockBlackMs] = useState(
-    initialConfig.enableClock ? initialConfig.initialTimeMs : 0,
+    initialConfig.overlays.enableClock ? initialConfig.overlays.initialTimeMs : 0,
   );
   const clockActiveRef = useRef<number | null>(null); // timestamp of last tick
 
@@ -92,7 +89,7 @@ export function useGame(
   // Clock tick interval
   useEffect(() => {
     const cfg = stateRef.current.config;
-    if (!cfg.enableClock) return;
+    if (!cfg.overlays.enableClock) return;
 
     const tickClock = (side: 'w' | 'b', now: number, elapsed: number) => {
       const cur = stateRef.current;
@@ -130,7 +127,7 @@ export function useGame(
     }, 100);
 
     return () => clearInterval(intervalId);
-  }, [state.config.enableClock, state.result]);
+  }, [state.config.overlays.enableClock, state.result]);
 
   // ── Move handling ──────────────────────────────────────────────────
 
@@ -156,7 +153,7 @@ export function useGame(
           setState(timeoutState);
           return false;
         }
-        const increment = current.config.incrementMs || 0;
+        const increment = current.config.overlays.incrementMs || 0;
         stateBeforeMove = {
           ...current,
           clocks: {
@@ -202,17 +199,15 @@ export function useGame(
   const resetGame = useCallback(
     (
       mode?: GameMode,
-      config?: VariantConfig,
+      config?: MatchConfig,
       botLevel?: BotLevel,
       botColor?: Color,
-      variantModeId?: VariantModeId,
     ) => {
       const newState = createInitialState(
         mode ?? stateRef.current.mode,
         config ?? stateRef.current.config,
         botLevel ?? stateRef.current.botLevel,
         botColor ?? stateRef.current.botColor,
-        variantModeId ?? stateRef.current.variantModeId,
       );
       setState(newState);
       setBotThinking(false);
@@ -314,7 +309,7 @@ export function useGame(
             setBotThinking(false);
             return;
           }
-          const increment = current.config.incrementMs || 0;
+          const increment = current.config.overlays.incrementMs || 0;
           stateBeforeMove = {
             ...current,
             clocks: { ...current.clocks, [key]: remaining + increment, lastTimestamp: now },

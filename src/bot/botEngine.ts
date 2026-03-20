@@ -1,5 +1,6 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, VariantConfig } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig } from '../core/blunziger/types';
+import { isReverseForcedCheckMode, isKingHuntVariant } from '../core/blunziger/types';
 import {
   getLegalMoves,
   getCheckingMoves,
@@ -22,19 +23,19 @@ const PIECE_VALUES: Record<string, number> = {
  * Select a move for the bot, obeying mode-specific rules.
  *
  * Move-selection priority:
- * 1. Filter moves allowed by the current mode
+ * 1. Filter moves allowed by the current variant mode
  * 2. Look for immediate winning moves (KOTH hill)
- * 3. Apply mode-specific priorities (King Hunter → prefer checks)
+ * 3. Apply mode-specific priorities (King Hunt → prefer checks)
  * 4. Use heuristic/engine selection among remaining candidates
  */
-export function selectBotMove(fen: string, level: BotLevel, config?: VariantConfig): Move | null {
+export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig): Move | null {
   const legalMoves = getLegalMoves(fen);
   if (legalMoves.length === 0) return null;
 
   let candidateMoves: Move[];
 
-  if (config?.reverseForcedCheck) {
-    // Reverse Blunziger: bot must avoid checking moves when non-checking exist
+  if (config && isReverseForcedCheckMode(config.variantMode)) {
+    // Reverse Blunzinger: bot must avoid checking moves when non-checking exist
     const checkingMoves = getCheckingMoves(fen);
     if (checkingMoves.length > 0) {
       const nonCheckingMoves = getNonCheckingMoves(fen);
@@ -42,12 +43,10 @@ export function selectBotMove(fen: string, level: BotLevel, config?: VariantConf
     } else {
       candidateMoves = legalMoves;
     }
-  } else if (config?.enableBlunziger !== false) {
-    // Standard / Double Check Pressure: bot must pick checking moves when available
+  } else {
+    // Classic / King Hunt variants: bot must pick checking moves when available
     const checkingMoves = getCheckingMoves(fen);
     candidateMoves = checkingMoves.length > 0 ? checkingMoves : legalMoves;
-  } else {
-    candidateMoves = legalMoves;
   }
 
   // King of the Hill: prioritize immediate hill win among candidates
@@ -61,13 +60,15 @@ export function selectBotMove(fen: string, level: BotLevel, config?: VariantConf
     }
   }
 
+  const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
+
   switch (level) {
     case 'easy':
       return selectRandom(candidateMoves);
     case 'medium':
       return selectMedium(candidateMoves, fen, config);
     case 'hard':
-      return selectHard(candidateMoves, fen, config);
+      return selectHard(candidateMoves, fen, kingHunt);
     default:
       return selectRandom(candidateMoves);
   }
@@ -83,7 +84,7 @@ function selectRandom(moves: Move[]): Move {
 /**
  * Medium bot: simple heuristic - prefer captures, checks, central moves.
  */
-function selectMedium(moves: Move[], fen: string, config?: VariantConfig): Move {
+function selectMedium(moves: Move[], fen: string, config?: MatchConfig): Move {
   const scored = moves.map((move) => ({
     move,
     score: scoreMove(move, fen, config),
@@ -100,18 +101,16 @@ function selectMedium(moves: Move[], fen: string, config?: VariantConfig): Move 
 /**
  * Hard bot: deeper evaluation using minimax.
  */
-function selectHard(moves: Move[], fen: string, config?: VariantConfig): Move {
+function selectHard(moves: Move[], fen: string, kingHunt: boolean): Move {
   let bestScore = -Infinity;
   let bestMove = moves[0];
-
-  const kingHunter = config?.scoringMode === 'checks_count';
 
   for (const move of moves) {
     const chess = new Chess(fen);
     chess.move(move.san);
     let score = -minimax(chess, 2, -Infinity, Infinity, false);
     // King Hunter bonus for checks
-    if (kingHunter && chess.inCheck()) {
+    if (kingHunt && chess.inCheck()) {
       score += 3;
     }
     if (score > bestScore) {
@@ -199,7 +198,7 @@ function evaluatePosition(chess: Chess): number {
 /**
  * Score a move for heuristic ordering.
  */
-function scoreMove(move: Move, fen: string, config?: VariantConfig): number {
+function scoreMove(move: Move, fen: string, config?: MatchConfig): number {
   let score = 0;
 
   // King of the Hill: king reaching center is extremely valuable
@@ -212,11 +211,12 @@ function scoreMove(move: Move, fen: string, config?: VariantConfig): number {
     score += PIECE_VALUES[move.captured] * 10;
   }
 
-  // Checks are good (especially in King Hunter)
+  // Checks are good (especially in King Hunt)
   const chess = new Chess(fen);
   chess.move(move.san);
   if (chess.inCheck()) {
-    score += config?.scoringMode === 'checks_count' ? 20 : 5;
+    const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
+    score += kingHunt ? 20 : 5;
   }
 
   // Central control

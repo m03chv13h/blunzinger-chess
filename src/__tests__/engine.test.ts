@@ -15,8 +15,8 @@ import {
   didKingReachHill,
   isKingOfTheHillEnabled,
 } from '../core/blunziger/engine';
-import type { GameState, VariantConfig } from '../core/blunziger/types';
-import { DEFAULT_CONFIG, INITIAL_FEN } from '../core/blunziger/types';
+import type { GameState, MatchConfig } from '../core/blunziger/types';
+import { DEFAULT_CONFIG, DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
 describe('Core Blunziger Engine', () => {
   describe('createInitialState', () => {
@@ -32,9 +32,12 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should accept custom config', () => {
-      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 5, enableKingOfTheHill: false };
+      const config: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        invalidReportLossThreshold: 5,
+      });
       const state = createInitialState('hvbot', config, 'medium', 'w');
-      expect(state.config.invalidReportLossThreshold).toBe(5);
+      expect(state.config.reportConfig.invalidReportLossThreshold).toBe(5);
       expect(state.mode).toBe('hvbot');
       expect(state.botLevel).toBe('medium');
       expect(state.botColor).toBe('w');
@@ -86,7 +89,7 @@ describe('Core Blunziger Engine', () => {
   describe('detectViolation', () => {
     it('should return null when no checking moves were available', () => {
       const moves = getLegalMoves(INITIAL_FEN);
-      const violation = detectViolation(INITIAL_FEN, moves[0], 0);
+      const violation = detectViolation(INITIAL_FEN, moves[0], 0, 'classic_blunzinger', false);
       expect(violation).toBeNull();
     });
 
@@ -102,11 +105,12 @@ describe('Core Blunziger Engine', () => {
       );
       expect(nonCheckMove).toBeDefined();
 
-      const violation = detectViolation(fen, nonCheckMove!, 0);
+      const violation = detectViolation(fen, nonCheckMove!, 0, 'classic_blunzinger', false);
       expect(violation).not.toBeNull();
       expect(violation!.violatingSide).toBe('w');
       expect(violation!.reportable).toBe(true);
       expect(violation!.checkingMoves.length).toBeGreaterThan(0);
+      expect(violation!.violationType).toBe('missed_check');
     });
 
     it('should return null when the played move IS a checking move', () => {
@@ -114,8 +118,49 @@ describe('Core Blunziger Engine', () => {
       const checkMoves = getCheckingMoves(fen);
       expect(checkMoves.length).toBeGreaterThan(0);
 
-      const violation = detectViolation(fen, checkMoves[0], 0);
+      const violation = detectViolation(fen, checkMoves[0], 0, 'classic_blunzinger', false);
       expect(violation).toBeNull();
+    });
+
+    it('should detect reverse blunzinger violation when player gives check', () => {
+      const fen = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
+      const checkMoves = getCheckingMoves(fen);
+      expect(checkMoves.length).toBeGreaterThan(0);
+
+      const violation = detectViolation(fen, checkMoves[0], 0, 'reverse_blunzinger', false);
+      expect(violation).not.toBeNull();
+      expect(violation!.violationType).toBe('gave_forbidden_check');
+    });
+
+    it('should set severe flag when DCP enabled and ≥2 checking moves exist', () => {
+      const fen = 'rnbqk2r/pppp1ppp/5n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 3';
+      const checks = getCheckingMoves(fen);
+      expect(checks.length).toBeGreaterThanOrEqual(2);
+
+      const allMoves = getLegalMoves(fen);
+      const nonCheckMove = allMoves.find(
+        (m) => !checks.some((c) => c.from === m.from && c.to === m.to),
+      );
+      expect(nonCheckMove).toBeDefined();
+
+      const violation = detectViolation(fen, nonCheckMove!, 0, 'classic_blunzinger', true);
+      expect(violation).not.toBeNull();
+      expect(violation!.severe).toBe(true);
+    });
+
+    it('should not set severe flag when DCP disabled', () => {
+      const fen = 'rnbqk2r/pppp1ppp/5n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 3';
+      const checks = getCheckingMoves(fen);
+      expect(checks.length).toBeGreaterThanOrEqual(2);
+
+      const allMoves = getLegalMoves(fen);
+      const nonCheckMove = allMoves.find(
+        (m) => !checks.some((c) => c.from === m.from && c.to === m.to),
+      );
+
+      const violation = detectViolation(fen, nonCheckMove!, 0, 'classic_blunzinger', false);
+      expect(violation).not.toBeNull();
+      expect(violation!.severe).toBe(false);
     });
   });
 
@@ -181,9 +226,6 @@ describe('Core Blunziger Engine', () => {
       // Black moves instead of reporting
       s = applyMoveWithRules(s, 'e6');
       // The old violation should no longer be reportable
-      // (either cleared or a new violation check applies)
-      // Note: the new pending violation is whatever happened with black's move
-      // The old white violation is no longer reportable
     });
   });
 
@@ -214,10 +256,28 @@ describe('Core Blunziger Engine', () => {
           moveIndex: 5,
           fenBeforeMove: INITIAL_FEN,
           checkingMoves: [],
+          requiredMoves: [],
           actualMove: getLegalMoves(INITIAL_FEN)[0],
           reportable: true,
+          violationType: 'missed_check',
+          severe: false,
         },
       };
+      expect(canReport(state, 'w')).toBe(false);
+    });
+
+    it('should return false for penalty_on_miss game type', () => {
+      const penaltyConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        gameType: 'penalty_on_miss',
+        enableAdditionalMovePenalty: true,
+      });
+      let state = createInitialState('hvh', penaltyConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses check
+
+      expect(canReport(state, 'b')).toBe(false);
       expect(canReport(state, 'w')).toBe(false);
     });
   });
@@ -246,7 +306,10 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should end the game when invalid report threshold is reached', () => {
-      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+      const config: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        invalidReportLossThreshold: 2,
+      });
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -285,7 +348,10 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should return invalid feedback when threshold is reached', () => {
-      const config: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+      const config: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        invalidReportLossThreshold: 2,
+      });
       let state = createInitialState('hvh', config);
       state = applyMoveWithRules(state, 'e4');
 
@@ -346,16 +412,12 @@ describe('Core Blunziger Engine', () => {
 
   describe('Edge cases', () => {
     it('should handle multiple checking moves', () => {
-      // Position with multiple checking moves
-      // Place white queen on d1 with black king exposed
       const fen = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
       const checks = getCheckingMoves(fen);
-      // Qh5+ is available
       expect(checks.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should handle promotion moves via applyMoveWithRules', () => {
-      // Position where white pawn is about to promote
       const promotionFen = '8/P7/8/8/8/8/6k1/4K3 w - - 0 1';
       const state: GameState = {
         ...createInitialState(),
@@ -369,7 +431,6 @@ describe('Core Blunziger Engine', () => {
     });
 
     it('should handle en passant', () => {
-      // Position where en passant is available
       const epFen = 'rnbqkbnr/pppp1ppp/8/4pP2/8/8/PPPPP1PP/RNBQKBNR w KQkq e6 0 3';
       const state: GameState = {
         ...createInitialState(),
@@ -378,12 +439,10 @@ describe('Core Blunziger Engine', () => {
       };
       const newState = applyMoveWithRules(state, { from: 'f5', to: 'e6' });
       expect(newState.moveHistory).toHaveLength(1);
-      // En passant capture
       expect(newState.moveHistory[0].flags).toContain('e');
     });
 
     it('should handle castling', () => {
-      // Position where castling is available
       const castlingFen = 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1';
       const state: GameState = {
         ...createInitialState(),
@@ -397,8 +456,14 @@ describe('Core Blunziger Engine', () => {
   });
 
   describe('King of the Hill', () => {
-    const kothConfig: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: true };
-    const noKothConfig: VariantConfig = { ...DEFAULT_CONFIG, invalidReportLossThreshold: 2, enableKingOfTheHill: false };
+    const kothConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableKingOfTheHill: true,
+    });
+    const noKothConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableKingOfTheHill: false,
+    });
 
     describe('isHillSquare', () => {
       it('should return true for center squares', () => {
@@ -429,14 +494,12 @@ describe('Core Blunziger Engine', () => {
 
     describe('didKingReachHill', () => {
       it('should detect white king on d4', () => {
-        // White king on d4, black king on h8
         const fen = '7k/8/8/8/3K4/8/8/8 w - - 0 1';
         expect(didKingReachHill(fen, 'w')).toBe(true);
         expect(didKingReachHill(fen, 'b')).toBe(false);
       });
 
       it('should detect black king on e5', () => {
-        // White king on a1, black king on e5
         const fen = '8/8/8/4k3/8/8/8/K7 w - - 0 1';
         expect(didKingReachHill(fen, 'b')).toBe(true);
         expect(didKingReachHill(fen, 'w')).toBe(false);
@@ -450,7 +513,6 @@ describe('Core Blunziger Engine', () => {
 
     describe('KOTH disabled - reaching center does NOT win', () => {
       it('should not trigger hill win when KOTH is disabled', () => {
-        // White king on e3, black king on h8, white rook on a1 (sufficient material)
         const fen = '7k/8/8/8/8/4K3/8/R7 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', noKothConfig),
@@ -464,7 +526,6 @@ describe('Core Blunziger Engine', () => {
 
     describe('KOTH enabled - reaching center wins', () => {
       it('should win when white king reaches d4', () => {
-        // White king on d3, white rook on a1, black king on h8
         const fen = '7k/8/8/8/8/3K4/8/R7 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
@@ -478,7 +539,6 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('should win when white king reaches e5', () => {
-        // White king on e4, white rook on a1, black king on h8
         const fen = '7k/8/8/8/4K3/8/8/R7 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
@@ -492,7 +552,6 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('should win when black king reaches d5', () => {
-        // Black king on d6, black rook on h1, white king on a1
         const fen = '8/8/3k4/8/8/8/8/K6r b - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
@@ -506,7 +565,6 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('should win when black king reaches e4', () => {
-        // Black king on e3, black rook on h1, white king on a8
         const fen = 'K7/8/8/8/8/4k3/8/7r b - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
@@ -520,7 +578,6 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('should also win with KOTH in K vs K positions (overrides insufficient material)', () => {
-        // Just two kings, normally insufficient material, but KOTH enabled
         const fen = '7k/8/8/8/8/3K4/8/8 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
@@ -534,7 +591,6 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('should not trigger if a non-king piece reaches hill square', () => {
-        // White pawn can move to d4 but only king triggers KOTH
         const state = createInitialState('hvh', kothConfig);
         const newState = applyMoveWithRules(state, 'd4');
         expect(newState.result).toBeNull();
@@ -543,7 +599,6 @@ describe('Core Blunziger Engine', () => {
 
     describe('KOTH + Blunziger interaction', () => {
       it('forced-check still works when KOTH is enabled', () => {
-        // 1.e4 f5 — white has Qh5+ but plays d3
         const state = createInitialState('hvh', kothConfig);
         let s = applyMoveWithRules(state, 'e4');
         s = applyMoveWithRules(s, 'f5');
@@ -567,29 +622,21 @@ describe('Core Blunziger Engine', () => {
       });
 
       it('hill win ends game immediately - no pending violation', () => {
-        // Set up: white king on d3, can move to d4 (hill), and some check was available
-        // We'll use a position where white has a checking move but moves king to hill instead
-        // White king d3, white rook a1, black king g8 — Rook can give check from a8
-        // White plays Kd4 instead of giving check
         const fen = '6k1/8/8/8/8/3K4/8/R7 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
           fen,
           sideToMove: 'w',
         };
-        // Confirm checking moves exist
         expect(getCheckingMoves(fen).length).toBeGreaterThan(0);
-        // White moves king to d4 — hill win
         const newState = applyMoveWithRules(state, { from: 'd3', to: 'd4' });
         expect(newState.result).not.toBeNull();
         expect(newState.result!.winner).toBe('w');
         expect(newState.result!.reason).toBe('king_of_the_hill');
-        // No pending violation since game ended immediately
         expect(newState.pendingViolation).toBeNull();
       });
 
       it('hill win prevents later reporting', () => {
-        // Same as above — after hill win, canReport returns false
         const fen = '6k1/8/8/8/8/3K4/8/R7 w - - 0 1';
         const state: GameState = {
           ...createInitialState('hvh', kothConfig),
