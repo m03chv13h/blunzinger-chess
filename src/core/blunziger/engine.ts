@@ -368,8 +368,9 @@ export function applyMoveWithRules(
         };
       }
 
-      // Penalty mode: non-reportable violation (extra_move or piece_removal)
-      if (!immediateResult && cfg.missedCheckPenalty !== 'loss') {
+      // Penalty mode: non-reportable violation when any penalty flag is enabled
+      const hasAnyPenalty = cfg.enableExtraMovePenalty || cfg.enablePieceRemovalPenalty || cfg.enableTimeReductionPenalty;
+      if (!immediateResult && hasAnyPenalty) {
         newViolation = { ...newViolation, reportable: false };
       }
     }
@@ -439,34 +440,22 @@ export function applyMoveWithRules(
 
   const effectiveViolation = result ? null : newViolation;
 
-  // ── Extra-turn state (Penalty mode: extra_move) ──
+  // ── Composable penalty application ──
+  // When a violation occurred and the game didn't end, apply enabled penalties
+  // in deterministic order: 1. Extra move  2. Piece removal  3. Time reduction
   let newExtraTurns = { ...state.extraTurns };
   let newClocks = state.clocks;
   let pendingPieceRemoval: PendingPieceRemoval | null = null;
 
-  // If a violation occurred and game didn't end, apply the configured penalty
   if (!result && newViolation) {
-    if (cfg.missedCheckPenalty === 'extra_move') {
+    // 1. Additional move penalty
+    if (cfg.enableExtraMovePenalty) {
       const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
       newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
+    }
 
-      // ── Clock penalty for missed check (penalty + clock mode) ──
-      if (cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
-        const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
-        const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
-        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
-        newClocks = { ...newClocks, [clockKey]: remaining };
-
-        if (remaining <= 0) {
-          const sideLabel = movingSide === 'w' ? 'White' : 'Black';
-          result = {
-            winner: opponentSide,
-            reason: 'timeout_penalty',
-            detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
-          };
-        }
-      }
-    } else if (cfg.missedCheckPenalty === 'piece_removal') {
+    // 2. Piece removal penalty
+    if (!result && cfg.enablePieceRemovalPenalty) {
       const removableSquares = getRemovablePieces(newFen, movingSide);
       if (removableSquares.length === 0) {
         // No removable pieces → violator loses immediately
@@ -482,23 +471,23 @@ export function applyMoveWithRules(
           removableSquares,
         };
       }
+    }
 
-      // ── Clock penalty for missed check (penalty + clock mode) ──
-      if (!result && cfg.enableClock && cfg.missedCheckTimePenaltySeconds > 0 && newClocks) {
-        const penaltyMs = cfg.missedCheckTimePenaltySeconds * 1000;
-        const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
-        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
-        newClocks = { ...newClocks, [clockKey]: remaining };
+    // 3. Time reduction penalty
+    if (!result && cfg.enableTimeReductionPenalty && cfg.enableClock && cfg.timeReductionSeconds > 0 && newClocks) {
+      const penaltyMs = cfg.timeReductionSeconds * 1000;
+      const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
+      const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+      newClocks = { ...newClocks, [clockKey]: remaining };
 
-        if (remaining <= 0) {
-          const sideLabel = movingSide === 'w' ? 'White' : 'Black';
-          result = {
-            winner: opponentSide,
-            reason: 'timeout_penalty',
-            detail: `${sideLabel} missed a forced check and lost ${cfg.missedCheckTimePenaltySeconds}s. Clock reached 0.`,
-          };
-          pendingPieceRemoval = null;
-        }
+      if (remaining <= 0) {
+        const sideLabel = movingSide === 'w' ? 'White' : 'Black';
+        result = {
+          winner: opponentSide,
+          reason: 'timeout_penalty',
+          detail: `${sideLabel} missed a forced check and lost ${cfg.timeReductionSeconds}s. Clock reached 0.`,
+        };
+        pendingPieceRemoval = null;
       }
     }
   }
@@ -538,12 +527,14 @@ export function applyMoveWithRules(
 
 /**
  * Can the given side report a missed forced-check violation?
- * Disabled in penalty mode and reverse mode.
+ * Disabled when any penalty flag is enabled and in reverse mode.
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
-  if (state.config.missedCheckPenalty !== 'loss') return false;
-  if (state.config.reverseForcedCheck) return false;
+  const cfg = state.config;
+  const hasAnyPenalty = cfg.enableExtraMovePenalty || cfg.enablePieceRemovalPenalty || cfg.enableTimeReductionPenalty;
+  if (hasAnyPenalty) return false;
+  if (cfg.reverseForcedCheck) return false;
   if (!state.pendingViolation) return false;
   if (!state.pendingViolation.reportable) return false;
   if (state.pendingViolation.violatingSide === reportingSide) return false;

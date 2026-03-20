@@ -10,9 +10,6 @@ export type BotLevel = 'easy' | 'medium' | 'hard';
 export type VariantModeId =
   | 'classic_blunziger'
   | 'double_check_pressure'
-  | 'blitz_blunziger'
-  | 'penalty_instead_of_loss'
-  | 'penalty_piece_removal'
   | 'king_hunter'
   | 'reverse_blunziger';
 
@@ -25,9 +22,17 @@ export interface VariantConfig {
   enableClock: boolean;
   initialTimeMs: number;
   incrementMs: number;
-  missedCheckPenalty: 'loss' | 'extra_move' | 'piece_removal';
-  /** Seconds subtracted from violator's clock on missed forced check (penalty + clock mode). 0 = disabled. */
-  missedCheckTimePenaltySeconds: number;
+  /**
+   * Composable penalty flags for missed forced check.
+   * When none are enabled, report-based handling is used (classic behavior).
+   * When multiple are enabled, they are applied in deterministic order:
+   *   1. Additional move  2. Piece removal  3. Time reduction
+   */
+  enableExtraMovePenalty: boolean;
+  enablePieceRemovalPenalty: boolean;
+  enableTimeReductionPenalty: boolean;
+  /** Seconds subtracted from violator's clock when enableTimeReductionPenalty is true. Default: 5. */
+  timeReductionSeconds: number;
   scoringMode: 'none' | 'checks_count';
   gameEndsOnCheckmate: boolean;
   moveLimit: number;
@@ -58,8 +63,10 @@ const BASE_VARIANT_CONFIG: VariantConfig = {
   enableClock: false,
   initialTimeMs: 0,
   incrementMs: 0,
-  missedCheckPenalty: 'loss',
-  missedCheckTimePenaltySeconds: 0,
+  enableExtraMovePenalty: false,
+  enablePieceRemovalPenalty: false,
+  enableTimeReductionPenalty: false,
+  timeReductionSeconds: 5,
   scoringMode: 'none',
   gameEndsOnCheckmate: true,
   moveLimit: 0,
@@ -81,38 +88,6 @@ export const GAME_MODE_DEFINITIONS: GameModeDefinition[] = [
     config: {
       ...BASE_VARIANT_CONFIG,
       doubleCheckPressureImmediateLoss: true,
-    },
-  },
-  {
-    id: 'blitz_blunziger',
-    name: 'Blitz Blunziger',
-    description:
-      'Blunziger mode with chess clocks. If your time runs out, you lose.',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      enableClock: true,
-      initialTimeMs: 5 * 60 * 1000, // 5 minutes
-      incrementMs: 0,
-    },
-  },
-  {
-    id: 'penalty_instead_of_loss',
-    name: 'Penalty Instead of Loss',
-    description:
-      'Missing a forced check does not cause loss. Instead the opponent receives one extra consecutive move as penalty.',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      missedCheckPenalty: 'extra_move',
-    },
-  },
-  {
-    id: 'penalty_piece_removal',
-    name: 'Penalty: Piece Removal',
-    description:
-      'Missing a forced check does not cause loss. Instead, one of the violating player\'s pieces is removed — the opponent chooses which one. Kings can never be removed. If no removable piece exists, the violator loses immediately.',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      missedCheckPenalty: 'piece_removal',
     },
   },
   {
@@ -248,15 +223,19 @@ export interface GameSetupConfig {
   botDifficulty: BotLevel;
   variantModeId: VariantModeId;
   enableKingOfTheHill: boolean;
-  /** Enable chess clocks (Blitz overlay) — combinable with any base mode */
+  /** Enable chess clocks — combinable with any base mode */
   enableClock: boolean;
   // Mode-specific overrides
   invalidReportLossThreshold: number;
   initialTimeMs: number;
   incrementMs: number;
   moveLimit: number;
-  /** Seconds subtracted from violator's clock on missed forced check (penalty + clock mode). */
-  missedCheckTimePenaltySeconds: number;
+  // Composable penalty checkboxes
+  enableExtraMovePenalty: boolean;
+  enablePieceRemovalPenalty: boolean;
+  enableTimeReductionPenalty: boolean;
+  /** Seconds subtracted from violator's clock when time reduction penalty is enabled. */
+  timeReductionSeconds: number;
 }
 
 export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
@@ -270,31 +249,32 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   initialTimeMs: 5 * 60 * 1000,
   incrementMs: 0,
   moveLimit: 40,
-  missedCheckTimePenaltySeconds: 5,
+  enableExtraMovePenalty: false,
+  enablePieceRemovalPenalty: false,
+  enableTimeReductionPenalty: false,
+  timeReductionSeconds: 5,
 };
 
 /** Build a frozen VariantConfig from the setup choices. */
 export function buildVariantConfig(setup: GameSetupConfig): VariantConfig {
   const base = getGameModeDefinition(setup.variantModeId).config;
-
-  // Determine if clock should be enabled:
-  // Either the base mode has clock OR the user explicitly enabled the clock overlay
-  const clockEnabled = base.enableClock || setup.enableClock;
+  const clockEnabled = setup.enableClock;
 
   return {
     ...base,
     enableKingOfTheHill: setup.enableKingOfTheHill,
     invalidReportLossThreshold: setup.invalidReportLossThreshold,
-    // Clock overlay: enable clock from either base mode or explicit toggle
     enableClock: clockEnabled,
     ...(clockEnabled
       ? { initialTimeMs: setup.initialTimeMs, incrementMs: setup.incrementMs }
       : {}),
     ...(base.moveLimit > 0 ? { moveLimit: setup.moveLimit } : {}),
-    // Time penalty is relevant when penalty mode + clock are both active
-    ...(base.missedCheckPenalty !== 'loss' && clockEnabled
-      ? { missedCheckTimePenaltySeconds: setup.missedCheckTimePenaltySeconds }
-      : {}),
+    // Composable penalty flags from setup checkboxes
+    enableExtraMovePenalty: setup.enableExtraMovePenalty,
+    enablePieceRemovalPenalty: setup.enablePieceRemovalPenalty,
+    // Time reduction only applies when clock is enabled
+    enableTimeReductionPenalty: clockEnabled ? setup.enableTimeReductionPenalty : false,
+    timeReductionSeconds: setup.timeReductionSeconds,
   };
 }
 

@@ -24,11 +24,11 @@ export function RulesPanel({ variantModeId }: RulesPanelProps) {
 
           {variantModeId === 'classic_blunziger' && <ClassicRules />}
           {variantModeId === 'double_check_pressure' && <DoubleCheckPressureRules />}
-          {variantModeId === 'blitz_blunziger' && <BlitzRules />}
-          {variantModeId === 'penalty_instead_of_loss' && <PenaltyRules />}
-          {variantModeId === 'penalty_piece_removal' && <PieceRemovalRules />}
           {variantModeId === 'king_hunter' && <KingHunterRules />}
           {variantModeId === 'reverse_blunziger' && <ReverseRules />}
+
+          <PenaltyRules />
+          <ClockRules />
 
           <h4>King of the Hill (Optional)</h4>
           <p>
@@ -75,36 +75,38 @@ function DoubleCheckPressureRules() {
   );
 }
 
-function BlitzRules() {
+function PenaltyRules() {
   return (
     <>
-      <h4>Blitz Blunziger</h4>
+      <h4>Composable Penalties</h4>
       <p>
-        Standard Blunziger rules with chess clocks. Each side has a countdown timer.
-        If your time reaches zero, you lose.
+        Penalties on missed forced check can be enabled via checkboxes in setup.
+        When any penalty is enabled, the "Report Missed Check" button is <strong>disabled</strong>.
+        When no penalty is enabled, report-based handling is used (classic behavior).
+      </p>
+      <p>
+        Enabled penalties are applied in deterministic order:
+      </p>
+      <ol>
+        <li><strong>Additional move:</strong> The opponent receives one extra consecutive move.</li>
+        <li><strong>Piece removal:</strong> One of the violating player's pieces is removed — the opponent chooses which one. Kings can never be removed. If no removable piece exists, the violator loses immediately.</li>
+        <li><strong>Time reduction:</strong> A configurable number of seconds (default: 5) is subtracted from the violating player's remaining clock. If the clock reaches 0, that player loses immediately. Only applies when the clock is enabled.</li>
+      </ol>
+      <p>
+        If a move results in immediate checkmate, King of the Hill win, or any other
+        terminal condition, penalties are <strong>not</strong> applied.
       </p>
     </>
   );
 }
 
-function PenaltyRules() {
+function ClockRules() {
   return (
     <>
-      <h4>Penalty Instead of Loss</h4>
+      <h4>Clock (Optional)</h4>
       <p>
-        Missing a forced check does <strong>not</strong> cause an immediate loss.
-        Instead, the opponent receives <strong>one extra consecutive move</strong> as penalty.
-      </p>
-      <p>
-        After the violating player's move, the opponent makes their normal move, then
-        immediately gets a second consecutive move. Turn order then resumes normally.
-      </p>
-      <p>The "Report Missed Check" button is <strong>disabled</strong> in this mode.</p>
-      <h4>Clock Penalty (Blitz)</h4>
-      <p>
-        When combined with chess clocks, a missed forced check also <strong>subtracts a
-        configurable number of seconds</strong> from the violating player's remaining time.
-        If the clock reaches 0 from this penalty, that player loses immediately on time.
+        When enabled, each side starts with the same initial time (default: 5 minutes).
+        If your time reaches zero, you lose. Clocks pause when the game ends.
       </p>
     </>
   );
@@ -141,26 +143,3 @@ function ReverseRules() {
   );
 }
 
-function PieceRemovalRules() {
-  return (
-    <>
-      <h4>Penalty: Piece Removal</h4>
-      <p>
-        Missing a forced check does <strong>not</strong> cause an immediate loss.
-        Instead, one of the <strong>violating player's pieces</strong> is removed from the board.
-      </p>
-      <ul>
-        <li>The <strong>opponent</strong> chooses which piece to remove.</li>
-        <li><strong>Kings can never be removed.</strong></li>
-        <li>If the violator has no removable pieces (only their king remains), the violator <strong>loses immediately</strong>.</li>
-      </ul>
-      <p>The "Report Missed Check" button is <strong>disabled</strong> in this mode.</p>
-      <h4>Clock Penalty (Blitz)</h4>
-      <p>
-        When combined with chess clocks, a missed forced check also <strong>subtracts a
-        configurable number of seconds</strong> from the violating player's remaining time.
-        If the clock reaches 0 from this penalty, that player loses immediately on time.
-      </p>
-    </>
-  );
-}
