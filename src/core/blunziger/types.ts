@@ -37,7 +37,11 @@ export interface GameModeDefinition {
   config: VariantConfig;
 }
 
-/** Legacy alias – existing code can still reference BlunzigerConfig. */
+/**
+ * Legacy alias for backward compatibility.
+ * New code should use `VariantConfig` directly.
+ * @deprecated Use VariantConfig instead.
+ */
 export type BlunzigerConfig = VariantConfig;
 
 // ── Preset Configs ───────────────────────────────────────────────────

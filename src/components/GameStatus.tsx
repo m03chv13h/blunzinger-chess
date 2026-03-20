@@ -83,15 +83,14 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
           </div>
 
           {/* Extra-turn indicator */}
-          {config.missedCheckPenalty === 'extra_move' && (
-            (state.extraTurns.pendingExtraMovesWhite > 0 || state.extraTurns.pendingExtraMovesBlack > 0) && (
-              <div className="extra-turn-indicator">
-                ⚡ {state.extraTurns.pendingExtraMovesWhite > 0
-                  ? `White has ${state.extraTurns.pendingExtraMovesWhite} extra turn(s)`
-                  : `Black has ${state.extraTurns.pendingExtraMovesBlack} extra turn(s)`}
-              </div>
-            )
-          )}
+          {config.missedCheckPenalty === 'extra_move' && (() => {
+            const { pendingExtraMovesWhite: ew, pendingExtraMovesBlack: eb } = state.extraTurns;
+            if (ew <= 0 && eb <= 0) return null;
+            const msg = ew > 0
+              ? `White has ${ew} extra turn(s)`
+              : `Black has ${eb} extra turn(s)`;
+            return <div className="extra-turn-indicator">⚡ {msg}</div>;
+          })()}
 
           {lastReportFeedback && (
             <div className={`report-feedback ${lastReportFeedback.valid ? 'feedback-valid' : 'feedback-invalid'}`}>

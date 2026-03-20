@@ -224,29 +224,11 @@ describe('Penalty Instead of Loss mode', () => {
     state = applyMoveWithRules(state, 'f5');
     // White misses Qh5+
     state = applyMoveWithRules(state, 'd3');
-    // Black has extra turn
     expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
     expect(state.sideToMove).toBe('b');
 
-    // Black makes first move
+    // Black makes first move — extra turn is consumed, but black keeps the turn
     state = applyMoveWithRules(state, 'e6');
-    // After consuming the extra move, black should still have the turn
-    // Actually: the normal chess turn goes to white, but black has pending extra
-    // The engine should keep sideToMove as 'b' because black has extra turns
-    // Let me check the logic... after black moves, chess.turn() would be 'w'
-    // but the extra turn logic should keep it as black
-    // Wait - the extra turn was granted to black. After black makes their normal
-    // move, they should get one more. Let's check:
-    // The black move consumes the extra turn (pendingExtraMovesBlack decrements)
-    // But also, the sideToMove should stay black for the extra move
-    // Actually looking at the engine code more carefully, the extra turn logic:
-    // - After black's move, chess.turn() = 'w'
-    // - But black has pendingExtraMovesBlack > 0
-    // - The engine checks if the moving side (black) has extras remaining
-    // - If so, sideToMove stays as black
-    
-    // After first black move, the extra count should have been consumed
-    // and black should get another turn
   });
 
   it('turn order returns to normal after extra turns consumed', () => {

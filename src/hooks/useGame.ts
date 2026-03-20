@@ -86,7 +86,30 @@ export function useGame(
     const cfg = stateRef.current.config;
     if (!cfg.enableClock) return;
 
-    const iv = setInterval(() => {
+    const tickClock = (side: 'w' | 'b', now: number, elapsed: number) => {
+      const cur = stateRef.current;
+      if (!cur.clocks) return;
+      const key = side === 'w' ? 'whiteMs' : 'blackMs';
+      const setDisplay = side === 'w' ? setClockWhiteMs : setClockBlackMs;
+      const remaining = Math.max(0, cur.clocks[key] - elapsed);
+      setDisplay(remaining);
+      if (remaining <= 0) {
+        setState((prev) => {
+          if (prev.result) return prev;
+          return applyTimeout(
+            { ...prev, clocks: { ...prev.clocks!, [key]: 0, lastTimestamp: now } },
+            side,
+          );
+        });
+      } else {
+        stateRef.current = {
+          ...cur,
+          clocks: { ...cur.clocks, [key]: remaining, lastTimestamp: now },
+        };
+      }
+    };
+
+    const intervalId = setInterval(() => {
       const cur = stateRef.current;
       if (cur.result || !cur.clocks) return;
       if (pausedRef.current && cur.mode === 'botvbot') return;
@@ -95,45 +118,10 @@ export function useGame(
       const elapsed = clockActiveRef.current ? now - clockActiveRef.current : 0;
       clockActiveRef.current = now;
 
-      if (cur.sideToMove === 'w') {
-        const remaining = Math.max(0, cur.clocks.whiteMs - elapsed);
-        setClockWhiteMs(remaining);
-        if (remaining <= 0) {
-          setState((prev) => {
-            if (prev.result) return prev;
-            return applyTimeout(
-              { ...prev, clocks: { ...prev.clocks!, whiteMs: 0, lastTimestamp: now } },
-              'w',
-            );
-          });
-        } else {
-          // Update clocks in state silently (no re-render cascade)
-          stateRef.current = {
-            ...cur,
-            clocks: { ...cur.clocks, whiteMs: remaining, lastTimestamp: now },
-          };
-        }
-      } else {
-        const remaining = Math.max(0, cur.clocks.blackMs - elapsed);
-        setClockBlackMs(remaining);
-        if (remaining <= 0) {
-          setState((prev) => {
-            if (prev.result) return prev;
-            return applyTimeout(
-              { ...prev, clocks: { ...prev.clocks!, blackMs: 0, lastTimestamp: now } },
-              'b',
-            );
-          });
-        } else {
-          stateRef.current = {
-            ...cur,
-            clocks: { ...cur.clocks, blackMs: remaining, lastTimestamp: now },
-          };
-        }
-      }
+      tickClock(cur.sideToMove, now, elapsed);
     }, 100);
 
-    return () => clearInterval(iv);
+    return () => clearInterval(intervalId);
   }, [state.config.enableClock, state.result]);
 
   // ── Move handling ──────────────────────────────────────────────────
