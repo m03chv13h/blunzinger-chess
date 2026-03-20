@@ -71,7 +71,8 @@ describe('Mode registry & presets', () => {
   });
 
   it('blitz is no longer a standalone mode', () => {
-    expect(GAME_MODE_DEFINITIONS.find(d => d.id === ('blitz_blunziger' as string))).toBeUndefined();
+    // blitz_blunziger was removed as a preset; verify it throws when looked up
+    expect(() => getGameModeDefinition('blitz_blunziger' as never)).toThrow('Unknown game mode');
   });
 
   it('clock config is independent and composable', () => {
