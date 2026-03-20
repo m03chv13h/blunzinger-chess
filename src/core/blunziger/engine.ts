@@ -473,7 +473,7 @@ export function applyMoveWithRules(
         result = {
           winner: opponentSide,
           reason: 'piece_removal_no_piece_loss',
-          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed a forced check but has no removable pieces (only king). Immediate loss.`,
+          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed a forced check but has no removable pieces (only the king remains). Immediate loss.`,
         };
       } else {
         pendingPieceRemoval = {
