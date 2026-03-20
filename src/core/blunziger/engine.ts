@@ -141,6 +141,11 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color): Squar
  * Returns a new game state with the piece removed.
  * If more removals remain, keeps the pending piece removal state.
  * If the removal leaves the game in a terminal state, that is evaluated.
+ *
+ * Clock behavior: piece removal does not modify clocks. The clock tick
+ * in useGame.ts continues to run for the chooser side (= sideToMove)
+ * during the pending-selection phase. This is intentional — the chooser
+ * is the player who must take the next required action.
  */
 export function applyPieceRemoval(state: GameState, square: Square): GameState {
   if (!state.pendingPieceRemoval) return state;
@@ -359,9 +364,21 @@ export function createInitialState(
  *    - DCP overlay + severe → immediate loss
  *    - else → create reportable miss state
  * 7. If violation and game type is Penalty on Miss:
- *    - apply penalties in deterministic order
+ *    - apply penalties in deterministic order:
+ *      a. Additional move (opponent gets extra consecutive turns)
+ *      b. Piece removal (pending selection by opponent)
+ *      c. Time reduction (violator's clock reduced; if ≤0 → immediate loss)
  * 8. If penalty effects create terminal condition: resolve and end
- * 9. Handle extra-turn state
+ * 9. Handle extra-turn state (only when no pending piece removal)
+ *
+ * Clock interaction:
+ * - This pure function does NOT manage wall-clock time; it only applies
+ *   the time-reduction penalty to the clocks in state.
+ * - The caller (useGame.ts) is responsible for committing elapsed time
+ *   before calling this function and resetting lastTimestamp afterward.
+ * - When pending piece removal is set, extra-turn consumption is deferred
+ *   until after piece removal completes. The chooser (opponent) becomes
+ *   sideToMove, and their clock should run during the selection phase.
  */
 export function applyMoveWithRules(
   state: GameState,
@@ -712,6 +729,9 @@ export function shouldLoseFromInvalidReports(
 
 /**
  * Apply timeout result.
+ *
+ * When the game ends via timeout, all pending actions (piece removal,
+ * reportable violations) are cleared — the game is over.
  */
 export function applyTimeout(state: GameState, losingSide: Color): GameState {
   if (state.result) return state;
@@ -723,6 +743,8 @@ export function applyTimeout(state: GameState, losingSide: Color): GameState {
       reason: 'timeout',
       detail: `${losingSide === 'w' ? 'White' : 'Black'} ran out of time.`,
     },
+    pendingPieceRemoval: null,
+    pendingViolation: null,
   };
 }
 

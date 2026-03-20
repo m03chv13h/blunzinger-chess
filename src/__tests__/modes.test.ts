@@ -1231,3 +1231,448 @@ describe('Combined penalty behavior', () => {
     expect(state.clocks).not.toBeNull();
   });
 });
+
+// ── King Hunt Given Check Limit + Penalty + Clock (exact bug reproduction) ──
+
+describe('King Hunt Given Check Limit + Penalty on Miss + All penalties + Clock', () => {
+  // Exact configuration from the bug report
+  const combinedCfg: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    variantMode: 'classic_king_hunt_given_check_limit',
+    gameType: 'penalty_on_miss',
+    enableAdditionalMovePenalty: true,
+    additionalMoveCount: 1,
+    enablePieceRemovalPenalty: true,
+    pieceRemovalCount: 1,
+    enableTimeReductionPenalty: true,
+    timeReductionSeconds: 60,
+    enableClock: true,
+    initialTimeMs: 300000,
+    kingHuntGivenCheckTarget: 5,
+  });
+
+  it('config is built correctly for the combined setup', () => {
+    expect(combinedCfg.variantMode).toBe('classic_king_hunt_given_check_limit');
+    expect(combinedCfg.gameType).toBe('penalty_on_miss');
+    expect(combinedCfg.overlays.enableClock).toBe(true);
+    expect(combinedCfg.overlays.initialTimeMs).toBe(300000);
+    expect(combinedCfg.penaltyConfig.enableAdditionalMovePenalty).toBe(true);
+    expect(combinedCfg.penaltyConfig.additionalMoveCount).toBe(1);
+    expect(combinedCfg.penaltyConfig.enablePieceRemovalPenalty).toBe(true);
+    expect(combinedCfg.penaltyConfig.pieceRemovalCount).toBe(1);
+    expect(combinedCfg.penaltyConfig.enableTimeReductionPenalty).toBe(true);
+    expect(combinedCfg.penaltyConfig.timeReductionSeconds).toBe(60);
+    expect(combinedCfg.variantSpecific.kingHuntGivenCheckTarget).toBe(5);
+  });
+
+  it('initial state has clocks enabled', () => {
+    const state = createInitialState('hvh', combinedCfg);
+    expect(state.clocks).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+    expect(state.scores).toEqual({ w: 0, b: 0 });
+  });
+
+  it('full penalty flow: all three penalties applied on violation with clock', () => {
+    let state = createInitialState('hvh', combinedCfg);
+
+    // 1.e4 (no forced check from starting position)
+    state = applyMoveWithRules(state, 'e4');
+    expect(state.sideToMove).toBe('b');
+    expect(state.result).toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000);
+
+    // 1...f5 (creates Qh5+ for white)
+    state = applyMoveWithRules(state, 'f5');
+    expect(state.sideToMove).toBe('w');
+    expect(getCheckingMoves(state.fen).length).toBeGreaterThan(0);
+
+    // 2.d3 (VIOLATION: missed Qh5+)
+    state = applyMoveWithRules(state, 'd3');
+
+    // All three penalties must be applied
+    expect(state.result).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.targetSide).toBe('w');
+    expect(state.pendingPieceRemoval!.chooserSide).toBe('b');
+    expect(state.pendingPieceRemoval!.remainingRemovals).toBe(1);
+    expect(state.clocks!.whiteMs).toBe(240000); // 300000 - 60000
+    expect(state.clocks!.blackMs).toBe(300000);
+    // sideToMove = chooser during piece removal
+    expect(state.sideToMove).toBe('b');
+    // Score did not increment (d3 doesn't give check)
+    expect(state.scores.w).toBe(0);
+  });
+
+  it('piece removal completes and preserves extra turns + clock', () => {
+    let state = createInitialState('hvh', combinedCfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.pendingPieceRemoval).not.toBeNull();
+
+    // Remove white's queen
+    state = applyPieceRemoval(state, 'd1');
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.sideToMove).toBe('b');
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.clocks!.whiteMs).toBe(240000);
+    expect(state.clocks!.blackMs).toBe(300000);
+    expect(state.result).toBeNull();
+  });
+
+  it('extra move consumed after piece removal, clock switches correctly', () => {
+    let state = createInitialState('hvh', combinedCfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    state = applyPieceRemoval(state, 'd1');
+
+    // Black's normal move (consumes extra turn).
+    // Use a6 which doesn't open any checking diagonal.
+    state = applyMoveWithRules(state, 'a6');
+    expect(state.sideToMove).toBe('b'); // still black (extra turn)
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+
+    // Black's extra move — use a5 (safe, no checking lines opened)
+    state = applyMoveWithRules(state, 'a5');
+    expect(state.sideToMove).toBe('w'); // back to white
+    expect(state.result).toBeNull();
+    // White's clock preserved at reduced value; black's clock unchanged
+    expect(state.clocks!.whiteMs).toBe(240000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('King Hunt check limit still ends game immediately', () => {
+    // Use target=1 so one check ends it
+    const cfg1: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_king_hunt_given_check_limit',
+      gameType: 'penalty_on_miss',
+      enableAdditionalMovePenalty: true,
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
+      timeReductionSeconds: 60,
+      enableClock: true,
+      initialTimeMs: 300000,
+      kingHuntGivenCheckTarget: 1,
+    });
+    let state = createInitialState('hvh', cfg1);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+
+    // White gives check with Qh5+ (reaches target)
+    state = applyMoveWithRules(state, { from: 'd1', to: 'h5' });
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('king_hunt_given_check_limit');
+    expect(state.result!.winner).toBe('w');
+    expect(state.scores.w).toBe(1);
+    // No penalties applied since game ended immediately
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('time reduction to zero ends game immediately (clears piece removal)', () => {
+    const lowTimeCfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_king_hunt_given_check_limit',
+      gameType: 'penalty_on_miss',
+      enableAdditionalMovePenalty: true,
+      enablePieceRemovalPenalty: true,
+      enableTimeReductionPenalty: true,
+      timeReductionSeconds: 60,
+      enableClock: true,
+      initialTimeMs: 30000, // 30 seconds -> reduced to 0
+      kingHuntGivenCheckTarget: 5,
+    });
+    let state = createInitialState('hvh', lowTimeCfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
+    expect(state.clocks!.whiteMs).toBe(0);
+    // Piece removal must be cleared when game ends
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+
+  it('applyTimeout clears pendingPieceRemoval', () => {
+    let state = createInitialState('hvh', combinedCfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.pendingPieceRemoval).not.toBeNull();
+
+    // Simulate clock timeout during piece removal
+    state = applyTimeout(state, 'b');
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout');
+    expect(state.result!.winner).toBe('w');
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.pendingViolation).toBeNull();
+  });
+
+  it('applyTimeout clears pendingViolation', () => {
+    let state = createInitialState('hvh', combinedCfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.pendingViolation).not.toBeNull();
+
+    state = applyTimeout(state, 'w');
+    expect(state.result).not.toBeNull();
+    expect(state.pendingViolation).toBeNull();
+  });
+
+  it('checkmate takes precedence over penalties in combined config', () => {
+    let state = createInitialState('hvh', combinedCfg);
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' });
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    expect(state.result!.winner).toBe('b');
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesWhite).toBe(0);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    // Clocks unchanged (no penalties applied on checkmate)
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+});
+
+// ── Extra Move + Clock regression ─────────────────────────────────────
+
+describe('Extra move + clock regression', () => {
+  const extraMoveClock: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    gameType: 'penalty_on_miss',
+    enableAdditionalMovePenalty: true,
+    enableClock: true,
+  });
+
+  it('extra move changes active side correctly (clock perspective)', () => {
+    let state = createInitialState('hvh', extraMoveClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // violation
+
+    expect(state.sideToMove).toBe('b');
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+
+    // Black's normal move
+    state = applyMoveWithRules(state, 'e6');
+    expect(state.sideToMove).toBe('b'); // extra turn: clock stays with black
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+
+    // Black's extra move
+    state = applyMoveWithRules(state, 'd6');
+    expect(state.sideToMove).toBe('w'); // clock switches to white
+  });
+
+  it('clock state preserved through extra turn sequence', () => {
+    let state = createInitialState('hvh', extraMoveClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    // Clocks should be unchanged (no time reduction enabled)
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+
+    state = applyMoveWithRules(state, 'e6');
+    state = applyMoveWithRules(state, 'd6');
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+});
+
+// ── Piece Removal + Clock regression ──────────────────────────────────
+
+describe('Piece removal + clock regression', () => {
+  const pieceRemovalClock: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    gameType: 'penalty_on_miss',
+    enablePieceRemovalPenalty: true,
+    enableClock: true,
+  });
+
+  it('pending piece removal: sideToMove equals chooserSide (clock runs for chooser)', () => {
+    let state = createInitialState('hvh', pieceRemovalClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.chooserSide).toBe('b');
+    // sideToMove must match chooser so the clock ticks for the right side
+    expect(state.sideToMove).toBe(state.pendingPieceRemoval!.chooserSide);
+  });
+
+  it('selection completes and clock flow continues', () => {
+    let state = createInitialState('hvh', pieceRemovalClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    state = applyPieceRemoval(state, 'd1');
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.sideToMove).toBe('b');
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+    expect(state.result).toBeNull();
+
+    // Black can make a move after removal
+    state = applyMoveWithRules(state, 'e6');
+    expect(state.sideToMove).toBe('w');
+    expect(state.result).toBeNull();
+  });
+
+  it('timeout during piece removal clears pending state', () => {
+    let state = createInitialState('hvh', pieceRemovalClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    expect(state.pendingPieceRemoval).not.toBeNull();
+
+    state = applyTimeout(state, 'b');
+    expect(state.result!.reason).toBe('timeout');
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+});
+
+// ── Time Reduction + Clock regression ─────────────────────────────────
+
+describe('Time reduction + clock regression', () => {
+  const timeReductionClock: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    gameType: 'penalty_on_miss',
+    enableTimeReductionPenalty: true,
+    timeReductionSeconds: 60,
+    enableClock: true,
+  });
+
+  it('violator loses 60 seconds', () => {
+    let state = createInitialState('hvh', timeReductionClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.clocks!.whiteMs).toBe(240000); // 300000 - 60000
+    expect(state.clocks!.blackMs).toBe(300000);
+    expect(state.result).toBeNull();
+  });
+
+  it('clamp at 0 and immediate game end', () => {
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      gameType: 'penalty_on_miss',
+      enableTimeReductionPenalty: true,
+      timeReductionSeconds: 60,
+      enableClock: true,
+      initialTimeMs: 30000,
+    });
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.clocks!.whiteMs).toBe(0);
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
+  });
+
+  it('only time reduction (no extra move, no piece removal) + clock works', () => {
+    let state = createInitialState('hvh', timeReductionClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    // Only time reduction applied, no extra turns or piece removal
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    expect(state.pendingPieceRemoval).toBeNull();
+    expect(state.clocks!.whiteMs).toBe(240000);
+    expect(state.sideToMove).toBe('b');
+
+    // Game continues normally
+    state = applyMoveWithRules(state, 'e6');
+    expect(state.sideToMove).toBe('w');
+    expect(state.result).toBeNull();
+  });
+});
+
+// ── King Hunt Given Check Limit + Clock regression ────────────────────
+
+describe('King Hunt Given Check Limit + clock regression', () => {
+  const gclClock: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    variantMode: 'classic_king_hunt_given_check_limit',
+    kingHuntGivenCheckTarget: 1,
+    enableClock: true,
+  });
+
+  it('reaching check limit ends game, clocks stop', () => {
+    let state = createInitialState('hvh', gclClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, { from: 'd1', to: 'h5' });
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('king_hunt_given_check_limit');
+    expect(state.result!.winner).toBe('w');
+    expect(state.clocks).not.toBeNull();
+    // Clocks preserved at their values (no penalty)
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('applyTimeout after game end is a no-op', () => {
+    let state = createInitialState('hvh', gclClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, { from: 'd1', to: 'h5' });
+
+    const before = state;
+    state = applyTimeout(state, 'w');
+    expect(state).toBe(before); // no change
+  });
+});
+
+// ── Report Incorrectness + Clock regression ───────────────────────────
+
+describe('Report Incorrectness + clock regression', () => {
+  const reportClock: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    gameType: 'report_incorrectness',
+    enableClock: true,
+  });
+
+  it('clock still works with report mode', () => {
+    let state = createInitialState('hvh', reportClock);
+    expect(state.clocks).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000);
+
+    state = applyMoveWithRules(state, 'e4');
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.sideToMove).toBe('b');
+  });
+
+  it('violation is reportable and clock not affected by penalties', () => {
+    let state = createInitialState('hvh', reportClock);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.pendingViolation).not.toBeNull();
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+    expect(state.pendingPieceRemoval).toBeNull();
+  });
+});
