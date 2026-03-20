@@ -12,6 +12,7 @@ export type VariantModeId =
   | 'double_check_pressure'
   | 'blitz_blunziger'
   | 'penalty_instead_of_loss'
+  | 'penalty_piece_removal'
   | 'king_hunter'
   | 'reverse_blunziger';
 
@@ -24,7 +25,7 @@ export interface VariantConfig {
   enableClock: boolean;
   initialTimeMs: number;
   incrementMs: number;
-  missedCheckPenalty: 'loss' | 'extra_move';
+  missedCheckPenalty: 'loss' | 'extra_move' | 'piece_removal';
   /** Seconds subtracted from violator's clock on missed forced check (penalty + clock mode). 0 = disabled. */
   missedCheckTimePenaltySeconds: number;
   scoringMode: 'none' | 'checks_count';
@@ -105,6 +106,16 @@ export const GAME_MODE_DEFINITIONS: GameModeDefinition[] = [
     },
   },
   {
+    id: 'penalty_piece_removal',
+    name: 'Penalty: Piece Removal',
+    description:
+      'Missing a forced check does not cause loss. Instead, one of the violating player\'s pieces is removed — the opponent chooses which one. Kings can never be removed. If no removable piece exists, the violator loses immediately.',
+    config: {
+      ...BASE_VARIANT_CONFIG,
+      missedCheckPenalty: 'piece_removal',
+    },
+  },
+  {
     id: 'king_hunter',
     name: 'King Hunter',
     description:
@@ -152,7 +163,8 @@ export type GameResultReason =
   | 'timeout'
   | 'timeout_penalty'
   | 'score_limit'
-  | 'score_limit_draw';
+  | 'score_limit_draw'
+  | 'piece_removal_no_piece_loss';
 
 export interface GameResult {
   winner: Color | 'draw';
@@ -197,6 +209,15 @@ export interface ExtraTurnState {
   pendingExtraMovesBlack: number;
 }
 
+export interface PendingPieceRemoval {
+  /** Side whose piece will be removed (the violator) */
+  targetSide: Color;
+  /** Side who chooses which piece to remove (the opponent) */
+  chooserSide: Color;
+  /** Squares containing removable pieces (excludes king) */
+  removableSquares: Square[];
+}
+
 // ── Game State ───────────────────────────────────────────────────────
 
 export interface GameState {
@@ -215,6 +236,7 @@ export interface GameState {
   scores: ScoreState;
   clocks: ClockState | null;
   extraTurns: ExtraTurnState;
+  pendingPieceRemoval: PendingPieceRemoval | null;
   plyCount: number;
 }
 
@@ -226,6 +248,8 @@ export interface GameSetupConfig {
   botDifficulty: BotLevel;
   variantModeId: VariantModeId;
   enableKingOfTheHill: boolean;
+  /** Enable chess clocks (Blitz overlay) — combinable with any base mode */
+  enableClock: boolean;
   // Mode-specific overrides
   invalidReportLossThreshold: number;
   initialTimeMs: number;
@@ -241,6 +265,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   botDifficulty: 'easy',
   variantModeId: 'classic_blunziger',
   enableKingOfTheHill: false,
+  enableClock: false,
   invalidReportLossThreshold: 2,
   initialTimeMs: 5 * 60 * 1000,
   incrementMs: 0,
@@ -251,15 +276,23 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
 /** Build a frozen VariantConfig from the setup choices. */
 export function buildVariantConfig(setup: GameSetupConfig): VariantConfig {
   const base = getGameModeDefinition(setup.variantModeId).config;
+
+  // Determine if clock should be enabled:
+  // Either the base mode has clock OR the user explicitly enabled the clock overlay
+  const clockEnabled = base.enableClock || setup.enableClock;
+
   return {
     ...base,
     enableKingOfTheHill: setup.enableKingOfTheHill,
     invalidReportLossThreshold: setup.invalidReportLossThreshold,
-    ...(base.enableClock
+    // Clock overlay: enable clock from either base mode or explicit toggle
+    enableClock: clockEnabled,
+    ...(clockEnabled
       ? { initialTimeMs: setup.initialTimeMs, incrementMs: setup.incrementMs }
       : {}),
     ...(base.moveLimit > 0 ? { moveLimit: setup.moveLimit } : {}),
-    ...(base.missedCheckPenalty === 'extra_move' && base.enableClock
+    // Time penalty is relevant when penalty mode + clock are both active
+    ...(base.missedCheckPenalty !== 'loss' && clockEnabled
       ? { missedCheckTimePenaltySeconds: setup.missedCheckTimePenaltySeconds }
       : {}),
   };

@@ -23,8 +23,8 @@ import { selectBotMove } from '../bot/botEngine';
 // ── Mode Registry / Preset Tests ──────────────────────────────────────
 
 describe('Mode registry & presets', () => {
-  it('should have 6 built-in mode definitions', () => {
-    expect(GAME_MODE_DEFINITIONS).toHaveLength(6);
+  it('should have 7 built-in mode definitions', () => {
+    expect(GAME_MODE_DEFINITIONS).toHaveLength(7);
   });
 
   it('should look up each mode by id', () => {
