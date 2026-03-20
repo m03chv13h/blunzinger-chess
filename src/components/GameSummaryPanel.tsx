@@ -22,6 +22,7 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
   const variantDef = getGameModeDefinition(config.variantModeId);
   const showClock = variantDef.config.enableClock;
   const showMoveLimit = variantDef.config.moveLimit > 0;
+  const showTimePenalty = variantDef.config.missedCheckPenalty === 'extra_move' && variantDef.config.enableClock;
 
   return (
     <div className="game-summary">
@@ -55,6 +56,12 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
           <div className="summary-item">
             <dt>Time Control</dt>
             <dd>{Math.round(config.initialTimeMs / 60000)}+{Math.round(config.incrementMs / 1000)}</dd>
+          </div>
+        )}
+        {showTimePenalty && (
+          <div className="summary-item">
+            <dt>Missed Check Penalty</dt>
+            <dd>{config.missedCheckTimePenaltySeconds}s</dd>
           </div>
         )}
         {showMoveLimit && (

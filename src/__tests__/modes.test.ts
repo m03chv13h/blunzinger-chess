@@ -62,6 +62,13 @@ describe('Mode registry & presets', () => {
     expect(cfg.scoringMode).toBe('checks_count');
     expect(cfg.moveLimit).toBe(50);
   });
+
+  it('buildVariantConfig does not apply missedCheckTimePenaltySeconds for non-penalty modes', () => {
+    const setup = { ...DEFAULT_SETUP_CONFIG, variantModeId: 'blitz_blunziger' as const, missedCheckTimePenaltySeconds: 10 };
+    const cfg = buildVariantConfig(setup);
+    // blitz mode has missedCheckPenalty='loss', so the time penalty should stay at default (0)
+    expect(cfg.missedCheckTimePenaltySeconds).toBe(0);
+  });
 });
 
 // ── Double Check Pressure ─────────────────────────────────────────────
@@ -250,6 +257,186 @@ describe('Penalty Instead of Loss mode', () => {
     state = applyMoveWithRules(state, 'd6');
     // Now turn order should resume normally - it's white's turn
     expect(state.sideToMove).toBe('w');
+  });
+
+  it('no time subtraction when clocks are disabled', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+
+    // No clocks → no clock change
+    expect(state.clocks).toBeNull();
+    expect(state.result).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+  });
+});
+
+// ── Penalty + Clock (Time Penalty) ────────────────────────────────────
+
+describe('Penalty Instead of Loss + Clock time penalty', () => {
+  const penaltyClockConfig: VariantConfig = {
+    ...DEFAULT_CONFIG,
+    missedCheckPenalty: 'extra_move',
+    enableClock: true,
+    initialTimeMs: 300000, // 5 minutes
+    incrementMs: 0,
+    missedCheckTimePenaltySeconds: 5,
+  };
+
+  it('missed forced check subtracts configured seconds from violator clock', () => {
+    let state = createInitialState('hvh', penaltyClockConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White misses Qh5+ → 5s penalty
+    state = applyMoveWithRules(state, 'd3');
+
+    expect(state.result).toBeNull();
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    // White's clock reduced by 5000ms
+    expect(state.clocks).not.toBeNull();
+    expect(state.clocks!.whiteMs).toBe(300000 - 5000);
+    // Black's clock unchanged
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('grants extra move AND subtracts time on violation', () => {
+    let state = createInitialState('hvh', penaltyClockConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check
+
+    // Both effects should apply
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    expect(state.clocks!.whiteMs).toBe(295000);
+  });
+
+  it('clamps remaining time at 0 (not negative)', () => {
+    const lowTimeConfig: VariantConfig = {
+      ...penaltyClockConfig,
+      initialTimeMs: 3000, // 3 seconds
+      missedCheckTimePenaltySeconds: 10, // 10 second penalty
+    };
+    let state = createInitialState('hvh', lowTimeConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check
+
+    // Clock should be 0, not negative
+    expect(state.clocks!.whiteMs).toBe(0);
+    // Game should end immediately
+    expect(state.result).not.toBeNull();
+    expect(state.result!.winner).toBe('b');
+  });
+
+  it('game ends immediately when penalty reduces clock to 0', () => {
+    const exactTimeConfig: VariantConfig = {
+      ...penaltyClockConfig,
+      initialTimeMs: 5000, // exactly 5 seconds
+      missedCheckTimePenaltySeconds: 5, // 5 second penalty
+    };
+    let state = createInitialState('hvh', exactTimeConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check → clock reaches 0
+
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
+    expect(state.clocks!.whiteMs).toBe(0);
+  });
+
+  it('no time penalty applied if move ends game (e.g. checkmate)', () => {
+    // A move that produces checkmate should not have extra penalty applied
+    const cfg: VariantConfig = {
+      ...penaltyClockConfig,
+    };
+    let state = createInitialState('hvh', cfg);
+    // Fool's mate — no violation applies because the game ends by checkmate
+    state = applyMoveWithRules(state, 'f3');
+    state = applyMoveWithRules(state, 'e5');
+    state = applyMoveWithRules(state, 'g4');
+    state = applyMoveWithRules(state, { from: 'd8', to: 'h4' }); // Qh4#
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('checkmate');
+    // Clocks should remain at initial value (no penalty applied)
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.clocks!.blackMs).toBe(300000);
+  });
+
+  it('no time penalty when missedCheckTimePenaltySeconds is 0', () => {
+    const noPenaltyConfig: VariantConfig = {
+      ...penaltyClockConfig,
+      missedCheckTimePenaltySeconds: 0,
+    };
+    let state = createInitialState('hvh', noPenaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check
+
+    // Extra move still granted
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+    // No clock reduction
+    expect(state.clocks!.whiteMs).toBe(300000);
+  });
+
+  it('does not apply time penalty in non-penalty modes', () => {
+    const classicClockConfig: VariantConfig = {
+      ...DEFAULT_CONFIG,
+      missedCheckPenalty: 'loss',
+      enableClock: true,
+      initialTimeMs: 300000,
+      incrementMs: 0,
+      missedCheckTimePenaltySeconds: 5, // configured but should be ignored
+    };
+    let state = createInitialState('hvh', classicClockConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // white misses check
+
+    // In classic mode: violation is reportable, no extra turn, no time penalty
+    expect(state.pendingViolation).not.toBeNull();
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.clocks!.whiteMs).toBe(300000);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+  });
+
+  it('black receives time penalty when black misses forced check', () => {
+    // We need a position where black has a checking move available
+    // After 1.d4 e5 2.dxe5 we need to find something...
+    // Easier: use crafted FEN where it's black to move with a check available
+    const fen = 'rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq f3 0 2';
+    const checks = getCheckingMoves(fen);
+    // If black has checks, proceed
+    if (checks.length > 0) {
+      let state = createInitialState('hvh', penaltyClockConfig);
+      state = { ...state, fen, sideToMove: 'b' };
+      const nonChecks = getNonCheckingMoves(fen);
+      if (nonChecks.length > 0) {
+        state = applyMoveWithRules(state, { from: nonChecks[0].from, to: nonChecks[0].to });
+        expect(state.clocks!.blackMs).toBe(300000 - 5000);
+        expect(state.clocks!.whiteMs).toBe(300000); // unchanged
+        expect(state.extraTurns.pendingExtraMovesWhite).toBe(1);
+      }
+    }
+  });
+
+  it('bot loses on time due to penalty', () => {
+    const lowTimeConfig: VariantConfig = {
+      ...penaltyClockConfig,
+      initialTimeMs: 2000, // 2 seconds
+      missedCheckTimePenaltySeconds: 5,
+    };
+    let state = createInitialState('hvbot', lowTimeConfig, 'easy', 'w');
+    // White is the bot; put white in a position where it misses check
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    // White (bot) misses check
+    state = applyMoveWithRules(state, 'd3');
+    // Bot (white) should lose on time due to penalty
+    expect(state.result).not.toBeNull();
+    expect(state.result!.reason).toBe('timeout_penalty');
+    expect(state.result!.winner).toBe('b');
   });
 });
 

@@ -99,6 +99,12 @@ function PenaltyRules() {
         immediately gets a second consecutive move. Turn order then resumes normally.
       </p>
       <p>The "Report Missed Check" button is <strong>disabled</strong> in this mode.</p>
+      <h4>Clock Penalty (Blitz)</h4>
+      <p>
+        When combined with chess clocks, a missed forced check also <strong>subtracts a
+        configurable number of seconds</strong> from the violating player's remaining time.
+        If the clock reaches 0 from this penalty, that player loses immediately on time.
+      </p>
     </>
   );
 }

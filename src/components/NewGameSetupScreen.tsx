@@ -23,6 +23,8 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
       initialTimeMs: def.config.initialTimeMs,
       incrementMs: def.config.incrementMs,
       moveLimit: def.config.moveLimit,
+      missedCheckTimePenaltySeconds:
+        def.config.missedCheckPenalty === 'extra_move' && def.config.enableClock ? 5 : 0,
     });
   };
 
@@ -34,6 +36,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   const showClock = activeDef.config.enableClock;
   const showMoveLimit = activeDef.config.moveLimit > 0;
   const showThreshold = activeDef.config.enableBlunziger && activeDef.config.missedCheckPenalty === 'loss';
+  const showTimePenalty = activeDef.config.missedCheckPenalty === 'extra_move' && activeDef.config.enableClock;
   // KOTH can combine with any mode except those where it materially conflicts
   const showKoth = true;
 
@@ -148,6 +151,22 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               />
             </div>
           </>
+        )}
+
+        {showTimePenalty && (
+          <div className="setup-group">
+            <label htmlFor="time-penalty-input">Missed check time penalty (seconds)</label>
+            <input
+              id="time-penalty-input"
+              type="number"
+              min={0}
+              max={60}
+              value={config.missedCheckTimePenaltySeconds}
+              onChange={(e) =>
+                update({ missedCheckTimePenaltySeconds: Math.max(0, parseInt(e.target.value) || 0) })
+              }
+            />
+          </div>
         )}
 
         {showMoveLimit && (
