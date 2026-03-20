@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
-import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition, isKingHuntVariant } from '../core/blunziger/types';
+import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
 import { NumericInput } from './NumericInput';
 import './NewGameSetupScreen.css';
 
@@ -28,7 +28,6 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   };
 
   const activeDef = getVariantModeDefinition(config.variantMode);
-  const isKingHunt = isKingHuntVariant(config.variantMode);
   const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
   const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
   const isReportMode = config.gameType === 'report_incorrectness';

@@ -17,7 +17,6 @@ import {
   DEFAULT_CONFIG,
   INITIAL_FEN,
   isClassicForcedCheck,
-  isReverseForcedCheckMode,
   isKingHuntVariant,
 } from './types';
 

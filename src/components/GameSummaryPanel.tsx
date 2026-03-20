@@ -1,5 +1,5 @@
 import type { GameSetupConfig } from '../core/blunziger/types';
-import { getVariantModeDefinition, isKingHuntVariant } from '../core/blunziger/types';
+import { getVariantModeDefinition } from '../core/blunziger/types';
 import './GameSummaryPanel.css';
 
 interface GameSummaryPanelProps {
@@ -28,7 +28,6 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
   const showClock = config.enableClock;
   const isPenalty = config.gameType === 'penalty_on_miss';
   const isReport = config.gameType === 'report_incorrectness';
-  const isKingHunt = isKingHuntVariant(config.variantMode);
   const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
   const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
 

@@ -147,7 +147,11 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
-      expect(within(summary).getByText('Off')).toBeInTheDocument();
+      // Both KOTH and DCP show "Off" by default; verify at least one exists
+      const offElements = within(summary).getAllByText('Off');
+      expect(offElements.length).toBeGreaterThanOrEqual(1);
+      // More specifically, verify King of the Hill label exists
+      expect(within(summary).getByText('King of the Hill')).toBeInTheDocument();
     });
   });
 

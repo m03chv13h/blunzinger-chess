@@ -15,7 +15,6 @@ import {
 } from '../core/blunziger/engine';
 import type { MatchConfig } from '../core/blunziger/types';
 import {
-  DEFAULT_CONFIG,
   VARIANT_MODE_DEFINITIONS,
   getVariantModeDefinition,
   buildMatchConfig,

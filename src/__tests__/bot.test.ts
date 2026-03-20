@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
 import { getCheckingMoves, getLegalMoves } from '../core/blunziger/engine';
 import type { MatchConfig } from '../core/blunziger/types';
-import { DEFAULT_CONFIG, DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
 const kothConfig: MatchConfig = buildMatchConfig({
   ...DEFAULT_SETUP_CONFIG,
