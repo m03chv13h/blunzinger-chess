@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { GameSetupConfig } from './core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildVariantConfig } from './core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
 import { Chessboard } from './components/Chessboard';
 import { MoveList } from './components/MoveList';
@@ -21,26 +21,24 @@ function App() {
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
 
   const activeConfig = screen.type === 'playing' ? screen.config : lastConfig;
-  const variantConfig = buildVariantConfig(activeConfig);
+  const matchConfig = buildMatchConfig(activeConfig);
 
   const game = useGame(
     activeConfig.mode,
-    variantConfig,
+    matchConfig,
     activeConfig.botDifficulty,
     activeConfig.botSide,
-    activeConfig.variantModeId,
   );
 
   const handleStartGame = (config: GameSetupConfig) => {
     setLastConfig(config);
     setScreen({ type: 'playing', config });
-    const vc = buildVariantConfig(config);
+    const mc = buildMatchConfig(config);
     game.resetGame(
       config.mode,
-      vc,
+      mc,
       config.botDifficulty,
       config.botSide,
-      config.variantModeId,
     );
   };
 
@@ -87,7 +85,7 @@ function App() {
             onMoveDelayChange={game.setMoveDelay}
             isBotvBot={screen.config.mode === 'botvbot'}
           />
-          <RulesPanel variantModeId={screen.config.variantModeId} />
+          <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
         </aside>
 
         <section className="board-section">

@@ -5,15 +5,21 @@ import type {
   GameState,
   GameResult,
   ViolationRecord,
-  VariantConfig,
+  MatchConfig,
   InvalidReportCounts,
   GameMode,
   BotLevel,
   Square,
-  VariantModeId,
+  VariantMode,
   PendingPieceRemoval,
 } from './types';
-import { DEFAULT_CONFIG, INITIAL_FEN } from './types';
+import {
+  DEFAULT_CONFIG,
+  INITIAL_FEN,
+  isClassicForcedCheck,
+  isReverseForcedCheckMode,
+  isKingHuntVariant,
+} from './types';
 
 /** The four center squares for King of the Hill. */
 const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
@@ -23,8 +29,8 @@ const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
 /**
  * Check whether King of the Hill mode is enabled in the config.
  */
-export function isKingOfTheHillEnabled(config: VariantConfig): boolean {
-  return config.enableKingOfTheHill;
+export function isKingOfTheHillEnabled(config: MatchConfig): boolean {
+  return config.overlays.enableKingOfTheHill;
 }
 
 /**
@@ -134,11 +140,12 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color): Squar
 /**
  * Remove a piece from the board at the given square.
  * Returns a new game state with the piece removed.
+ * If more removals remain, keeps the pending piece removal state.
  * If the removal leaves the game in a terminal state, that is evaluated.
  */
 export function applyPieceRemoval(state: GameState, square: Square): GameState {
   if (!state.pendingPieceRemoval) return state;
-  const { targetSide, removableSquares } = state.pendingPieceRemoval;
+  const { targetSide, chooserSide, removableSquares, remainingRemovals } = state.pendingPieceRemoval;
 
   // Validate the square is in the removable list
   if (!removableSquares.includes(square)) return state;
@@ -151,6 +158,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
   const newFen = chess.fen();
 
   let result: GameResult | null = state.result;
+  let newPendingPieceRemoval: PendingPieceRemoval | null = null;
 
   // Check if the removal creates a terminal condition
   if (!result) {
@@ -166,10 +174,30 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     }
   }
 
+  // If more removals needed and game not over
+  if (!result && remainingRemovals > 1) {
+    const updatedRemovable = getRemovablePieces(newFen, targetSide);
+    if (updatedRemovable.length === 0) {
+      const sideLabel = targetSide === 'w' ? 'White' : 'Black';
+      result = {
+        winner: chooserSide,
+        reason: 'piece_removal_no_piece_loss',
+        detail: `${sideLabel} has no more removable pieces (only the king remains). Immediate loss.`,
+      };
+    } else {
+      newPendingPieceRemoval = {
+        targetSide,
+        chooserSide,
+        removableSquares: updatedRemovable,
+        remainingRemovals: remainingRemovals - 1,
+      };
+    }
+  }
+
   return {
     ...state,
     fen: newFen,
-    pendingPieceRemoval: null,
+    pendingPieceRemoval: newPendingPieceRemoval,
     result,
   };
 }
@@ -210,38 +238,73 @@ function swapFenTurn(fen: string): string {
 // ── Violation detection ──────────────────────────────────────────────
 
 /**
- * Detect whether a move constitutes a violation (non-checking move when checking was available).
- * Standard Blunziger logic.
+ * Detect whether a move constitutes a violation under the selected variant mode.
+ *
+ * Classic / King Hunt variants:
+ *   Violation = checking moves exist but player did not play one.
+ *
+ * Reverse Blunzinger:
+ *   Violation = checking moves exist, non-checking alternatives exist,
+ *   and the player gave check.
  */
 export function detectViolation(
   fenBeforeMove: string,
   move: Move,
   moveIndex: number,
+  variantMode: VariantMode,
+  dcpEnabled: boolean,
 ): ViolationRecord | null {
   const checkingMoves = getCheckingMoves(fenBeforeMove);
-  if (checkingMoves.length === 0) {
-    return null;
+
+  if (isClassicForcedCheck(variantMode)) {
+    // Classic / King Hunt: must play checking move if available
+    if (checkingMoves.length === 0) return null;
+
+    const isCheckingMove = checkingMoves.some(
+      (cm) => cm.from === move.from && cm.to === move.to && cm.promotion === move.promotion,
+    );
+    if (isCheckingMove) return null;
+
+    const chess = new Chess(fenBeforeMove);
+    const violatingSide = chess.turn();
+
+    return {
+      violatingSide,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves,
+      requiredMoves: checkingMoves,
+      actualMove: move,
+      reportable: true,
+      violationType: 'missed_check',
+      severe: dcpEnabled && checkingMoves.length >= 2,
+    };
+  } else {
+    // Reverse Blunzinger: must avoid giving check if non-checking moves exist
+    if (checkingMoves.length === 0) return null;
+
+    const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    // If ALL legal moves give check, any move is allowed
+    if (nonCheckingMoves.length === 0) return null;
+
+    // Check if the player gave check (violation)
+    if (!didMoveGiveCheck(fenBeforeMove, move)) return null;
+
+    const chess = new Chess(fenBeforeMove);
+    const violatingSide = chess.turn();
+
+    return {
+      violatingSide,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves,
+      requiredMoves: nonCheckingMoves,
+      actualMove: move,
+      reportable: true,
+      violationType: 'gave_forbidden_check',
+      severe: dcpEnabled && nonCheckingMoves.length >= 2,
+    };
   }
-
-  const isCheckingMove = checkingMoves.some(
-    (cm) => cm.from === move.from && cm.to === move.to && cm.promotion === move.promotion,
-  );
-
-  if (isCheckingMove) {
-    return null;
-  }
-
-  const chess = new Chess(fenBeforeMove);
-  const violatingSide = chess.turn();
-
-  return {
-    violatingSide,
-    moveIndex,
-    fenBeforeMove,
-    checkingMoves,
-    actualMove: move,
-    reportable: true,
-  };
 }
 
 // ── State creation ───────────────────────────────────────────────────
@@ -251,10 +314,9 @@ export function detectViolation(
  */
 export function createInitialState(
   mode: GameMode = 'hvh',
-  config: VariantConfig = DEFAULT_CONFIG,
+  config: MatchConfig = DEFAULT_CONFIG,
   botLevel: BotLevel = 'easy',
   botColor: Color = 'b',
-  variantModeId: VariantModeId = 'classic_blunziger',
 ): GameState {
   return {
     fen: INITIAL_FEN,
@@ -268,10 +330,9 @@ export function createInitialState(
     mode,
     botLevel,
     botColor,
-    variantModeId,
     scores: { w: 0, b: 0 },
-    clocks: config.enableClock
-      ? { whiteMs: config.initialTimeMs, blackMs: config.initialTimeMs, lastTimestamp: null }
+    clocks: config.overlays.enableClock
+      ? { whiteMs: config.overlays.initialTimeMs, blackMs: config.overlays.initialTimeMs, lastTimestamp: null }
       : null,
     extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 0 },
     pendingPieceRemoval: null,
@@ -284,14 +345,24 @@ export function createInitialState(
 /**
  * Apply a move with variant-aware rules. Returns a new game state.
  *
- * Rule resolution order:
+ * Rule resolution order (authoritative precedence):
  * 1. Validate move under standard chess legality
- * 2. Handle Reverse Blunziger violation (immediate loss if checking when forbidden)
- * 3. Handle Double Check Pressure (immediate loss if ≥2 checks available and missed)
- * 4. Handle standard Blunziger violation / Penalty extra-turn
- * 5. Update scores (King Hunter)
- * 6. Evaluate termination: checkmate, KOTH, stalemate/draw, move-limit
- * 7. Handle extra-turn state
+ * 2. Detect violation based on variant mode
+ * 3. Update scores (King Hunt)
+ * 4. Evaluate immediate terminal conditions:
+ *    - checkmate
+ *    - King of the Hill (if enabled)
+ *    - stalemate / draw
+ *    - King Hunt given-check-limit immediate win (if applicable)
+ *    - King Hunt ply-limit outcome (if applicable)
+ * 5. If game over: stop — do not apply report or penalties
+ * 6. If violation and game type is Report Incorrectness:
+ *    - DCP overlay + severe → immediate loss
+ *    - else → create reportable miss state
+ * 7. If violation and game type is Penalty on Miss:
+ *    - apply penalties in deterministic order
+ * 8. If penalty effects create terminal condition: resolve and end
+ * 9. Handle extra-turn state
  */
 export function applyMoveWithRules(
   state: GameState,
@@ -320,74 +391,34 @@ export function applyMoveWithRules(
   const opponentSide: Color = movingSide === 'w' ? 'b' : 'w';
   const cfg = state.config;
 
-  // ── Reverse Blunziger check ──
-  if (cfg.reverseForcedCheck) {
-    const checkingMoves = getCheckingMoves(fenBeforeMove);
-    if (checkingMoves.length > 0) {
-      const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
-      // If non-checking alternatives exist and the player gave check → violation
-      if (nonCheckingMoves.length > 0 && didMoveGiveCheck(fenBeforeMove, move)) {
-        return {
-          ...state,
-          fen: newFen,
-          moveHistory: [...state.moveHistory, move],
-          sideToMove: chess.turn(),
-          plyCount: state.plyCount + 1,
-          pendingViolation: null,
-          lastReportFeedback: null,
-          result: {
-            winner: opponentSide,
-            reason: 'reverse_blunziger_violation',
-            detail: `${movingSide === 'w' ? 'White' : 'Black'} gave check when non-checking moves were available. Reverse Blunziger violation!`,
-          },
-        };
-      }
-    }
-  }
-
-  // ── Standard Blunziger / Double Check Pressure ──
-  // Expire previous pending violation
+  // ── Expire previous pending violation ──
   let updatedPendingViolation = state.pendingViolation;
   if (updatedPendingViolation && updatedPendingViolation.reportable) {
     updatedPendingViolation = { ...updatedPendingViolation, reportable: false };
   }
 
-  let newViolation: ViolationRecord | null = null;
-  let immediateResult: GameResult | null = null;
+  // ── Detect violation ──
+  const newViolation = detectViolation(
+    fenBeforeMove,
+    move,
+    moveIndex,
+    cfg.variantMode,
+    cfg.overlays.enableDoubleCheckPressure,
+  );
 
-  if (cfg.enableBlunziger && !cfg.reverseForcedCheck) {
-    newViolation = detectViolation(fenBeforeMove, move, moveIndex);
-
-    if (newViolation) {
-      // Double Check Pressure: ≥2 checking moves missed → immediate loss
-      if (cfg.doubleCheckPressureImmediateLoss && newViolation.checkingMoves.length >= 2) {
-        immediateResult = {
-          winner: opponentSide,
-          reason: 'double_check_pressure_violation',
-          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed ${newViolation.checkingMoves.length} checking moves (${newViolation.checkingMoves.map((m) => m.san).join(', ')}). Immediate loss under Double Check Pressure!`,
-        };
-      }
-
-      // Penalty mode: non-reportable violation when any penalty flag is enabled
-      const hasAnyPenalty = cfg.enableExtraMovePenalty || cfg.enablePieceRemovalPenalty || cfg.enableTimeReductionPenalty;
-      if (!immediateResult && hasAnyPenalty) {
-        newViolation = { ...newViolation, reportable: false };
-      }
-    }
-  }
-
-  // ── Score update (King Hunter) ──
+  // ── Score update (King Hunt) ──
   const newScores = { ...state.scores };
-  if (cfg.scoringMode === 'checks_count' && didMoveGiveCheck(fenBeforeMove, move)) {
+  if (isKingHuntVariant(cfg.variantMode) && didMoveGiveCheck(fenBeforeMove, move)) {
     newScores[movingSide] = (newScores[movingSide] || 0) + 1;
   }
 
   const newPlyCount = state.plyCount + 1;
+  const sideLabel = (s: Color) => (s === 'w' ? 'White' : 'Black');
 
   // ── Termination conditions ──
-  let result: GameResult | null = immediateResult;
+  let result: GameResult | null = null;
 
-  if (!result && chess.isCheckmate()) {
+  if (chess.isCheckmate()) {
     result = { winner: movingSide, reason: 'checkmate' };
   }
 
@@ -396,7 +427,7 @@ export function applyMoveWithRules(
       result = {
         winner: movingSide,
         reason: 'king_of_the_hill',
-        detail: `${movingSide === 'w' ? 'White' : 'Black'}'s king reached a center square!`,
+        detail: `${sideLabel(movingSide)}'s king reached a center square!`,
       };
     }
   }
@@ -415,79 +446,112 @@ export function applyMoveWithRules(
     }
   }
 
-  // ── Move-limit check (King Hunter) ──
-  if (!result && cfg.moveLimit > 0 && newPlyCount >= cfg.moveLimit * 2) {
-    if (newScores.w > newScores.b) {
+  // ── King Hunt Given Check Limit ──
+  if (!result && cfg.variantMode === 'classic_king_hunt_given_check_limit') {
+    const target = cfg.variantSpecific.kingHuntGivenCheckTarget;
+    if (newScores[movingSide] >= target) {
       result = {
-        winner: 'w',
-        reason: 'score_limit',
-        detail: `Move limit reached. White wins ${newScores.w}–${newScores.b}.`,
-      };
-    } else if (newScores.b > newScores.w) {
-      result = {
-        winner: 'b',
-        reason: 'score_limit',
-        detail: `Move limit reached. Black wins ${newScores.b}–${newScores.w}.`,
-      };
-    } else {
-      result = {
-        winner: 'draw',
-        reason: 'score_limit_draw',
-        detail: `Move limit reached. Tied ${newScores.w}–${newScores.b}.`,
+        winner: movingSide,
+        reason: 'king_hunt_given_check_limit',
+        detail: `${sideLabel(movingSide)} reached ${target} given check(s)! Score: White ${newScores.w} – Black ${newScores.b}.`,
       };
     }
   }
 
-  const effectiveViolation = result ? null : newViolation;
+  // ── King Hunt Ply Limit ──
+  if (!result && cfg.variantMode === 'classic_king_hunt_move_limit') {
+    if (newPlyCount >= cfg.variantSpecific.kingHuntPlyLimit) {
+      if (newScores.w > newScores.b) {
+        result = {
+          winner: 'w',
+          reason: 'king_hunt_ply_limit',
+          detail: `Ply limit reached. White wins ${newScores.w}–${newScores.b}.`,
+        };
+      } else if (newScores.b > newScores.w) {
+        result = {
+          winner: 'b',
+          reason: 'king_hunt_ply_limit',
+          detail: `Ply limit reached. Black wins ${newScores.b}–${newScores.w}.`,
+        };
+      } else {
+        result = {
+          winner: 'draw',
+          reason: 'king_hunt_ply_limit_draw',
+          detail: `Ply limit reached. Tied ${newScores.w}–${newScores.b}.`,
+        };
+      }
+    }
+  }
 
-  // ── Composable penalty application ──
-  // When a violation occurred and the game didn't end, apply enabled penalties
-  // in deterministic order: 1. Extra move  2. Piece removal  3. Time reduction
+  // ── If game is over, stop — do not apply violations or penalties ──
+  let violationForState: ViolationRecord | null = result ? null : newViolation;
+
+  // ── Composable penalty / report handling ──
   let newExtraTurns = { ...state.extraTurns };
   let newClocks = state.clocks;
   let pendingPieceRemoval: PendingPieceRemoval | null = null;
 
   if (!result && newViolation) {
-    // 1. Additional move penalty
-    if (cfg.enableExtraMovePenalty) {
-      const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
-      newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + 1 };
-    }
-
-    // 2. Piece removal penalty
-    if (!result && cfg.enablePieceRemovalPenalty) {
-      const removableSquares = getRemovablePieces(newFen, movingSide);
-      if (removableSquares.length === 0) {
-        // No removable pieces → violator loses immediately
+    if (cfg.gameType === 'report_incorrectness') {
+      // DCP overlay: severe miss → immediate loss
+      if (newViolation.severe) {
         result = {
           winner: opponentSide,
-          reason: 'piece_removal_no_piece_loss',
-          detail: `${movingSide === 'w' ? 'White' : 'Black'} missed a forced check but has no removable pieces (only the king remains). Immediate loss.`,
+          reason: 'double_check_pressure_violation',
+          detail: `${sideLabel(movingSide)} missed ${newViolation.requiredMoves.length} required moves (${newViolation.requiredMoves.map((m) => m.san).join(', ')}). Immediate loss under Double Check Pressure!`,
         };
+        violationForState = null;
       } else {
-        pendingPieceRemoval = {
-          targetSide: movingSide,
-          chooserSide: opponentSide,
-          removableSquares,
-        };
+        // Normal reportable violation
+        violationForState = { ...newViolation, reportable: true };
       }
-    }
+    } else {
+      // Penalty on Miss
+      violationForState = { ...newViolation, reportable: false };
 
-    // 3. Time reduction penalty
-    if (!result && cfg.enableTimeReductionPenalty && cfg.enableClock && cfg.timeReductionSeconds > 0 && newClocks) {
-      const penaltyMs = cfg.timeReductionSeconds * 1000;
-      const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
-      const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
-      newClocks = { ...newClocks, [clockKey]: remaining };
+      // 1. Additional move penalty
+      if (cfg.penaltyConfig.enableAdditionalMovePenalty) {
+        const count = cfg.penaltyConfig.additionalMoveCount;
+        const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+        newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + count };
+      }
 
-      if (remaining <= 0) {
-        const sideLabel = movingSide === 'w' ? 'White' : 'Black';
-        result = {
-          winner: opponentSide,
-          reason: 'timeout_penalty',
-          detail: `${sideLabel} missed a forced check and lost ${cfg.timeReductionSeconds}s. Clock reached 0.`,
-        };
-        pendingPieceRemoval = null;
+      // 2. Piece removal penalty
+      if (!result && cfg.penaltyConfig.enablePieceRemovalPenalty) {
+        const count = cfg.penaltyConfig.pieceRemovalCount;
+        const removableSquares = getRemovablePieces(newFen, movingSide);
+        if (removableSquares.length === 0) {
+          // No removable pieces → violator loses immediately
+          result = {
+            winner: opponentSide,
+            reason: 'piece_removal_no_piece_loss',
+            detail: `${sideLabel(movingSide)} missed a required move but has no removable pieces (only the king remains). Immediate loss.`,
+          };
+        } else {
+          pendingPieceRemoval = {
+            targetSide: movingSide,
+            chooserSide: opponentSide,
+            removableSquares,
+            remainingRemovals: count,
+          };
+        }
+      }
+
+      // 3. Time reduction penalty
+      if (!result && cfg.penaltyConfig.enableTimeReductionPenalty && cfg.overlays.enableClock && cfg.penaltyConfig.timeReductionSeconds > 0 && newClocks) {
+        const penaltyMs = cfg.penaltyConfig.timeReductionSeconds * 1000;
+        const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+        newClocks = { ...newClocks, [clockKey]: remaining };
+
+        if (remaining <= 0) {
+          result = {
+            winner: opponentSide,
+            reason: 'timeout_penalty',
+            detail: `${sideLabel(movingSide)} missed a required move and lost ${cfg.penaltyConfig.timeReductionSeconds}s. Clock reached 0.`,
+          };
+          pendingPieceRemoval = null;
+        }
       }
     }
   }
@@ -512,7 +576,7 @@ export function applyMoveWithRules(
     fen: effectiveFen,
     moveHistory: [...state.moveHistory, move],
     sideToMove: effectiveSideToMove,
-    pendingViolation: effectiveViolation,
+    pendingViolation: result ? null : violationForState,
     lastReportFeedback: null,
     result,
     scores: newScores,
@@ -526,15 +590,12 @@ export function applyMoveWithRules(
 // ── Reporting ────────────────────────────────────────────────────────
 
 /**
- * Can the given side report a missed forced-check violation?
- * Disabled when any penalty flag is enabled and in reverse mode.
+ * Can the given side report a missed violation?
+ * Only available when game type is Report Incorrectness and a reportable violation exists.
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
-  const cfg = state.config;
-  const hasAnyPenalty = cfg.enableExtraMovePenalty || cfg.enablePieceRemovalPenalty || cfg.enableTimeReductionPenalty;
-  if (hasAnyPenalty) return false;
-  if (cfg.reverseForcedCheck) return false;
+  if (state.config.gameType !== 'report_incorrectness') return false;
   if (!state.pendingViolation) return false;
   if (!state.pendingViolation.reportable) return false;
   if (state.pendingViolation.violatingSide === reportingSide) return false;
@@ -548,17 +609,28 @@ export function canReport(state: GameState, reportingSide: Color): boolean {
 export function reportViolation(state: GameState, reportingSide: Color): GameState {
   if (canReport(state, reportingSide)) {
     const violation = state.pendingViolation!;
+    const violatorLabel = violation.violatingSide === 'w' ? 'White' : 'Black';
+    const isReverse = violation.violationType === 'gave_forbidden_check';
+
+    const detailMsg = isReverse
+      ? `${violatorLabel} gave check when non-checking moves were available. Required non-checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`
+      : `${violatorLabel} missed a forced check. Available checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`;
+
+    const feedbackMsg = isReverse
+      ? 'Correct! The opponent gave check when they should have avoided it.'
+      : 'Correct! The opponent missed a forced check.';
+
     return {
       ...state,
       result: {
         winner: reportingSide,
         reason: 'valid-report',
-        detail: `${violation.violatingSide === 'w' ? 'White' : 'Black'} missed a forced check. Available checking move(s): ${violation.checkingMoves.map((m) => m.san).join(', ')}`,
+        detail: detailMsg,
       },
       pendingViolation: { ...violation, reportable: false },
       lastReportFeedback: {
         valid: true,
-        message: 'Correct! The opponent missed a forced check.',
+        message: feedbackMsg,
       },
     };
   }
@@ -579,11 +651,11 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
       result: {
         winner: opponentSide,
         reason: 'invalid-report-threshold',
-        detail: `${sideLabel} made ${newCounts[reportingSide]} invalid report(s), reaching the threshold of ${state.config.invalidReportLossThreshold}.`,
+        detail: `${sideLabel} made ${newCounts[reportingSide]} invalid report(s), reaching the threshold of ${state.config.reportConfig.invalidReportLossThreshold}.`,
       },
       lastReportFeedback: {
         valid: false,
-        message: `Wrong! There was no missed check to report. ${sideLabel} loses due to reaching the invalid report threshold.`,
+        message: `Wrong! There was no violation to report. ${sideLabel} loses due to reaching the invalid report threshold.`,
       },
     };
   }
@@ -593,7 +665,7 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
     invalidReports: newCounts,
     lastReportFeedback: {
       valid: false,
-      message: `Wrong! There was no missed check to report. (${sideLabel}: ${newCounts[reportingSide]}/${state.config.invalidReportLossThreshold} invalid reports)`,
+      message: `Wrong! There was no violation to report. (${sideLabel}: ${newCounts[reportingSide]}/${state.config.reportConfig.invalidReportLossThreshold} invalid reports)`,
     },
   };
 }
@@ -617,7 +689,7 @@ export function incrementInvalidReport(state: GameState, side: Color): GameState
       result: {
         winner: opp,
         reason: 'invalid-report-threshold',
-        detail: `${side === 'w' ? 'White' : 'Black'} made ${newCounts[side]} invalid report(s), reaching the threshold of ${state.config.invalidReportLossThreshold}.`,
+        detail: `${side === 'w' ? 'White' : 'Black'} made ${newCounts[side]} invalid report(s), reaching the threshold of ${state.config.reportConfig.invalidReportLossThreshold}.`,
       },
     };
   }
@@ -634,9 +706,9 @@ export function incrementInvalidReport(state: GameState, side: Color): GameState
 export function shouldLoseFromInvalidReports(
   counts: InvalidReportCounts,
   side: Color,
-  config: VariantConfig,
+  config: MatchConfig,
 ): boolean {
-  return counts[side] >= config.invalidReportLossThreshold;
+  return counts[side] >= config.reportConfig.invalidReportLossThreshold;
 }
 
 /**

@@ -5,119 +5,121 @@ export type { Square, Move, Color };
 export type GameMode = 'hvh' | 'hvbot' | 'botvbot';
 export type BotLevel = 'easy' | 'medium' | 'hard';
 
-// ── Variant Mode System ──────────────────────────────────────────────
+// ── A) Variant Mode ──────────────────────────────────────────────────
 
-export type VariantModeId =
-  | 'classic_blunziger'
-  | 'double_check_pressure'
-  | 'king_hunter'
-  | 'reverse_blunziger';
+export type VariantMode =
+  | 'classic_blunzinger'
+  | 'reverse_blunzinger'
+  | 'classic_king_hunt_move_limit'
+  | 'classic_king_hunt_given_check_limit';
 
-export interface VariantConfig {
-  enableBlunziger: boolean;
+// ── B) Game Type ─────────────────────────────────────────────────────
+
+export type GameType =
+  | 'report_incorrectness'
+  | 'penalty_on_miss';
+
+// ── C) Overlay / Options Config ──────────────────────────────────────
+
+export interface OverlayConfig {
   enableKingOfTheHill: boolean;
-  reverseForcedCheck: boolean;
-  doubleCheckPressureImmediateLoss: boolean;
-  invalidReportLossThreshold: number;
   enableClock: boolean;
   initialTimeMs: number;
   incrementMs: number;
-  /**
-   * Composable penalty flags for missed forced check.
-   * When none are enabled, report-based handling is used (classic behavior).
-   * When multiple are enabled, they are applied in deterministic order:
-   *   1. Additional move  2. Piece removal  3. Time reduction
-   */
-  enableExtraMovePenalty: boolean;
-  enablePieceRemovalPenalty: boolean;
-  enableTimeReductionPenalty: boolean;
-  /** Seconds subtracted from violator's clock when enableTimeReductionPenalty is true. Default: 5. */
-  timeReductionSeconds: number;
-  scoringMode: 'none' | 'checks_count';
-  gameEndsOnCheckmate: boolean;
-  moveLimit: number;
+  enableDoubleCheckPressure: boolean;
 }
 
-export interface GameModeDefinition {
-  id: VariantModeId;
+// ── Game-Type-Specific Config ────────────────────────────────────────
+
+export interface ReportGameTypeConfig {
+  invalidReportLossThreshold: number;
+}
+
+export interface PenaltyGameTypeConfig {
+  enableAdditionalMovePenalty: boolean;
+  additionalMoveCount: number;
+  enablePieceRemovalPenalty: boolean;
+  pieceRemovalCount: number;
+  enableTimeReductionPenalty: boolean;
+  timeReductionSeconds: number;
+}
+
+// ── Variant-Specific Config ──────────────────────────────────────────
+
+export interface VariantSpecificConfig {
+  /** Total ply limit for Classic Blunzinger - King Hunt - Move Limit */
+  kingHuntPlyLimit: number;
+  /** Target check count for Classic Blunzinger - King Hunt - Given Check Limit */
+  kingHuntGivenCheckTarget: number;
+}
+
+// ── Match Config (immutable during game) ─────────────────────────────
+
+export interface MatchConfig {
+  variantMode: VariantMode;
+  gameType: GameType;
+  overlays: OverlayConfig;
+  reportConfig: ReportGameTypeConfig;
+  penaltyConfig: PenaltyGameTypeConfig;
+  variantSpecific: VariantSpecificConfig;
+}
+
+// ── Variant Mode Definitions ─────────────────────────────────────────
+
+export interface VariantModeDefinition {
+  id: VariantMode;
   name: string;
   description: string;
-  config: VariantConfig;
 }
 
-/**
- * Legacy alias for backward compatibility.
- * New code should use `VariantConfig` directly.
- * @deprecated Use VariantConfig instead.
- */
-export type BlunzigerConfig = VariantConfig;
-
-// ── Preset Configs ───────────────────────────────────────────────────
-
-const BASE_VARIANT_CONFIG: VariantConfig = {
-  enableBlunziger: true,
-  enableKingOfTheHill: false,
-  reverseForcedCheck: false,
-  doubleCheckPressureImmediateLoss: false,
-  invalidReportLossThreshold: 2,
-  enableClock: false,
-  initialTimeMs: 0,
-  incrementMs: 0,
-  enableExtraMovePenalty: false,
-  enablePieceRemovalPenalty: false,
-  enableTimeReductionPenalty: false,
-  timeReductionSeconds: 5,
-  scoringMode: 'none',
-  gameEndsOnCheckmate: true,
-  moveLimit: 0,
-};
-
-export const GAME_MODE_DEFINITIONS: GameModeDefinition[] = [
+export const VARIANT_MODE_DEFINITIONS: VariantModeDefinition[] = [
   {
-    id: 'classic_blunziger',
-    name: 'Classic Blunziger',
+    id: 'classic_blunzinger',
+    name: 'Classic Blunzinger',
     description:
-      'Standard chess with the forced-check rule. If a checking move exists, you are expected to play it. Opponent can report a miss for an immediate win.',
-    config: { ...BASE_VARIANT_CONFIG },
+      'If a checking move exists, the player is required to play a checking move.',
   },
   {
-    id: 'double_check_pressure',
-    name: 'Double Check Pressure',
+    id: 'reverse_blunzinger',
+    name: 'Reverse Blunzinger',
     description:
-      'Normal Blunziger rules apply, but if TWO or more checking moves exist and you miss them, you lose immediately (no report needed).',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      doubleCheckPressureImmediateLoss: true,
-    },
+      'If non-checking moves exist, the player is required to play a non-checking move. If all legal moves give check, any move is allowed.',
   },
   {
-    id: 'king_hunter',
-    name: 'King Hunter',
+    id: 'classic_king_hunt_move_limit',
+    name: 'Classic Blunzinger - King Hunt - Move Limit',
     description:
-      'Checks are worth points. Game ends after a configured move limit. Player with more check-points wins.',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      scoringMode: 'checks_count',
-      moveLimit: 40,
-    },
+      'Classic Blunzinger forced-check rules with King Hunt scoring. Game ends at a configured ply limit. Player with more check-points wins.',
   },
   {
-    id: 'reverse_blunziger',
-    name: 'Reverse Blunziger',
+    id: 'classic_king_hunt_given_check_limit',
+    name: 'Classic Blunzinger - King Hunt - Given Check Limit',
     description:
-      'If a checking move exists, you are FORBIDDEN from giving check (must play a non-checking move). Violation = immediate loss. Exception: if ALL legal moves give check, any move is allowed.',
-    config: {
-      ...BASE_VARIANT_CONFIG,
-      enableBlunziger: false,
-      reverseForcedCheck: true,
-    },
+      'Classic Blunzinger forced-check rules with King Hunt scoring. First player to reach the configured number of given checks wins immediately.',
   },
 ];
 
-export function getGameModeDefinition(id: VariantModeId): GameModeDefinition {
-  const def = GAME_MODE_DEFINITIONS.find((d) => d.id === id);
-  if (!def) throw new Error(`Unknown game mode: ${id}`);
+export function getVariantModeDefinition(id: VariantMode): VariantModeDefinition {
+  const def = VARIANT_MODE_DEFINITIONS.find((d) => d.id === id);
+  if (!def) throw new Error(`Unknown variant mode: ${id}`);
   return def;
+}
+
+// ── Variant Mode Helpers ─────────────────────────────────────────────
+
+/** Classic forced-check rule: player must play a checking move if one exists. */
+export function isClassicForcedCheck(mode: VariantMode): boolean {
+  return mode !== 'reverse_blunzinger';
+}
+
+/** Reverse forced-check rule: player must avoid giving check if non-checking moves exist. */
+export function isReverseForcedCheckMode(mode: VariantMode): boolean {
+  return mode === 'reverse_blunzinger';
+}
+
+/** King Hunt variant: tracks check-scoring. */
+export function isKingHuntVariant(mode: VariantMode): boolean {
+  return mode === 'classic_king_hunt_move_limit' || mode === 'classic_king_hunt_given_check_limit';
 }
 
 // ── Result Reasons ───────────────────────────────────────────────────
@@ -134,11 +136,11 @@ export type GameResultReason =
   | 'fifty-move-rule'
   | 'king_of_the_hill'
   | 'double_check_pressure_violation'
-  | 'reverse_blunziger_violation'
   | 'timeout'
   | 'timeout_penalty'
-  | 'score_limit'
-  | 'score_limit_draw'
+  | 'king_hunt_ply_limit'
+  | 'king_hunt_ply_limit_draw'
+  | 'king_hunt_given_check_limit'
   | 'piece_removal_no_piece_loss';
 
 export interface GameResult {
@@ -147,13 +149,20 @@ export interface GameResult {
   detail?: string;
 }
 
+export type ViolationType = 'missed_check' | 'gave_forbidden_check';
+
 export interface ViolationRecord {
   violatingSide: Color;
   moveIndex: number;
   fenBeforeMove: string;
   checkingMoves: Move[];
+  /** The moves the player was required to choose from. */
+  requiredMoves: Move[];
   actualMove: Move;
   reportable: boolean;
+  violationType: ViolationType;
+  /** True when Double Check Pressure overlay is active and ≥2 required moves exist. */
+  severe: boolean;
 }
 
 export interface InvalidReportCounts {
@@ -191,6 +200,8 @@ export interface PendingPieceRemoval {
   chooserSide: Color;
   /** Squares containing removable pieces (excludes king) */
   removableSquares: Square[];
+  /** How many more pieces to remove (starts at pieceRemovalCount, decrements) */
+  remainingRemovals: number;
 }
 
 // ── Game State ───────────────────────────────────────────────────────
@@ -201,13 +212,12 @@ export interface GameState {
   sideToMove: Color;
   pendingViolation: ViolationRecord | null;
   invalidReports: InvalidReportCounts;
-  config: VariantConfig;
+  config: MatchConfig;
   result: GameResult | null;
   lastReportFeedback: ReportFeedback | null;
   mode: GameMode;
   botLevel: BotLevel;
   botColor: Color;
-  variantModeId: VariantModeId;
   scores: ScoreState;
   clocks: ClockState | null;
   extraTurns: ExtraTurnState;
@@ -221,65 +231,81 @@ export interface GameSetupConfig {
   mode: GameMode;
   botSide: Color;
   botDifficulty: BotLevel;
-  variantModeId: VariantModeId;
+  variantMode: VariantMode;
+  gameType: GameType;
+  // Overlays
   enableKingOfTheHill: boolean;
-  /** Enable chess clocks — combinable with any base mode */
   enableClock: boolean;
-  // Mode-specific overrides
-  invalidReportLossThreshold: number;
   initialTimeMs: number;
   incrementMs: number;
-  moveLimit: number;
-  // Composable penalty checkboxes
-  enableExtraMovePenalty: boolean;
+  enableDoubleCheckPressure: boolean;
+  // Report config
+  invalidReportLossThreshold: number;
+  // Penalty config
+  enableAdditionalMovePenalty: boolean;
+  additionalMoveCount: number;
   enablePieceRemovalPenalty: boolean;
+  pieceRemovalCount: number;
   enableTimeReductionPenalty: boolean;
-  /** Seconds subtracted from violator's clock when time reduction penalty is enabled. */
   timeReductionSeconds: number;
+  // Variant specific
+  kingHuntPlyLimit: number;
+  kingHuntGivenCheckTarget: number;
 }
 
 export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   mode: 'hvh',
   botSide: 'b',
   botDifficulty: 'easy',
-  variantModeId: 'classic_blunziger',
+  variantMode: 'classic_blunzinger',
+  gameType: 'report_incorrectness',
   enableKingOfTheHill: false,
   enableClock: false,
-  invalidReportLossThreshold: 2,
   initialTimeMs: 5 * 60 * 1000,
   incrementMs: 0,
-  moveLimit: 40,
-  enableExtraMovePenalty: false,
+  enableDoubleCheckPressure: false,
+  invalidReportLossThreshold: 2,
+  enableAdditionalMovePenalty: false,
+  additionalMoveCount: 1,
   enablePieceRemovalPenalty: false,
+  pieceRemovalCount: 1,
   enableTimeReductionPenalty: false,
-  timeReductionSeconds: 5,
+  timeReductionSeconds: 60,
+  kingHuntPlyLimit: 80,
+  kingHuntGivenCheckTarget: 5,
 };
 
-/** Build a frozen VariantConfig from the setup choices. */
-export function buildVariantConfig(setup: GameSetupConfig): VariantConfig {
-  const base = getGameModeDefinition(setup.variantModeId).config;
+/** Build a frozen MatchConfig from the setup choices. */
+export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
   const clockEnabled = setup.enableClock;
-
   return {
-    ...base,
-    enableKingOfTheHill: setup.enableKingOfTheHill,
-    invalidReportLossThreshold: setup.invalidReportLossThreshold,
-    enableClock: clockEnabled,
-    ...(clockEnabled
-      ? { initialTimeMs: setup.initialTimeMs, incrementMs: setup.incrementMs }
-      : {}),
-    ...(base.moveLimit > 0 ? { moveLimit: setup.moveLimit } : {}),
-    // Composable penalty flags from setup checkboxes
-    enableExtraMovePenalty: setup.enableExtraMovePenalty,
-    enablePieceRemovalPenalty: setup.enablePieceRemovalPenalty,
-    // Time reduction only applies when clock is enabled
-    enableTimeReductionPenalty: clockEnabled ? setup.enableTimeReductionPenalty : false,
-    timeReductionSeconds: setup.timeReductionSeconds,
+    variantMode: setup.variantMode,
+    gameType: setup.gameType,
+    overlays: {
+      enableKingOfTheHill: setup.enableKingOfTheHill,
+      enableClock: clockEnabled,
+      initialTimeMs: clockEnabled ? setup.initialTimeMs : 0,
+      incrementMs: clockEnabled ? setup.incrementMs : 0,
+      enableDoubleCheckPressure: setup.enableDoubleCheckPressure,
+    },
+    reportConfig: {
+      invalidReportLossThreshold: setup.invalidReportLossThreshold,
+    },
+    penaltyConfig: {
+      enableAdditionalMovePenalty: setup.enableAdditionalMovePenalty,
+      additionalMoveCount: setup.additionalMoveCount,
+      enablePieceRemovalPenalty: setup.enablePieceRemovalPenalty,
+      pieceRemovalCount: setup.pieceRemovalCount,
+      enableTimeReductionPenalty: clockEnabled ? setup.enableTimeReductionPenalty : false,
+      timeReductionSeconds: setup.timeReductionSeconds,
+    },
+    variantSpecific: {
+      kingHuntPlyLimit: setup.kingHuntPlyLimit,
+      kingHuntGivenCheckTarget: setup.kingHuntGivenCheckTarget,
+    },
   };
 }
 
-export const DEFAULT_CONFIG: VariantConfig = {
-  ...BASE_VARIANT_CONFIG,
-};
+export const DEFAULT_CONFIG: MatchConfig = buildMatchConfig(DEFAULT_SETUP_CONFIG);
 
 export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';

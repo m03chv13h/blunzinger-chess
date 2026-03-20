@@ -1,4 +1,5 @@
 import type { GameState } from '../core/blunziger/types';
+import { isKingHuntVariant } from '../core/blunziger/types';
 import './GameStatus.css';
 
 interface GameStatusProps {
@@ -21,15 +22,12 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
 
-  const showReportButton =
-    config.enableBlunziger &&
-    !config.reverseForcedCheck &&
-    !(config.enableExtraMovePenalty || config.enablePieceRemovalPenalty || config.enableTimeReductionPenalty);
-
-  const showScores = config.scoringMode === 'checks_count';
-  const showClocks = config.enableClock;
-  const showMoveLimit = config.moveLimit > 0;
-  const currentFullMove = Math.floor(state.plyCount / 2) + 1;
+  const showReportButton = config.gameType === 'report_incorrectness';
+  const showScores = isKingHuntVariant(config.variantMode);
+  const showClocks = config.overlays.enableClock;
+  const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
+  const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
+  const currentPly = state.plyCount;
 
   return (
     <div className="game-status">
@@ -45,14 +43,19 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
         </div>
       )}
 
-      {/* ── Scores (King Hunter) ── */}
+      {/* ── Scores (King Hunt) ── */}
       {showScores && (
         <div className="scores-display">
           <span>♔ White: {scores.w}</span>
           <span>♚ Black: {scores.b}</span>
-          {showMoveLimit && (
+          {isKingHuntMoveLimit && (
             <span className="move-limit-display">
-              Move {currentFullMove} / {config.moveLimit}
+              Ply {currentPly} / {config.variantSpecific.kingHuntPlyLimit}
+            </span>
+          )}
+          {isKingHuntCheckLimit && (
+            <span className="move-limit-display">
+              Target: {config.variantSpecific.kingHuntGivenCheckTarget} checks
             </span>
           )}
         </div>
@@ -83,7 +86,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
           </div>
 
           {/* Extra-turn indicator */}
-          {config.enableExtraMovePenalty && (() => {
+          {config.gameType === 'penalty_on_miss' && config.penaltyConfig.enableAdditionalMovePenalty && (() => {
             const { pendingExtraMovesWhite: ew, pendingExtraMovesBlack: eb } = state.extraTurns;
             if (ew <= 0 && eb <= 0) return null;
             const msg = ew > 0
@@ -97,11 +100,13 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
             <div className="piece-removal-indicator">
               🎯 {state.pendingPieceRemoval.chooserSide === 'w' ? 'White' : 'Black'} must choose a{' '}
               {state.pendingPieceRemoval.targetSide === 'w' ? 'White' : 'Black'} piece to remove
+              {state.pendingPieceRemoval.remainingRemovals > 1 &&
+                ` (${state.pendingPieceRemoval.remainingRemovals} remaining)`}
             </div>
           )}
 
           {/* Piece removal mode indicator */}
-          {config.enablePieceRemovalPenalty && !state.pendingPieceRemoval && !result && (
+          {config.gameType === 'penalty_on_miss' && config.penaltyConfig.enablePieceRemovalPenalty && !state.pendingPieceRemoval && !result && (
             <div className="penalty-mode-indicator">♟ Penalty: Piece Removal active</div>
           )}
 
@@ -113,7 +118,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
 
           {showReportButton && (
             <button className="report-btn" onClick={onReport}>
-              🚨 Report Missed Check
+              🚨 Report Violation
             </button>
           )}
         </>
@@ -122,11 +127,11 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
       <div className="report-counters">
         {showReportButton && (
           <>
-            <span>Invalid reports — White: {invalidReports.w} / {config.invalidReportLossThreshold}</span>
-            <span>Black: {invalidReports.b} / {config.invalidReportLossThreshold}</span>
+            <span>Invalid reports — White: {invalidReports.w} / {config.reportConfig.invalidReportLossThreshold}</span>
+            <span>Black: {invalidReports.b} / {config.reportConfig.invalidReportLossThreshold}</span>
           </>
         )}
-        {config.enableKingOfTheHill && (
+        {config.overlays.enableKingOfTheHill && (
           <span className="koth-indicator">👑 King of the Hill enabled</span>
         )}
       </div>
@@ -141,7 +146,7 @@ function formatReason(reason: string): string {
     case 'stalemate':
       return 'Stalemate';
     case 'valid-report':
-      return 'Missed forced check (valid report)';
+      return 'Valid report (violation detected)';
     case 'invalid-report-threshold':
       return 'Too many invalid reports';
     case 'draw':
@@ -156,18 +161,18 @@ function formatReason(reason: string): string {
       return 'King of the Hill';
     case 'double_check_pressure_violation':
       return 'Double Check Pressure violation';
-    case 'reverse_blunziger_violation':
-      return 'Reverse Blunziger violation';
     case 'timeout':
       return 'Timeout';
     case 'timeout_penalty':
-      return 'Timeout (missed check penalty)';
+      return 'Timeout (missed move penalty)';
     case 'piece_removal_no_piece_loss':
       return 'No removable pieces (penalty loss)';
-    case 'score_limit':
-      return 'Score limit reached';
-    case 'score_limit_draw':
-      return 'Score limit reached (draw)';
+    case 'king_hunt_ply_limit':
+      return 'King Hunt ply limit reached';
+    case 'king_hunt_ply_limit_draw':
+      return 'King Hunt ply limit reached (draw)';
+    case 'king_hunt_given_check_limit':
+      return 'King Hunt given check target reached';
     default:
       return reason;
   }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { GameSetupConfig, GameMode, BotLevel, Color, VariantModeId } from '../core/blunziger/types';
-import { GAME_MODE_DEFINITIONS, getGameModeDefinition } from '../core/blunziger/types';
+import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
+import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition, isKingHuntVariant } from '../core/blunziger/types';
 import { NumericInput } from './NumericInput';
 import './NewGameSetupScreen.css';
 
@@ -15,29 +15,26 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   const update = (patch: Partial<GameSetupConfig>) =>
     setConfig((prev) => ({ ...prev, ...patch }));
 
-  const handleModeChange = (id: VariantModeId) => {
-    const def = getGameModeDefinition(id);
-    update({
-      variantModeId: id,
-      // Carry forward mode-specific defaults from preset
-      invalidReportLossThreshold: def.config.invalidReportLossThreshold,
-      moveLimit: def.config.moveLimit,
-    });
+  const handleVariantModeChange = (id: VariantMode) => {
+    update({ variantMode: id });
+  };
+
+  const handleGameTypeChange = (gt: GameType) => {
+    update({ gameType: gt });
   };
 
   const handleStart = () => {
     onStartGame(config);
   };
 
-  const activeDef = getGameModeDefinition(config.variantModeId);
+  const activeDef = getVariantModeDefinition(config.variantMode);
+  const isKingHunt = isKingHuntVariant(config.variantMode);
+  const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
+  const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
+  const isReportMode = config.gameType === 'report_incorrectness';
+  const isPenaltyMode = config.gameType === 'penalty_on_miss';
   const showClock = config.enableClock;
-  const showMoveLimit = activeDef.config.moveLimit > 0;
-  // Show threshold when Blunziger is enabled, not reverse, and no penalties are checked (report-based)
-  const hasAnyPenalty = config.enableExtraMovePenalty || config.enablePieceRemovalPenalty || config.enableTimeReductionPenalty;
-  const showThreshold = activeDef.config.enableBlunziger && !activeDef.config.reverseForcedCheck && !hasAnyPenalty;
-  // Penalty checkboxes shown when Blunziger forced-check rule is active (not reverse)
-  const showPenalties = activeDef.config.enableBlunziger && !activeDef.config.reverseForcedCheck;
-  const showTimeReductionSeconds = config.enableTimeReductionPenalty && showClock;
+  const showTimeReductionValue = config.enableTimeReductionPenalty && showClock;
 
   return (
     <div className="setup-screen">
@@ -49,10 +46,10 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           <label htmlFor="variant-mode-select">Variant Mode</label>
           <select
             id="variant-mode-select"
-            value={config.variantModeId}
-            onChange={(e) => handleModeChange(e.target.value as VariantModeId)}
+            value={config.variantMode}
+            onChange={(e) => handleVariantModeChange(e.target.value as VariantMode)}
           >
-            {GAME_MODE_DEFINITIONS.map((def) => (
+            {VARIANT_MODE_DEFINITIONS.map((def) => (
               <option key={def.id} value={def.id}>
                 {def.name}
               </option>
@@ -61,9 +58,22 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           <p className="mode-description">{activeDef.description}</p>
         </div>
 
+        {/* ── Game Type ── */}
+        <div className="setup-group">
+          <label htmlFor="game-type-select">Game Type</label>
+          <select
+            id="game-type-select"
+            value={config.gameType}
+            onChange={(e) => handleGameTypeChange(e.target.value as GameType)}
+          >
+            <option value="report_incorrectness">Report Incorrectness</option>
+            <option value="penalty_on_miss">Penalty on Miss</option>
+          </select>
+        </div>
+
         {/* ── Player Mode ── */}
         <div className="setup-group">
-          <label htmlFor="mode-select">Game Mode</label>
+          <label htmlFor="mode-select">Player Mode</label>
           <select
             id="mode-select"
             value={config.mode}
@@ -104,8 +114,37 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </div>
         )}
 
-        {/* ── Mode-specific options ── */}
-        {showThreshold && (
+        {/* ── Variant-Specific Config ── */}
+        {isKingHuntMoveLimit && (
+          <div className="setup-group">
+            <label htmlFor="ply-limit-input">Ply Limit</label>
+            <NumericInput
+              id="ply-limit-input"
+              value={config.kingHuntPlyLimit}
+              onChange={(v) => update({ kingHuntPlyLimit: v })}
+              min={10}
+              max={400}
+              fallback={80}
+            />
+          </div>
+        )}
+
+        {isKingHuntCheckLimit && (
+          <div className="setup-group">
+            <label htmlFor="check-target-input">Given Check Target</label>
+            <NumericInput
+              id="check-target-input"
+              value={config.kingHuntGivenCheckTarget}
+              onChange={(v) => update({ kingHuntGivenCheckTarget: v })}
+              min={1}
+              max={100}
+              fallback={5}
+            />
+          </div>
+        )}
+
+        {/* ── Game-Type-Specific Config ── */}
+        {isReportMode && (
           <div className="setup-group">
             <label htmlFor="threshold-input">Invalid Report Loss Threshold</label>
             <NumericInput
@@ -119,70 +158,30 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </div>
         )}
 
-        {showMoveLimit && (
-          <div className="setup-group">
-            <label htmlFor="movelimit-input">Move Limit (full moves)</label>
-            <NumericInput
-              id="movelimit-input"
-              value={config.moveLimit}
-              onChange={(v) => update({ moveLimit: v })}
-              min={5}
-              max={200}
-              fallback={40}
-            />
-          </div>
-        )}
-
-        {/* ── King of the Hill ── */}
-        <div className="setup-group checkbox-group">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.enableKingOfTheHill}
-              onChange={(e) => update({ enableKingOfTheHill: e.target.checked })}
-            />
-            Enable King of the Hill
-          </label>
-        </div>
-
-        {/* ── Clock ── */}
-        <div className="setup-group checkbox-group">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.enableClock}
-              onChange={(e) => update({ enableClock: e.target.checked })}
-            />
-            Enable Clock
-          </label>
-        </div>
-
-        {showClock && (
-          <div className="setup-group">
-            <label htmlFor="time-control-input">Initial time (minutes)</label>
-            <NumericInput
-              id="time-control-input"
-              value={Math.round(config.initialTimeMs / 60000)}
-              onChange={(v) => update({ initialTimeMs: v * 60000 })}
-              min={1}
-              max={60}
-              fallback={5}
-            />
-          </div>
-        )}
-
-        {/* ── Penalty Checkboxes ── */}
-        {showPenalties && (
+        {isPenaltyMode && (
           <fieldset className="setup-group penalty-group">
-            <legend>Penalties on missed forced check</legend>
+            <legend>Penalties on missed move</legend>
             <label>
               <input
                 type="checkbox"
-                checked={config.enableExtraMovePenalty}
-                onChange={(e) => update({ enableExtraMovePenalty: e.target.checked })}
+                checked={config.enableAdditionalMovePenalty}
+                onChange={(e) => update({ enableAdditionalMovePenalty: e.target.checked })}
               />
               Additional move
             </label>
+            {config.enableAdditionalMovePenalty && (
+              <div className="setup-group">
+                <label htmlFor="extra-move-count-input">Additional move count</label>
+                <NumericInput
+                  id="extra-move-count-input"
+                  value={config.additionalMoveCount}
+                  onChange={(v) => update({ additionalMoveCount: v })}
+                  min={1}
+                  max={5}
+                  fallback={1}
+                />
+              </div>
+            )}
             <label>
               <input
                 type="checkbox"
@@ -191,6 +190,19 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               />
               Piece removal
             </label>
+            {config.enablePieceRemovalPenalty && (
+              <div className="setup-group">
+                <label htmlFor="piece-removal-count-input">Piece removal count</label>
+                <NumericInput
+                  id="piece-removal-count-input"
+                  value={config.pieceRemovalCount}
+                  onChange={(v) => update({ pieceRemovalCount: v })}
+                  min={1}
+                  max={5}
+                  fallback={1}
+                />
+              </div>
+            )}
             <label>
               <input
                 type="checkbox"
@@ -200,8 +212,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               />
               Time reduction
             </label>
-
-            {showTimeReductionSeconds && (
+            {showTimeReductionValue && (
               <div className="setup-group">
                 <label htmlFor="time-reduction-input">Time reduction (seconds)</label>
                 <NumericInput
@@ -209,13 +220,64 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                   value={config.timeReductionSeconds}
                   onChange={(v) => update({ timeReductionSeconds: v })}
                   min={1}
-                  max={60}
-                  fallback={5}
+                  max={300}
+                  fallback={60}
                 />
               </div>
             )}
           </fieldset>
         )}
+
+        {/* ── Overlays / Options ── */}
+        <fieldset className="setup-group">
+          <legend>Overlays / Options</legend>
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableKingOfTheHill}
+                onChange={(e) => update({ enableKingOfTheHill: e.target.checked })}
+              />
+              King of the Hill
+            </label>
+          </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableClock}
+                onChange={(e) => update({ enableClock: e.target.checked })}
+              />
+              Clock
+            </label>
+          </div>
+
+          {showClock && (
+            <div className="setup-group">
+              <label htmlFor="time-control-input">Initial time (minutes)</label>
+              <NumericInput
+                id="time-control-input"
+                value={Math.round(config.initialTimeMs / 60000)}
+                onChange={(v) => update({ initialTimeMs: v * 60000 })}
+                min={1}
+                max={60}
+                fallback={5}
+              />
+            </div>
+          )}
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableDoubleCheckPressure}
+                onChange={(e) => update({ enableDoubleCheckPressure: e.target.checked })}
+              />
+              Double Check Pressure
+            </label>
+          </div>
+        </fieldset>
 
         <button className="start-game-btn" onClick={handleStart}>
           ▶ Start Game
