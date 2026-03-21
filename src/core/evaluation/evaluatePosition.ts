@@ -37,7 +37,7 @@ export function evaluateBasePosition(fen: string): { scoreCp: number; mateIn: nu
     const matingColor = chess.turn() === 'w' ? 'black' : 'white';
     const sign = matingColor === 'white' ? 1 : -1;
     explanation.push(`Checkmate — ${matingColor} wins`);
-    return { scoreCp: sign * 10000, mateIn: sign * 0, explanation };
+    return { scoreCp: sign * 10000, mateIn: 0, explanation };
   }
   if (chess.isStalemate() || chess.isDraw()) {
     explanation.push('Draw / stalemate');

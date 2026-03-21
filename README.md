@@ -164,6 +164,31 @@ During play, a read-only summary shows the selected configuration:
 - Overlays (King of the Hill, Clock, Double Check Pressure)
 - Variant-specific config (ply limit, check target)
 
+## Evaluation Bar (Optional)
+
+An optional evaluation bar can be enabled during play to show which side is currently better.
+
+- **Off by default** — enable via the "Show evaluation bar" checkbox in game controls
+- Displays a vertical bar next to the board: more white area = White is better, more black area = Black is better
+- Shows a numeric score label (e.g. +1.8 / -0.6)
+- Displays "M" followed by a number for mate-in-N situations
+
+### Variant-Aware Evaluation
+
+The evaluation bar is **variant-aware** — it does not just show standard chess evaluation. It incorporates:
+
+- **Classic Blunzinger**: forced-check pressure (having checking moves is an advantage)
+- **Reverse Blunzinger**: checking-avoidance pressure (few non-checking options is a disadvantage)
+- **King Hunt – Move Limit**: current scores, proximity to ply limit, check-scoring opportunities
+- **King Hunt – Given Check Limit**: proximity to the target check count
+- **Report Incorrectness**: pending reportable violations strongly favor the reporting side
+- **Penalty on Miss**: penalty strength affects the value of forcing violations
+- **King of the Hill**: king proximity to center hill squares
+- **Clock**: time remaining, with amplified effect for low-time situations
+- **Double Check Pressure**: multiple required moves increase tactical pressure
+
+**Important:** The evaluation is a heuristic estimate, not a perfect oracle. It uses material balance, mobility, and variant-specific game state to produce a practical approximation.
+
 ## Player Modes
 
 | Mode | Description |
@@ -226,22 +251,32 @@ src/
 │   ├── types.ts        # VariantMode, GameType, MatchConfig, OverlayConfig, GameState, setup config
 │   ├── engine.ts       # All pure game logic functions (variant-mode-aware)
 │   └── index.ts        # Re-exports
+├── core/evaluation/    # Pure TypeScript — variant-aware evaluation system
+│   ├── types.ts        # EvaluationResult type
+│   ├── evaluatePosition.ts  # Base chess position evaluation (material + mobility)
+│   ├── evaluateVariant.ts   # Variant/game-type/overlay adjustments
+│   ├── evaluate.ts     # Main evaluation orchestrator
+│   └── index.ts        # Re-exports
 ├── bot/
 │   └── botEngine.ts    # Bot move selection (variant-mode-aware, easy/medium/hard)
 ├── components/
 │   ├── Chessboard.tsx        # Custom board UI (click-to-move, piece removal)
+│   ├── EvaluationBar.tsx     # Optional evaluation bar (variant-aware)
 │   ├── GameStatus.tsx        # Turn, clocks, scores, report, result, piece removal prompt
-│   ├── GameControls.tsx      # New Game button + bot-vs-bot controls
+│   ├── GameControls.tsx      # New Game button + eval toggle + bot-vs-bot controls
 │   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
 │   ├── NewGameSetupScreen.tsx # Pre-game setup with variant/game-type/overlay selectors
 │   ├── MoveList.tsx          # Move history sidebar
 │   └── RulesPanel.tsx        # Variant/game-type/overlay rule explanations
 ├── hooks/
-│   └── useGame.ts      # React game state hook (clocks, scores, extra turns, piece removal)
+│   ├── useGame.ts      # React game state hook (clocks, scores, extra turns, piece removal)
+│   └── useEvaluation.ts # Memoized evaluation hook
 └── __tests__/
     ├── engine.test.ts    # Core logic tests
     ├── bot.test.ts       # Bot tests
     ├── modes.test.ts     # Variant mode, game type, overlay, combined penalty tests
+    ├── evaluation.test.ts # Evaluation module tests (base + variant-aware)
+    ├── evaluation-ui.test.tsx # Evaluation bar UI tests
     ├── app-flow.test.tsx # UI flow tests (setup, clock, penalty, game type)
     └── numeric-input.test.tsx # NumericInput component tests
 ```
@@ -249,9 +284,10 @@ src/
 ### Separation of Concerns
 
 - **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Can be reused server-side.
+- **`core/evaluation/`**: Pure evaluation functions. Combines base chess evaluation with variant-aware adjustments.
 - **`bot/`**: Bot logic, depends only on `core/` and `chess.js`.
-- **`components/`**: React UI, depends on `core/` through the `useGame` hook.
-- **`hooks/`**: Bridges core logic and React state. Manages clocks.
+- **`components/`**: React UI, depends on `core/` through the `useGame` and `useEvaluation` hooks.
+- **`hooks/`**: Bridges core logic and React state. Manages clocks and evaluation memoization.
 
 ### Type System
 
@@ -267,6 +303,7 @@ src/
 | `VariantModeDefinition` | Name and description for a variant mode |
 | `GameSetupConfig` | What the user selects before starting a game |
 | `GameState` | Complete game state including scores, clocks, extra turns, pending piece removal |
+| `EvaluationResult` | Evaluation output with score, normalized bar value, favored side, and explanation |
 | `ViolationRecord` | Detected violation with type, severity, required moves |
 | `PendingPieceRemoval` | State for piece removal penalty (target side, chooser side, removable squares, remaining count) |
 
@@ -288,6 +325,9 @@ src/
 | `reportViolation(state, side)` | Process a report |
 | `applyTimeout(state, losingSide)` | End game due to clock timeout |
 | `isKingOfTheHillEnabled(config)` | Whether KOTH overlay is on |
+| `evaluateGameState(state, whiteMs, blackMs)` | Variant-aware position evaluation (evaluation module) |
+| `evaluateBasePosition(fen)` | Base chess evaluation (material + mobility) |
+| `evaluateVariantAdjustments(state, whiteMs, blackMs)` | Variant/game-type/overlay evaluation adjustments |
 
 ## Library Choices
 
