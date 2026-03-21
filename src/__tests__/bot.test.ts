@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { selectBotMove } from '../bot/botEngine';
+import { describe, it, expect, vi } from 'vitest';
+import { selectBotMove, shouldBotReport } from '../bot/botEngine';
 import { getCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../core/blunziger/engine';
-import type { MatchConfig } from '../core/blunziger/types';
+import type { MatchConfig, ViolationRecord } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
 const kothConfig: MatchConfig = buildMatchConfig({
@@ -224,6 +224,102 @@ describe('Bot Engine', () => {
 
       // In penalty_on_miss mode, violations are not reportable
       expect(canReport(s, 'b')).toBe(false);
+    });
+  });
+
+  describe('shouldBotReport', () => {
+    // Helper to build a minimal ViolationRecord for testing
+    function makeViolation(
+      overrides: Partial<ViolationRecord> = {},
+    ): ViolationRecord {
+      return {
+        violatingSide: 'w',
+        moveIndex: 0,
+        fenBeforeMove: INITIAL_FEN,
+        checkingMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['checkingMoves'],
+        requiredMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['requiredMoves'],
+        actualMove: { from: 'e2', to: 'e4', san: 'e4' } as ViolationRecord['actualMove'],
+        reportable: true,
+        violationType: 'missed_check',
+        severe: false,
+        ...overrides,
+      };
+    }
+
+    it('hard bot always reports', () => {
+      const v = makeViolation({ checkingMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['checkingMoves'] });
+      for (let i = 0; i < 50; i++) {
+        expect(shouldBotReport('hard', v)).toBe(true);
+      }
+    });
+
+    it('medium bot always reports', () => {
+      const v = makeViolation({ checkingMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['checkingMoves'] });
+      for (let i = 0; i < 50; i++) {
+        expect(shouldBotReport('medium', v)).toBe(true);
+      }
+    });
+
+    it('easy bot always reports gave_forbidden_check violations', () => {
+      const v = makeViolation({ violationType: 'gave_forbidden_check' });
+      for (let i = 0; i < 50; i++) {
+        expect(shouldBotReport('easy', v)).toBe(true);
+      }
+    });
+
+    it('easy bot sometimes misses missed_check with 1 checking move', () => {
+      const v = makeViolation({
+        checkingMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['checkingMoves'],
+      });
+
+      let reported = 0;
+      const runs = 1000;
+      for (let i = 0; i < runs; i++) {
+        if (shouldBotReport('easy', v)) reported++;
+      }
+
+      // With 1 checking move, reportProbability = 0.40
+      // Allow generous tolerance: expect between 20% and 60% reports
+      expect(reported).toBeGreaterThan(runs * 0.2);
+      expect(reported).toBeLessThan(runs * 0.6);
+    });
+
+    it('easy bot reports more often with many checking moves', () => {
+      const v1 = makeViolation({
+        checkingMoves: [{ from: 'd1', to: 'h5', san: 'Qh5+' }] as ViolationRecord['checkingMoves'],
+      });
+      const v3 = makeViolation({
+        checkingMoves: [
+          { from: 'd1', to: 'h5', san: 'Qh5+' },
+          { from: 'f1', to: 'b5', san: 'Bb5+' },
+          { from: 'g1', to: 'f3', san: 'Nf3+' },
+        ] as ViolationRecord['checkingMoves'],
+      });
+
+      let reported1 = 0;
+      let reported3 = 0;
+      const runs = 1000;
+      for (let i = 0; i < runs; i++) {
+        if (shouldBotReport('easy', v1)) reported1++;
+        if (shouldBotReport('easy', v3)) reported3++;
+      }
+
+      // 3 checking moves should yield more reports than 1 checking move
+      expect(reported3).toBeGreaterThan(reported1);
+    });
+
+    it('easy bot with Math.random returning 0 always reports', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const v = makeViolation();
+      expect(shouldBotReport('easy', v)).toBe(true);
+      vi.restoreAllMocks();
+    });
+
+    it('easy bot with Math.random returning 0.99 never reports missed_check', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      const v = makeViolation();
+      expect(shouldBotReport('easy', v)).toBe(false);
+      vi.restoreAllMocks();
     });
   });
 });

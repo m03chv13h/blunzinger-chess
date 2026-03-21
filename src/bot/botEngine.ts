@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, MatchConfig, Square } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Square, ViolationRecord } from '../core/blunziger/types';
 import { isReverseForcedCheckMode, isKingHuntVariant } from '../core/blunziger/types';
 import {
   getLegalMoves,
@@ -8,6 +8,26 @@ import {
   isKingOfTheHillEnabled,
   isHillSquare,
 } from '../core/blunziger/engine';
+
+/**
+ * Determine whether the bot should report an opponent's violation.
+ *
+ * Hard and medium bots always report. Easy bots may miss violations that are
+ * hard to spot — specifically missed-check violations where few checking moves
+ * were available. "Gave forbidden check" violations (reverse mode) are always
+ * obvious because the bot knows when it is in check.
+ */
+export function shouldBotReport(level: BotLevel, violation: ViolationRecord): boolean {
+  if (level !== 'easy') return true;
+
+  // In reverse mode the opponent gave check — the bot always notices that.
+  if (violation.violationType === 'gave_forbidden_check') return true;
+
+  // For missed checks: more available checking moves → easier to notice.
+  const checkCount = violation.checkingMoves.length;
+  const reportProbability = Math.min(0.9, 0.15 + checkCount * 0.25);
+  return Math.random() < reportProbability;
+}
 
 // Piece values for heuristic evaluation
 const PIECE_VALUES: Record<string, number> = {

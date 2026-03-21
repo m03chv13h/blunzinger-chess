@@ -18,7 +18,7 @@ import {
   applyPieceRemoval,
   selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
-import { selectBotMove } from '../bot/botEngine';
+import { selectBotMove, shouldBotReport } from '../bot/botEngine';
 
 export interface UseGameReturn {
   state: GameState;
@@ -326,7 +326,10 @@ export function useGame(
         return;
       }
       // Bot reports the human's violation before making its own move
-      if (canReport(current, current.sideToMove)) {
+      if (
+        canReport(current, current.sideToMove) &&
+        shouldBotReport(current.botLevel, current.pendingViolation!)
+      ) {
         setState(reportViolation(current, current.sideToMove));
         setBotThinking(false);
         return;
