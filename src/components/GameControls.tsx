@@ -7,6 +7,8 @@ interface GameControlsProps {
   moveDelay: number;
   onMoveDelayChange: (d: number) => void;
   isBotvBot: boolean;
+  showEvalBar: boolean;
+  onShowEvalBarChange: (v: boolean) => void;
 }
 
 export function GameControls({
@@ -16,12 +18,25 @@ export function GameControls({
   moveDelay,
   onMoveDelayChange,
   isBotvBot,
+  showEvalBar,
+  onShowEvalBarChange,
 }: GameControlsProps) {
   return (
     <div className="game-controls">
       <button className="new-game-btn" onClick={onNewGame}>
         🔄 New Game
       </button>
+
+      <div className="control-group eval-toggle">
+        <label>
+          <input
+            type="checkbox"
+            checked={showEvalBar}
+            onChange={(e) => onShowEvalBarChange(e.target.checked)}
+          />{' '}
+          Show evaluation bar
+        </label>
+      </div>
 
       {isBotvBot && (
         <div className="botvbot-controls">

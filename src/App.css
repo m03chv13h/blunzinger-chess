@@ -50,6 +50,9 @@ body {
 
 .board-section {
   flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
 }
 
 .right-panel {

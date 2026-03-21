@@ -86,3 +86,17 @@
 .pause-btn.paused:hover {
   background: #0056b3;
 }
+
+.eval-toggle {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.eval-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+  cursor: pointer;
+}

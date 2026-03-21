@@ -9,7 +9,9 @@ import { GameControls } from './components/GameControls';
 import { GameSummaryPanel } from './components/GameSummaryPanel';
 import { NewGameSetupScreen } from './components/NewGameSetupScreen';
 import { RulesPanel } from './components/RulesPanel';
+import { EvaluationBar } from './components/EvaluationBar';
 import { useGame } from './hooks/useGame';
+import { useEvaluation } from './hooks/useEvaluation';
 import './App.css';
 
 type AppScreen =
@@ -19,6 +21,7 @@ type AppScreen =
 function App() {
   const [screen, setScreen] = useState<AppScreen>({ type: 'setup' });
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
+  const [showEvalBar, setShowEvalBar] = useState(false);
 
   const activeConfig = screen.type === 'playing' ? screen.config : lastConfig;
   const matchConfig = buildMatchConfig(activeConfig);
@@ -29,6 +32,8 @@ function App() {
     activeConfig.botDifficulty,
     activeConfig.botSide,
   );
+
+  const evaluation = useEvaluation(game.state, showEvalBar, game.clockWhiteMs, game.clockBlackMs);
 
   const handleStartGame = (config: GameSetupConfig) => {
     setLastConfig(config);
@@ -84,11 +89,14 @@ function App() {
             moveDelay={game.moveDelay}
             onMoveDelayChange={game.setMoveDelay}
             isBotvBot={screen.config.mode === 'botvbot'}
+            showEvalBar={showEvalBar}
+            onShowEvalBarChange={setShowEvalBar}
           />
           <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
         </aside>
 
         <section className="board-section">
+          {showEvalBar && evaluation && <EvaluationBar evaluation={evaluation} />}
           <Chessboard
             fen={game.state.fen}
             onMove={handleMove}
