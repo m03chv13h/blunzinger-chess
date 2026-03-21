@@ -94,6 +94,17 @@ describe('Bot Engine', () => {
       const move = selectBotMove(INITIAL_FEN, 'easy', dcpConfig);
       expect(move).not.toBeNull();
     });
+
+    it('hard bot should not always play the same opening move', () => {
+      const moves = new Set<string>();
+      for (let i = 0; i < 20; i++) {
+        const move = selectBotMove(INITIAL_FEN, 'hard');
+        expect(move).not.toBeNull();
+        moves.add(`${move!.from}-${move!.to}`);
+      }
+      // With randomness among equally-scored moves, we expect variety
+      expect(moves.size).toBeGreaterThan(1);
+    }, 30_000);
   });
 
   describe('King of the Hill bot behavior', () => {
