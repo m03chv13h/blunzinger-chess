@@ -19,6 +19,12 @@ const PIECE_VALUES: Record<string, number> = {
   k: 0,
 };
 
+// Score for a KOTH win (just below checkmate at -1000)
+const KOTH_WIN_SCORE = 900;
+
+// Hill square coordinates as [file, rank] (0-indexed) for proximity calculations
+const HILL_COORDINATES = [[3, 3], [3, 4], [4, 3], [4, 4]]; // d4, d5, e4, e5
+
 /**
  * Select a move for the bot, obeying mode-specific rules.
  *
@@ -138,7 +144,7 @@ function minimax(
   if (kothEnabled) {
     const lastMover = chess.turn() === 'w' ? 'b' : 'w';
     if (isKingOnHill(chess, lastMover)) {
-      return -900; // Last mover won – very bad for the current side to move
+      return -KOTH_WIN_SCORE; // Last mover won – very bad for the current side to move
     }
   }
 
@@ -233,11 +239,10 @@ function isKingOnHill(chess: Chess, side: 'w' | 'b'): boolean {
  * hill center square (d4, d5, e4, e5).  Uses Chebyshev distance.
  */
 function hillProximityScore(sq: Square): number {
-  const file = (sq as string).charCodeAt(0) - 97; // a=0 … h=7
-  const rank = parseInt((sq as string)[1]) - 1;    // 1=0 … 8=7
-  const hillCoords = [[3, 3], [3, 4], [4, 3], [4, 4]]; // d4, d5, e4, e5
+  const file = (sq as string).charCodeAt(0) - 'a'.charCodeAt(0);
+  const rank = parseInt((sq as string)[1]) - 1;
   let minDist = Infinity;
-  for (const [hf, hr] of hillCoords) {
+  for (const [hf, hr] of HILL_COORDINATES) {
     minDist = Math.min(minDist, Math.max(Math.abs(file - hf), Math.abs(rank - hr)));
   }
   return Math.max(0, 3 - minDist);
