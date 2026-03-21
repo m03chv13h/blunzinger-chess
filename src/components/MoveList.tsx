@@ -1,4 +1,4 @@
-import type { Move, ViolationReportEntry } from '../core/blunziger/types';
+import type { Move, ViolationReportEntry, MissedCheckEntry } from '../core/blunziger/types';
 import './MoveList.css';
 
 interface MoveListProps {
@@ -9,13 +9,23 @@ interface MoveListProps {
   onMoveClick?: (moveIndex: number) => void;
   /** Violation reports to display as icons next to moves. */
   violationReports?: ViolationReportEntry[];
+  /** Missed-check violations to display as sausage icons next to moves. */
+  missedChecks?: MissedCheckEntry[];
+  /** Whether the game is over (all missed-check icons become visible). */
+  gameOver?: boolean;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [] }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false }: MoveListProps) {
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
   for (const r of violationReports) {
     reportByMove.set(r.moveIndex, r);
+  }
+
+  // Build a lookup from moveIndex → missed-check entry for O(1) access
+  const missedCheckByMove = new Map<number, MissedCheckEntry>();
+  for (const mc of missedChecks) {
+    missedCheckByMove.set(mc.moveIndex, mc);
   }
 
   // Group moves into pairs (white, black)
@@ -44,6 +54,23 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
       : <span className="report-icon report-invalid" title="Incorrect violation report">❌</span>;
   };
 
+  /**
+   * Render 🌭 icon for a missed-check violation, but only once the opponent's
+   * next move is complete (or the game is over) so we don't reveal information
+   * the opponent could use to report the violation.
+   */
+  const renderMissedCheckIcon = (moveIndex: number) => {
+    const mc = missedCheckByMove.get(moveIndex);
+    if (!mc) return null;
+    // Only reveal after the opponent has made their next move (moveIndex+1 exists) or game ended
+    const isVisible = moves.length > moveIndex + 1 || gameOver;
+    if (!isVisible) return null;
+    const title = mc.violationType === 'missed_check'
+      ? 'Missed a possible check'
+      : 'Gave a forbidden check';
+    return <span className="report-icon missed-check" title={title}>🌭</span>;
+  };
+
   return (
     <div className="move-list">
       <h3>Moves</h3>
@@ -62,7 +89,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
               role={onMoveClick ? 'button' : undefined}
               tabIndex={onMoveClick ? 0 : undefined}
             >
-              {pair.white.san}{renderReportIcon(pair.whiteIdx)}
+              {pair.white.san}{renderReportIcon(pair.whiteIdx)}{renderMissedCheckIcon(pair.whiteIdx)}
             </span>
             <span
               className={[
@@ -74,7 +101,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
               role={onMoveClick && pair.black ? 'button' : undefined}
               tabIndex={onMoveClick && pair.black ? 0 : undefined}
             >
-              {pair.black?.san ?? ''}{pair.black && renderReportIcon(pair.blackIdx)}
+              {pair.black?.san ?? ''}{pair.black && renderReportIcon(pair.blackIdx)}{pair.black && renderMissedCheckIcon(pair.blackIdx)}
             </span>
           </div>
         ))}

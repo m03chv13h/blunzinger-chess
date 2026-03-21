@@ -415,6 +415,62 @@ describe('Core Blunziger Engine', () => {
     });
   });
 
+  describe('missedChecks', () => {
+    it('should start with empty missedChecks', () => {
+      const state = createInitialState();
+      expect(state.missedChecks).toEqual([]);
+    });
+
+    it('should record a missed check when a violation occurs', () => {
+      // 1.e4 f5 — now white has Qh5+ but we play d3 instead
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // white misses Qh5+
+      expect(s.missedChecks).toHaveLength(1);
+      expect(s.missedChecks[0].moveIndex).toBe(2);
+      expect(s.missedChecks[0].violationType).toBe('missed_check');
+    });
+
+    it('should not record when no violation occurs', () => {
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'e5');
+      expect(s.missedChecks).toHaveLength(0);
+    });
+
+    it('should accumulate multiple missed checks', () => {
+      // 1.e4 f5 — white has Qh5+ available, but plays d3 instead
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // white misses Qh5+ (moveIndex 2)
+      expect(s.missedChecks).toHaveLength(1);
+
+      // Black moves, then we engineer another missed check
+      s = applyMoveWithRules(s, 'e6');
+      // At this point, white still has Qh5+ available
+      s = applyMoveWithRules(s, 'a3'); // white misses Qh5+ again (moveIndex 4)
+      expect(s.missedChecks).toHaveLength(2);
+      expect(s.missedChecks[0].moveIndex).toBe(2);
+      expect(s.missedChecks[1].moveIndex).toBe(4);
+    });
+
+    it('should record gave_forbidden_check in reverse mode', () => {
+      const reverseConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        variantMode: 'reverse_blunzinger',
+      });
+      let state = createInitialState('hvh', reverseConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      // Now white has Qh5+ available but in reverse mode, they must AVOID check
+      state = applyMoveWithRules(state, 'Qh5'); // white gives forbidden check
+      expect(state.missedChecks).toHaveLength(1);
+      expect(state.missedChecks[0].violationType).toBe('gave_forbidden_check');
+    });
+  });
+
   describe('incrementInvalidReport', () => {
     it('should increment counter for specified side', () => {
       const state = createInitialState();

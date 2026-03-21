@@ -69,3 +69,7 @@
   font-size: 11px;
   vertical-align: middle;
 }
+
+.report-icon.missed-check {
+  cursor: help;
+}
