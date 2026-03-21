@@ -40,10 +40,11 @@ function commitClockOnMove(
   activeSide: 'w' | 'b',
   elapsedMs: number,
   incrementMs: number = 0,
+  decrementMs: number = 0,
 ): ClockState {
   const key = activeSide === 'w' ? 'whiteMs' : 'blackMs';
   const remaining = Math.max(0, clocks[key] - elapsedMs);
-  return { ...clocks, [key]: remaining + incrementMs, lastTimestamp: Date.now() };
+  return { ...clocks, [key]: Math.max(0, remaining + incrementMs - decrementMs), lastTimestamp: Date.now() };
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -110,6 +111,37 @@ describe('Clock – core timing logic', () => {
     const after = commitClockOnMove(initial, 'w', 10_000, 2_000);
     // remaining = max(0, 3000-10000) = 0, then +2000 = 2000
     expect(after.whiteMs).toBe(2_000);
+  });
+
+  // ── Clock commit on move – decrement ──────────────────────────────
+
+  it('applies decrement after deducting elapsed time', () => {
+    const initial: ClockState = { whiteMs: 300_000, blackMs: 300_000, lastTimestamp: null };
+    const after = commitClockOnMove(initial, 'w', 5_000, 0, 3_000);
+    // 300k - 5k - 3k = 292k
+    expect(after.whiteMs).toBe(292_000);
+    expect(after.blackMs).toBe(300_000);
+  });
+
+  it('applies both increment and decrement together', () => {
+    const initial: ClockState = { whiteMs: 300_000, blackMs: 300_000, lastTimestamp: null };
+    const after = commitClockOnMove(initial, 'b', 10_000, 5_000, 2_000);
+    // 300k - 10k + 5k - 2k = 293k
+    expect(after.blackMs).toBe(293_000);
+    expect(after.whiteMs).toBe(300_000);
+  });
+
+  it('decrement does not push clock below zero', () => {
+    const initial: ClockState = { whiteMs: 2_000, blackMs: 300_000, lastTimestamp: null };
+    const after = commitClockOnMove(initial, 'w', 1_000, 0, 5_000);
+    // remaining = max(0, 2k - 1k) = 1k, then max(0, 1k + 0 - 5k) = 0
+    expect(after.whiteMs).toBe(0);
+  });
+
+  it('increment and decrement default to zero', () => {
+    const initial: ClockState = { whiteMs: 100_000, blackMs: 200_000, lastTimestamp: null };
+    const after = commitClockOnMove(initial, 'w', 5_000);
+    expect(after.whiteMs).toBe(95_000);
   });
 
   // ── Timeout ───────────────────────────────────────────────────────
@@ -264,6 +296,24 @@ describe('Clock – core timing logic', () => {
     expect(state.clocks!.whiteMs).toBe(10_000);
     expect(state.clocks!.blackMs).toBe(10_000);
     expect(cfg.overlays.incrementMs).toBe(1_000);
+  });
+
+  it('decrementMs is respected in config', () => {
+    const cfg = clockConfig({ initialTimeMs: 10_000, decrementMs: 2_000 });
+    const state = createInitialState('hvh', cfg);
+    expect(state.clocks!.whiteMs).toBe(10_000);
+    expect(state.clocks!.blackMs).toBe(10_000);
+    expect(cfg.overlays.decrementMs).toBe(2_000);
+  });
+
+  it('decrementMs defaults to 0', () => {
+    const cfg = clockConfig();
+    expect(cfg.overlays.decrementMs).toBe(0);
+  });
+
+  it('decrementMs is zeroed when clock is disabled', () => {
+    const cfg = clockConfig({ enableClock: false, decrementMs: 5_000 });
+    expect(cfg.overlays.decrementMs).toBe(0);
   });
 
   // ── Extra turns: clock stays with active side ─────────────────────

@@ -267,6 +267,34 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
             </div>
           )}
 
+          {showClock && (
+            <div className="setup-group">
+              <label htmlFor="increment-input">Increment per move (MM:SS)</label>
+              <TimeInput
+                id="increment-input"
+                valueMs={config.incrementMs}
+                onChange={(ms) => update({ incrementMs: ms })}
+                minSeconds={0}
+                maxSeconds={600}
+                fallbackMs={0}
+              />
+            </div>
+          )}
+
+          {showClock && (
+            <div className="setup-group">
+              <label htmlFor="decrement-input">Decrement per move (MM:SS)</label>
+              <TimeInput
+                id="decrement-input"
+                valueMs={config.decrementMs}
+                onChange={(ms) => update({ decrementMs: ms })}
+                minSeconds={0}
+                maxSeconds={600}
+                fallbackMs={0}
+              />
+            </div>
+          )}
+
           <div className="checkbox-group">
             <label>
               <input

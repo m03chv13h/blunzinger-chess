@@ -26,6 +26,7 @@ export interface OverlayConfig {
   enableClock: boolean;
   initialTimeMs: number;
   incrementMs: number;
+  decrementMs: number;
   enableDoubleCheckPressure: boolean;
 }
 
@@ -293,6 +294,7 @@ export interface GameSetupConfig {
   enableClock: boolean;
   initialTimeMs: number;
   incrementMs: number;
+  decrementMs: number;
   enableDoubleCheckPressure: boolean;
   // Report config
   invalidReportLossThreshold: number;
@@ -318,6 +320,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   enableClock: false,
   initialTimeMs: 5 * 60 * 1000,
   incrementMs: 0,
+  decrementMs: 0,
   enableDoubleCheckPressure: false,
   invalidReportLossThreshold: 2,
   enableAdditionalMovePenalty: false,
@@ -341,6 +344,7 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
       enableClock: clockEnabled,
       initialTimeMs: clockEnabled ? setup.initialTimeMs : 0,
       incrementMs: clockEnabled ? setup.incrementMs : 0,
+      decrementMs: clockEnabled ? setup.decrementMs : 0,
       enableDoubleCheckPressure: setup.enableDoubleCheckPressure,
     },
     reportConfig: {
