@@ -203,6 +203,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     fen: newFen,
     pendingPieceRemoval: newPendingPieceRemoval,
     result,
+    positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null }],
   };
 }
 
@@ -341,6 +342,7 @@ export function createInitialState(
     extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 0 },
     pendingPieceRemoval: null,
     plyCount: 0,
+    positionHistory: [{ fen: INITIAL_FEN, scores: { w: 0, b: 0 }, moveNotation: null }],
   };
 }
 
@@ -600,6 +602,7 @@ export function applyMoveWithRules(
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san }],
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import type { GameSetupConfig } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
@@ -10,8 +10,10 @@ import { GameSummaryPanel } from './components/GameSummaryPanel';
 import { NewGameSetupScreen } from './components/NewGameSetupScreen';
 import { RulesPanel } from './components/RulesPanel';
 import { EvaluationBar } from './components/EvaluationBar';
+import { ReviewControls } from './components/ReviewControls';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
+import { useReview } from './hooks/useReview';
 import './App.css';
 
 type AppScreen =
@@ -33,7 +35,36 @@ function App() {
     activeConfig.botSide,
   );
 
-  const evaluation = useEvaluation(game.state, showEvalBar, game.clockWhiteMs, game.clockBlackMs);
+  const review = useReview(game.state);
+
+  // Auto-enter review mode when the game ends.
+  const gameIsOver = game.state.result !== null;
+  const prevGameOverRef = usePrevious(gameIsOver);
+  useEffect(() => {
+    if (gameIsOver && !prevGameOverRef) {
+      review.enterReview();
+    }
+  }, [gameIsOver, prevGameOverRef, review.enterReview]);
+
+  // The state used for evaluation: reviewed state when reviewing, otherwise live state.
+  const stateForEval = review.reviewedGameState ?? game.state;
+  const clockWhiteForEval = review.isReviewing ? 0 : game.clockWhiteMs;
+  const clockBlackForEval = review.isReviewing ? 0 : game.clockBlackMs;
+
+  const evaluation = useEvaluation(stateForEval, showEvalBar, clockWhiteForEval, clockBlackForEval);
+
+  // The FEN shown on the board: reviewed position or live position.
+  const displayFen = review.reviewedFen ?? game.state.fen;
+
+  // Map move list click → review step navigation.
+  const handleMoveListClick = useCallback((moveIndex: number) => {
+    if (!review.isReviewing) return;
+    // Find the review step that corresponds to this move index.
+    const step = review.steps.find(s => s.moveIndex === moveIndex);
+    if (step) {
+      review.goToStep(step.index);
+    }
+  }, [review]);
 
   const handleStartGame = (config: GameSetupConfig) => {
     setLastConfig(config);
@@ -98,13 +129,13 @@ function App() {
         <section className="board-section">
           {showEvalBar && evaluation && <EvaluationBar evaluation={evaluation} />}
           <Chessboard
-            fen={game.state.fen}
+            fen={displayFen}
             onMove={handleMove}
             legalMovesFrom={game.legalMovesFrom}
-            interactive={game.isPlayerTurn}
+            interactive={game.isPlayerTurn && !review.isReviewing}
             flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
-            pendingPieceRemoval={game.pendingPieceRemoval}
-            removableSquares={game.removableSquares}
+            pendingPieceRemoval={game.pendingPieceRemoval && !review.isReviewing}
+            removableSquares={review.isReviewing ? [] : game.removableSquares}
             onPieceRemoval={game.selectPieceForRemoval}
           />
         </section>
@@ -117,11 +148,34 @@ function App() {
             clockWhiteMs={game.clockWhiteMs}
             clockBlackMs={game.clockBlackMs}
           />
-          <MoveList moves={game.state.moveHistory} />
+          {review.isReviewing && review.reviewIndex !== null && (
+            <ReviewControls
+              reviewIndex={review.reviewIndex}
+              totalSteps={review.totalSteps}
+              onGoFirst={review.goToFirst}
+              onGoPrev={review.goToPrev}
+              onGoNext={review.goToNext}
+              onGoLast={review.goToLast}
+            />
+          )}
+          <MoveList
+            moves={game.state.moveHistory}
+            highlightedMoveIndex={review.isReviewing ? review.highlightedMoveIndex : -1}
+            onMoveClick={review.isReviewing ? handleMoveListClick : undefined}
+          />
         </aside>
       </main>
     </div>
   );
+}
+
+/** Simple hook to track the previous value of a variable. */
+function usePrevious<T>(value: T): T | undefined {
+  const [prev, setPrev] = useState<T | undefined>(undefined);
+  useEffect(() => {
+    setPrev(value);
+  }, [value]);
+  return prev;
 }
 
 export default App

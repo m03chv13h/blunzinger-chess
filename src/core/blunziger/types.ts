@@ -204,6 +204,14 @@ export interface PendingPieceRemoval {
   remainingRemovals: number;
 }
 
+// ── Position History (for post-game review) ──────────────────────────
+
+export interface PositionHistoryEntry {
+  fen: string;
+  scores: ScoreState;
+  moveNotation: string | null;
+}
+
 // ── Game State ───────────────────────────────────────────────────────
 
 export interface GameState {
@@ -223,6 +231,8 @@ export interface GameState {
   extraTurns: ExtraTurnState;
   pendingPieceRemoval: PendingPieceRemoval | null;
   plyCount: number;
+  /** Ordered snapshot of every board-changing state transition for post-game review. */
+  positionHistory: PositionHistoryEntry[];
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────
