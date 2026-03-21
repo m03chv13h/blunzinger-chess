@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
-import { getCheckingMoves, getLegalMoves } from '../core/blunziger/engine';
+import { getCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../core/blunziger/engine';
 import type { MatchConfig } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
@@ -166,6 +166,64 @@ describe('Bot Engine', () => {
       // as long as the bot doesn't just sit idle (Ka2 is a do-nothing move)
       const isActive = move!.piece === 'r' || move!.to === 'b2' || move!.to === 'b1';
       expect(isActive).toBe(true);
+    });
+  });
+
+  describe('Bot reporting missed checks', () => {
+    it('should detect and report when human misses a check in hvbot mode', () => {
+      // Setup: hvbot game, human plays white, bot plays black
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG });
+      const state = createInitialState('hvbot', config, 'easy', 'b');
+
+      // 1. e4 (human)
+      let s = applyMoveWithRules(state, 'e4');
+      // 1... f5 (bot would normally play a checking move, but simulate f5 for setup)
+      s = applyMoveWithRules(s, 'f5');
+      // 2. d3 (human misses Qh5+ - a forced check)
+      s = applyMoveWithRules(s, 'd3');
+
+      // Now it's black's (bot's) turn, and a violation is pending
+      expect(s.pendingViolation).not.toBeNull();
+      expect(s.pendingViolation!.reportable).toBe(true);
+      expect(s.pendingViolation!.violatingSide).toBe('w');
+      expect(s.sideToMove).toBe('b');
+
+      // Bot can report
+      expect(canReport(s, 'b')).toBe(true);
+
+      // Bot reports the violation - game should end with bot winning
+      const reported = reportViolation(s, 'b');
+      expect(reported.result).not.toBeNull();
+      expect(reported.result!.winner).toBe('b');
+      expect(reported.result!.reason).toBe('valid-report');
+    });
+
+    it('should not report when there is no violation', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG });
+      const state = createInitialState('hvbot', config, 'easy', 'b');
+
+      // 1. e4 (no checking moves available from starting position)
+      const s = applyMoveWithRules(state, 'e4');
+
+      // No violation - bot cannot report
+      expect(s.pendingViolation).toBeNull();
+      expect(canReport(s, 'b')).toBe(false);
+    });
+
+    it('should not report in penalty_on_miss mode', () => {
+      const config = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        gameType: 'penalty_on_miss',
+        enableAdditionalMovePenalty: true,
+      });
+      const state = createInitialState('hvbot', config, 'easy', 'b');
+
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // misses Qh5+
+
+      // In penalty_on_miss mode, violations are not reportable
+      expect(canReport(s, 'b')).toBe(false);
     });
   });
 });
