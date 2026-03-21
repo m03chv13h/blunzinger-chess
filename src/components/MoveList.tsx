@@ -1,4 +1,5 @@
 import type { Move, ViolationReportEntry, MissedCheckEntry } from '../core/blunziger/types';
+import { BlutwurstIcon } from './BlutwurstIcon';
 import './MoveList.css';
 
 interface MoveListProps {
@@ -9,7 +10,7 @@ interface MoveListProps {
   onMoveClick?: (moveIndex: number) => void;
   /** Violation reports to display as icons next to moves. */
   violationReports?: ViolationReportEntry[];
-  /** Missed-check violations to display as sausage icons next to moves. */
+  /** Missed-check violations to display as blutwurst icons next to moves. */
   missedChecks?: MissedCheckEntry[];
   /** Whether the game is over (all missed-check icons become visible). */
   gameOver?: boolean;
@@ -77,7 +78,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
   };
 
   /**
-   * Render 🌭 icon for a missed-check violation, but only once the opponent's
+   * Render blutwurst icon for a missed-check violation, but only once the opponent's
    * next move is complete (or the game is over) so we don't reveal information
    * the opponent could use to report the violation.
    */
@@ -90,7 +91,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     const title = mc.violationType === 'missed_check'
       ? 'Missed a possible check'
       : 'Gave a forbidden check';
-    return <span className="report-icon missed-check" title={title}>🌭</span>;
+    return <span className="report-icon missed-check" title={title}><BlutwurstIcon /></span>;
   };
 
   const renderMoveCell = (entry: MoveEntry | undefined, colorClass: string) => {
