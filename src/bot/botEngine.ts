@@ -141,7 +141,7 @@ function selectMedium(moves: Move[], fen: string, config?: MatchConfig): Move {
 function selectHard(moves: Move[], fen: string, kingHunt: boolean, config?: MatchConfig): Move {
   const kothEnabled = config ? isKingOfTheHillEnabled(config) : false;
   let bestScore = -Infinity;
-  let bestMove = moves[0];
+  let bestMoves: Move[] = [];
 
   for (const move of moves) {
     const chess = new Chess(fen);
@@ -153,11 +153,13 @@ function selectHard(moves: Move[], fen: string, kingHunt: boolean, config?: Matc
     }
     if (score > bestScore) {
       bestScore = score;
-      bestMove = move;
+      bestMoves = [move];
+    } else if (score === bestScore) {
+      bestMoves.push(move);
     }
   }
 
-  return bestMove;
+  return bestMoves[Math.floor(Math.random() * bestMoves.length)];
 }
 
 /**
