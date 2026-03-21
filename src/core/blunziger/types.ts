@@ -175,6 +175,15 @@ export interface ReportFeedback {
   message: string;
 }
 
+export interface ViolationReportEntry {
+  /** Index of the move in moveHistory associated with this report. */
+  moveIndex: number;
+  /** Side that made the report. */
+  reportingSide: Color;
+  /** Whether the report was correct (violation existed). */
+  valid: boolean;
+}
+
 // ── Score / Clock / Extra-Turn State ─────────────────────────────────
 
 export interface ScoreState {
@@ -233,6 +242,8 @@ export interface GameState {
   plyCount: number;
   /** Ordered snapshot of every board-changing state transition for post-game review. */
   positionHistory: PositionHistoryEntry[];
+  /** History of all violation reports made during the game. */
+  violationReports: ViolationReportEntry[];
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────

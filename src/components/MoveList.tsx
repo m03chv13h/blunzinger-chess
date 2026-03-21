@@ -1,4 +1,4 @@
-import type { Move } from '../core/blunziger/types';
+import type { Move, ViolationReportEntry } from '../core/blunziger/types';
 import './MoveList.css';
 
 interface MoveListProps {
@@ -7,9 +7,17 @@ interface MoveListProps {
   highlightedMoveIndex?: number;
   /** Called when the user clicks a move in the list. */
   onMoveClick?: (moveIndex: number) => void;
+  /** Violation reports to display as icons next to moves. */
+  violationReports?: ViolationReportEntry[];
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [] }: MoveListProps) {
+  // Build a lookup from moveIndex → report validity for O(1) access
+  const reportByMove = new Map<number, ViolationReportEntry>();
+  for (const r of violationReports) {
+    reportByMove.set(r.moveIndex, r);
+  }
+
   // Group moves into pairs (white, black)
   const pairs: { number: number; white: Move; black?: Move; whiteIdx: number; blackIdx: number }[] = [];
   for (let i = 0; i < moves.length; i += 2) {
@@ -26,6 +34,14 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: Move
     if (onMoveClick) {
       onMoveClick(idx);
     }
+  };
+
+  const renderReportIcon = (moveIndex: number) => {
+    const report = reportByMove.get(moveIndex);
+    if (!report) return null;
+    return report.valid
+      ? <span className="report-icon report-valid" title="Correct violation report">✅</span>
+      : <span className="report-icon report-invalid" title="Incorrect violation report">❌</span>;
   };
 
   return (
@@ -46,7 +62,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: Move
               role={onMoveClick ? 'button' : undefined}
               tabIndex={onMoveClick ? 0 : undefined}
             >
-              {pair.white.san}
+              {pair.white.san}{renderReportIcon(pair.whiteIdx)}
             </span>
             <span
               className={[
@@ -58,7 +74,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: Move
               role={onMoveClick && pair.black ? 'button' : undefined}
               tabIndex={onMoveClick && pair.black ? 0 : undefined}
             >
-              {pair.black?.san ?? ''}
+              {pair.black?.san ?? ''}{pair.black && renderReportIcon(pair.blackIdx)}
             </span>
           </div>
         ))}
