@@ -11,10 +11,20 @@
  * violations) but approximate strategic value through practical heuristics.
  */
 
+import { Chess } from 'chess.js';
 import type { EvaluationResult } from './types';
-import type { GameState } from '../blunziger/types';
+import type { GameState, Move } from '../blunziger/types';
+import { isReverseForcedCheckMode } from '../blunziger/types';
 import { evaluateBasePosition } from './evaluatePosition';
 import { evaluateVariantAdjustments } from './evaluateVariant';
+import {
+  canReport,
+  getLegalMoves,
+  getCheckingMoves,
+  getNonCheckingMoves,
+  isKingOfTheHillEnabled,
+  isHillSquare,
+} from '../blunziger/engine';
 
 /**
  * Evaluate the full game state including variant-aware adjustments.
@@ -39,6 +49,7 @@ export function evaluateGameState(
         mateIn: null,
         favoredSide: 'equal',
         normalizedScore: 0,
+        bestMove: null,
         explanation: ['Game over — draw'],
       };
     }
@@ -48,7 +59,22 @@ export function evaluateGameState(
       mateIn: null,
       favoredSide: state.result.winner === 'w' ? 'white' : 'black',
       normalizedScore: sign,
+      bestMove: null,
       explanation: [`Game over — ${state.result.winner === 'w' ? 'White' : 'Black'} wins (${state.result.reason})`],
+    };
+  }
+
+  // If the side to move can report the opponent's violation for an immediate win,
+  // this is the best action and the evaluation is decisive.
+  if (canReport(state, state.sideToMove)) {
+    const sign = state.sideToMove === 'w' ? 1 : -1;
+    return {
+      scoreCp: sign * 10000,
+      mateIn: null,
+      favoredSide: state.sideToMove === 'w' ? 'white' : 'black',
+      normalizedScore: sign,
+      bestMove: 'Report',
+      explanation: [`${state.sideToMove === 'w' ? 'White' : 'Black'} can report opponent's violation for an immediate win`],
     };
   }
 
@@ -64,6 +90,7 @@ export function evaluateGameState(
       mateIn: base.mateIn,
       favoredSide: sign > 0 ? 'white' : 'black',
       normalizedScore: sign,
+      bestMove: null,
       explanation,
     };
   }
@@ -90,11 +117,15 @@ export function evaluateGameState(
   // 400 cp maps to ~0.7, 1000 cp maps to ~0.93.
   const normalizedScore = clampedSigmoid(totalCp);
 
+  // 4. Find best theoretical next move.
+  const bestMove = findBestMove(state);
+
   return {
     scoreCp: totalCp,
     mateIn: null,
     favoredSide,
     normalizedScore,
+    bestMove,
     explanation,
   };
 }
@@ -107,4 +138,68 @@ function clampedSigmoid(cp: number): number {
   // tanh(cp / 600) gives a nice mapping:
   // ±300 cp → ±0.46, ±600 cp → ±0.76, ±1000 cp → ±0.92
   return Math.tanh(cp / 600);
+}
+
+/**
+ * Find the best theoretical next move using a 1-ply heuristic search.
+ *
+ * Candidate moves are filtered by variant rules (classic forced-check or
+ * reverse forced-avoidance). Each candidate is evaluated using the base
+ * position evaluator on the resulting position. Immediate wins
+ * (checkmate, King of the Hill) are detected and returned early.
+ *
+ * Returns null when the game is over, during piece-removal selection,
+ * or when no legal moves exist.
+ */
+function findBestMove(state: GameState): string | null {
+  if (state.result) return null;
+  if (state.pendingPieceRemoval) return null;
+
+  const { fen, sideToMove, config } = state;
+  const isReverse = isReverseForcedCheckMode(config.variantMode);
+
+  // Determine candidate moves respecting variant rules.
+  let candidates: Move[];
+  if (isReverse) {
+    const checking = getCheckingMoves(fen);
+    if (checking.length > 0) {
+      const nonChecking = getNonCheckingMoves(fen);
+      candidates = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen);
+    } else {
+      candidates = getLegalMoves(fen);
+    }
+  } else {
+    // Classic / King Hunt: must play checking moves when available.
+    const checking = getCheckingMoves(fen);
+    candidates = checking.length > 0 ? checking : getLegalMoves(fen);
+  }
+
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0].san;
+
+  const kothEnabled = isKingOfTheHillEnabled(config);
+  let bestMoveRef: Move = candidates[0];
+  let bestScore = sideToMove === 'w' ? -Infinity : Infinity;
+
+  for (const move of candidates) {
+    const chess = new Chess(fen);
+    chess.move(move.san);
+
+    // Immediate checkmate — always best.
+    if (chess.isCheckmate()) return move.san;
+
+    // King of the Hill immediate win.
+    if (kothEnabled && move.piece === 'k' && isHillSquare(move.to)) {
+      return move.san;
+    }
+
+    const score = evaluateBasePosition(chess.fen()).scoreCp;
+
+    if (sideToMove === 'w' ? score > bestScore : score < bestScore) {
+      bestScore = score;
+      bestMoveRef = move;
+    }
+  }
+
+  return bestMoveRef.san;
 }
