@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../App';
+import { GameStatus } from '../components/GameStatus';
+import { createInitialState } from '../core/blunziger/engine';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../core/blunziger/types';
 
 describe('App game flow', () => {
   beforeEach(() => {
@@ -220,6 +223,47 @@ describe('App game flow', () => {
     it('hides Invalid Report Threshold when Game Type is Penalty on Miss', () => {
       fireEvent.change(screen.getByLabelText('Game Type'), { target: { value: 'penalty_on_miss' } });
       expect(screen.queryByLabelText('Invalid Report Loss Threshold')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('REPORT BUTTON VISIBILITY', () => {
+    it('shows report button for Human vs Human game', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expect(screen.getByText('🚨 Report Violation')).toBeInTheDocument();
+    });
+
+    it('hides report button when game type is not report_incorrectness', () => {
+      fireEvent.change(screen.getByLabelText('Game Type'), { target: { value: 'penalty_on_miss' } });
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expect(screen.queryByText('🚨 Report Violation')).not.toBeInTheDocument();
+    });
+
+    it('hides report button in Bot vs Bot mode', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'botvbot' } });
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expect(screen.queryByText('🚨 Report Violation')).not.toBeInTheDocument();
+    });
+
+    it('shows report button in Human vs Bot mode when it is the human turn', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'hvbot' } });
+      // Human plays white (default), bot plays black; white moves first -> human turn
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expect(screen.getByText('🚨 Report Violation')).toBeInTheDocument();
+    });
+
+    it('hides report button in Human vs Bot mode when it is the bot turn', () => {
+      const { unmount } = render(
+        <GameStatus
+          state={{
+            ...createInitialState('hvbot', buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'w' }), 'easy', 'w'),
+            sideToMove: 'w',
+          }}
+          onReport={() => {}}
+          botThinking={true}
+        />,
+      );
+      expect(screen.queryByText('🚨 Report Violation')).not.toBeInTheDocument();
+      unmount();
     });
   });
 
