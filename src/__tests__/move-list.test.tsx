@@ -92,14 +92,13 @@ describe('MoveList – extra move column placement', () => {
   });
 });
 
-describe('MoveList – missed-check sausage icon', () => {
-  it('should not show sausage icon when there are no missed checks', () => {
+describe('MoveList – missed-check blutwurst icon', () => {
+  it('should not show blutwurst icon when there are no missed checks', () => {
     render(<MoveList moves={[w('e4'), b('e5')]} />);
     expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
-    expect(screen.queryByText('🌭')).not.toBeInTheDocument();
   });
 
-  it('should show sausage icon for a missed check once opponent has moved', () => {
+  it('should show blutwurst icon for a missed check once opponent has moved', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check' },
     ];
@@ -111,10 +110,9 @@ describe('MoveList – missed-check sausage icon', () => {
       />,
     );
     expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
-    expect(screen.getByText('🌭')).toBeInTheDocument();
   });
 
-  it('should NOT show sausage icon before opponent has moved', () => {
+  it('should NOT show blutwurst icon before opponent has moved', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check' },
     ];
@@ -128,7 +126,7 @@ describe('MoveList – missed-check sausage icon', () => {
     expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
   });
 
-  it('should show sausage icon before opponent moves if game is over', () => {
+  it('should show blutwurst icon before opponent moves if game is over', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check' },
     ];
@@ -156,7 +154,7 @@ describe('MoveList – missed-check sausage icon', () => {
     expect(screen.getByTitle('Gave a forbidden check')).toBeInTheDocument();
   });
 
-  it('should show multiple sausage icons for multiple missed checks', () => {
+  it('should show multiple blutwurst icons for multiple missed checks', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check' },
       { moveIndex: 2, violationType: 'missed_check' },
@@ -168,11 +166,11 @@ describe('MoveList – missed-check sausage icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    const icons = screen.getAllByText('🌭');
+    const icons = screen.getAllByTitle('Missed a possible check');
     expect(icons).toHaveLength(2);
   });
 
-  it('should not show sausage icon on black move when black is the last move', () => {
+  it('should not show blutwurst icon on black move when black is the last move', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 1, violationType: 'missed_check' },
     ];
@@ -187,7 +185,7 @@ describe('MoveList – missed-check sausage icon', () => {
     expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
   });
 
-  it('should show sausage icon on black move after white replies', () => {
+  it('should show blutwurst icon on black move after white replies', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 1, violationType: 'missed_check' },
     ];
