@@ -87,6 +87,14 @@
   cursor: help;
 }
 
+.report-icon.piece-removal {
+  cursor: help;
+}
+
+.report-icon.time-reduction {
+  cursor: help;
+}
+
 .move-extra {
   font-style: italic;
 }

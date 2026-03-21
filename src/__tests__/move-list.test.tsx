@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MoveList } from '../components/MoveList';
 import type { Move, Color } from 'chess.js';
-import type { MissedCheckEntry } from '../core/blunziger/types';
+import type { MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
 
 /** Minimal Move stub – includes color for column placement. */
 function move(san: string, color: Color): Move {
@@ -197,5 +197,98 @@ describe('MoveList – missed-check blutwurst icon', () => {
       />,
     );
     expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+});
+
+describe('MoveList – piece removal penalty icon', () => {
+  it('should not show piece removal icon when there are no removals', () => {
+    render(<MoveList moves={[w('e4'), b('e5')]} />);
+    expect(screen.queryByTitle('Piece removed (penalty)')).not.toBeInTheDocument();
+  });
+
+  it('should show a white pawn removal icon', () => {
+    const pieceRemovals: PieceRemovalEntry[] = [
+      { moveIndex: 0, pieceType: 'p', pieceColor: 'w' },
+    ];
+    render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        pieceRemovals={pieceRemovals}
+      />,
+    );
+    const icon = screen.getByTitle('Piece removed (penalty)');
+    expect(icon).toBeInTheDocument();
+    expect(icon.textContent).toBe('♙');
+  });
+
+  it('should show a black queen removal icon', () => {
+    const pieceRemovals: PieceRemovalEntry[] = [
+      { moveIndex: 1, pieceType: 'q', pieceColor: 'b' },
+    ];
+    render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        pieceRemovals={pieceRemovals}
+      />,
+    );
+    const icon = screen.getByTitle('Piece removed (penalty)');
+    expect(icon).toBeInTheDocument();
+    expect(icon.textContent).toBe('♛');
+  });
+
+  it('should show multiple removal icons for the same move', () => {
+    const pieceRemovals: PieceRemovalEntry[] = [
+      { moveIndex: 0, pieceType: 'n', pieceColor: 'w' },
+      { moveIndex: 0, pieceType: 'b', pieceColor: 'w' },
+    ];
+    render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        pieceRemovals={pieceRemovals}
+      />,
+    );
+    const icons = screen.getAllByTitle('Piece removed (penalty)');
+    expect(icons).toHaveLength(2);
+    expect(icons[0].textContent).toBe('♘');
+    expect(icons[1].textContent).toBe('♗');
+  });
+});
+
+describe('MoveList – time reduction penalty icon', () => {
+  it('should not show time reduction icon when there are no reductions', () => {
+    render(<MoveList moves={[w('e4'), b('e5')]} />);
+    expect(screen.queryByTitle(/time penalty/)).not.toBeInTheDocument();
+  });
+
+  it('should show time reduction icon with seconds in title', () => {
+    const timeReductions: TimeReductionEntry[] = [
+      { moveIndex: 0, seconds: 60 },
+    ];
+    render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        timeReductions={timeReductions}
+      />,
+    );
+    const icon = screen.getByTitle('−60s time penalty');
+    expect(icon).toBeInTheDocument();
+  });
+
+  it('should show both piece removal and time reduction icons on the same move', () => {
+    const pieceRemovals: PieceRemovalEntry[] = [
+      { moveIndex: 0, pieceType: 'r', pieceColor: 'b' },
+    ];
+    const timeReductions: TimeReductionEntry[] = [
+      { moveIndex: 0, seconds: 30 },
+    ];
+    render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        pieceRemovals={pieceRemovals}
+        timeReductions={timeReductions}
+      />,
+    );
+    expect(screen.getByTitle('Piece removed (penalty)')).toBeInTheDocument();
+    expect(screen.getByTitle('−30s time penalty')).toBeInTheDocument();
   });
 });

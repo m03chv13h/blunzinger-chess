@@ -166,6 +166,8 @@ function App() {
             violationReports={game.state.violationReports}
             missedChecks={game.state.missedChecks}
             gameOver={game.state.result !== null}
+            pieceRemovals={game.state.pieceRemovals}
+            timeReductions={game.state.timeReductions}
           />
         </aside>
       </main>

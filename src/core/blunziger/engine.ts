@@ -149,7 +149,7 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color): Squar
  */
 export function applyPieceRemoval(state: GameState, square: Square): GameState {
   if (!state.pendingPieceRemoval) return state;
-  const { targetSide, chooserSide, removableSquares, remainingRemovals } = state.pendingPieceRemoval;
+  const { targetSide, chooserSide, removableSquares, remainingRemovals, triggerMoveIndex } = state.pendingPieceRemoval;
 
   // Validate the square is in the removable list
   if (!removableSquares.includes(square)) return state;
@@ -194,6 +194,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
         chooserSide,
         removableSquares: updatedRemovable,
         remainingRemovals: remainingRemovals - 1,
+        triggerMoveIndex,
       };
     }
   }
@@ -204,6 +205,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     pendingPieceRemoval: newPendingPieceRemoval,
     result,
     positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null }],
+    pieceRemovals: [...state.pieceRemovals, { moveIndex: triggerMoveIndex, pieceType: piece.type, pieceColor: piece.color }],
   };
 }
 
@@ -345,6 +347,8 @@ export function createInitialState(
     positionHistory: [{ fen: INITIAL_FEN, scores: { w: 0, b: 0 }, moveNotation: null }],
     violationReports: [],
     missedChecks: [],
+    pieceRemovals: [],
+    timeReductions: [],
   };
 }
 
@@ -510,6 +514,7 @@ export function applyMoveWithRules(
   let newExtraTurns = { ...state.extraTurns };
   let newClocks = state.clocks;
   let pendingPieceRemoval: PendingPieceRemoval | null = null;
+  let newTimeReductions = state.timeReductions;
 
   if (!result && newViolation) {
     if (cfg.gameType === 'report_incorrectness') {
@@ -553,6 +558,7 @@ export function applyMoveWithRules(
             chooserSide: opponentSide,
             removableSquares,
             remainingRemovals: count,
+            triggerMoveIndex: moveIndex,
           };
         }
       }
@@ -563,6 +569,7 @@ export function applyMoveWithRules(
         const clockKey = movingSide === 'w' ? 'whiteMs' : 'blackMs';
         const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
         newClocks = { ...newClocks, [clockKey]: remaining };
+        newTimeReductions = [...newTimeReductions, { moveIndex, seconds: cfg.penaltyConfig.timeReductionSeconds }];
 
         if (remaining <= 0) {
           result = {
@@ -608,6 +615,7 @@ export function applyMoveWithRules(
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
       : state.missedChecks,
+    timeReductions: newTimeReductions,
   };
 }
 
