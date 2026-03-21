@@ -343,6 +343,7 @@ export function createInitialState(
     pendingPieceRemoval: null,
     plyCount: 0,
     positionHistory: [{ fen: INITIAL_FEN, scores: { w: 0, b: 0 }, moveNotation: null }],
+    violationReports: [],
   };
 }
 
@@ -639,6 +640,8 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
       ? 'Correct! The opponent gave check when they should have avoided it.'
       : 'Correct! The opponent missed a forced check.';
 
+    const reportEntry = { moveIndex: violation.moveIndex, reportingSide, valid: true };
+
     return {
       ...state,
       result: {
@@ -651,6 +654,7 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
         valid: true,
         message: feedbackMsg,
       },
+      violationReports: [...state.violationReports, reportEntry],
     };
   }
 
@@ -661,6 +665,12 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
 
   const shouldLose = shouldLoseFromInvalidReports(newCounts, reportingSide, state.config);
   const sideLabel = reportingSide === 'w' ? 'White' : 'Black';
+
+  const reportEntry = {
+    moveIndex: state.moveHistory.length - 1,
+    reportingSide,
+    valid: false,
+  };
 
   if (shouldLose) {
     const opponentSide: Color = reportingSide === 'w' ? 'b' : 'w';
@@ -676,6 +686,7 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
         valid: false,
         message: `Wrong! There was no violation to report. ${sideLabel} loses due to reaching the invalid report threshold.`,
       },
+      violationReports: [...state.violationReports, reportEntry],
     };
   }
 
@@ -686,6 +697,7 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
       valid: false,
       message: `Wrong! There was no violation to report. (${sideLabel}: ${newCounts[reportingSide]}/${state.config.reportConfig.invalidReportLossThreshold} invalid reports)`,
     },
+    violationReports: [...state.violationReports, reportEntry],
   };
 }
 

@@ -372,6 +372,47 @@ describe('Core Blunziger Engine', () => {
       s = applyMoveWithRules(s, 'e5'); // black makes a move
       expect(s.lastReportFeedback).toBeNull();
     });
+
+    it('should record a valid report in violationReports', () => {
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // white misses Qh5+
+      const reported = reportViolation(s, 'b');
+      expect(reported.violationReports).toHaveLength(1);
+      expect(reported.violationReports[0].valid).toBe(true);
+      expect(reported.violationReports[0].reportingSide).toBe('b');
+      expect(reported.violationReports[0].moveIndex).toBe(2); // d3 is move index 2
+    });
+
+    it('should record an invalid report in violationReports', () => {
+      const state = createInitialState();
+      const s = applyMoveWithRules(state, 'e4'); // no violation
+      const reported = reportViolation(s, 'b');
+      expect(reported.violationReports).toHaveLength(1);
+      expect(reported.violationReports[0].valid).toBe(false);
+      expect(reported.violationReports[0].reportingSide).toBe('b');
+      expect(reported.violationReports[0].moveIndex).toBe(0); // last move index
+    });
+
+    it('should accumulate multiple reports in violationReports', () => {
+      const config: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        invalidReportLossThreshold: 5,
+      });
+      let state = createInitialState('hvh', config);
+      state = applyMoveWithRules(state, 'e4');
+      state = reportViolation(state, 'b'); // invalid
+      state = reportViolation(state, 'b'); // invalid
+      expect(state.violationReports).toHaveLength(2);
+      expect(state.violationReports[0].valid).toBe(false);
+      expect(state.violationReports[1].valid).toBe(false);
+    });
+
+    it('should start with empty violationReports', () => {
+      const state = createInitialState();
+      expect(state.violationReports).toEqual([]);
+    });
   });
 
   describe('incrementInvalidReport', () => {

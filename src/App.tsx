@@ -163,6 +163,7 @@ function App() {
             moves={game.state.moveHistory}
             highlightedMoveIndex={review.isReviewing ? review.highlightedMoveIndex : -1}
             onMoveClick={review.isReviewing ? handleMoveListClick : undefined}
+            violationReports={game.state.violationReports}
           />
         </aside>
       </main>
