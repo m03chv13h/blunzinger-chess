@@ -181,11 +181,12 @@ export function useGame(
           return false;
         }
         const increment = current.config.overlays.incrementMs || 0;
+        const decrement = current.config.overlays.decrementMs || 0;
         stateBeforeMove = {
           ...current,
           clocks: {
             ...current.clocks,
-            [key]: remaining + increment,
+            [key]: Math.max(0, remaining + increment - decrement),
             lastTimestamp: now,
           },
         };
@@ -352,9 +353,10 @@ export function useGame(
             return;
           }
           const increment = current.config.overlays.incrementMs || 0;
+          const decrement = current.config.overlays.decrementMs || 0;
           stateBeforeMove = {
             ...current,
-            clocks: { ...current.clocks, [key]: remaining + increment, lastTimestamp: now },
+            clocks: { ...current.clocks, [key]: Math.max(0, remaining + increment - decrement), lastTimestamp: now },
           };
         }
 
