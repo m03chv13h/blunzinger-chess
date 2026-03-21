@@ -17,6 +17,12 @@ export interface EvaluationResult {
    */
   normalizedScore: number;
   /**
+   * Best theoretical next move in SAN notation (e.g. "Nf3"), or "Report" if
+   * reporting the opponent's violation is the best action.  null when the game
+   * is over or no moves are available.
+   */
+  bestMove: string | null;
+  /**
    * Human-readable explanation lines (for debug / tooltip).
    * Each line describes one evaluation component.
    */

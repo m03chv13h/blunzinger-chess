@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { Chess } from 'chess.js';
 import { evaluateBasePosition } from '../core/evaluation/evaluatePosition';
 import {
   evaluateClassicBlunzinger,
@@ -418,5 +419,141 @@ describe('evaluateVariantAdjustments', () => {
     });
     const adj = evaluateVariantAdjustments(state, 5000, 300000);
     expect(adj.explanation.some((l) => l.includes('Clock'))).toBe(true);
+  });
+});
+
+// ── Best Move ────────────────────────────────────────────────────────
+
+describe('bestMove in evaluateGameState', () => {
+  it('should return a best move for starting position', () => {
+    const state = createInitialState();
+    const result = evaluateGameState(state);
+    // Starting position: no checking moves → best move is from all legal moves.
+    expect(result.bestMove).toBeTruthy();
+    expect(typeof result.bestMove).toBe('string');
+  });
+
+  it('should return null best move when game is over', () => {
+    const state = makeState({
+      result: { winner: 'w', reason: 'checkmate' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeNull();
+  });
+
+  it('should return null best move for draw result', () => {
+    const state = makeState({
+      result: { winner: 'draw', reason: 'stalemate' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeNull();
+  });
+
+  it('should prefer checking moves in classic blunzinger mode', () => {
+    // White has a checking move available (Rh1 → Rh8+).
+    const fen = '4k3/8/8/8/8/8/8/4K2R w K - 0 1';
+    const state = makeState({
+      fen,
+      sideToMove: 'w',
+      configOverrides: { variantMode: 'classic_blunzinger' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeTruthy();
+    // The best move should be a checking move (variant rules require it).
+    // Verify the move gives check by playing it.
+    const chess = new Chess(fen);
+    chess.move(result.bestMove!);
+    expect(chess.inCheck()).toBe(true);
+  });
+
+  it('should prefer non-checking moves in reverse blunzinger mode', () => {
+    // Position where white has both checking and non-checking moves.
+    const fen = '4k3/8/8/8/8/8/8/4K2R w K - 0 1';
+    const state = makeState({
+      fen,
+      sideToMove: 'w',
+      configOverrides: { variantMode: 'reverse_blunzinger' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeTruthy();
+    // In reverse mode, best move must be non-checking when non-checking exists.
+    const chess = new Chess(fen);
+    chess.move(result.bestMove!);
+    expect(chess.inCheck()).toBe(false);
+  });
+
+  it('should return "Report" when opponent has a reportable violation', () => {
+    const state = makeState({
+      configOverrides: { gameType: 'report_incorrectness' },
+      sideToMove: 'b',
+      pendingViolation: {
+        violatingSide: 'w',
+        moveIndex: 1,
+        fenBeforeMove: INITIAL_FEN,
+        checkingMoves: [],
+        requiredMoves: [],
+        actualMove: { from: 'e2', to: 'e4' } as any,
+        reportable: true,
+        violationType: 'missed_check',
+        severe: false,
+      },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBe('Report');
+    // Should also show decisive advantage for the reporting side (Black).
+    expect(result.normalizedScore).toBe(-1);
+    expect(result.favoredSide).toBe('black');
+    expect(result.scoreCp).toBeLessThan(-9000);
+  });
+
+  it('should show decisive advantage for white when white can report', () => {
+    const state = makeState({
+      configOverrides: { gameType: 'report_incorrectness' },
+      sideToMove: 'w',
+      pendingViolation: {
+        violatingSide: 'b',
+        moveIndex: 1,
+        fenBeforeMove: INITIAL_FEN,
+        checkingMoves: [],
+        requiredMoves: [],
+        actualMove: { from: 'e7', to: 'e5' } as any,
+        reportable: true,
+        violationType: 'missed_check',
+        severe: false,
+      },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBe('Report');
+    expect(result.normalizedScore).toBe(1);
+    expect(result.favoredSide).toBe('white');
+  });
+
+  it('should not return "Report" when game type is penalty_on_miss', () => {
+    const state = makeState({
+      configOverrides: { gameType: 'penalty_on_miss' },
+      pendingViolation: {
+        violatingSide: 'w',
+        moveIndex: 1,
+        fenBeforeMove: INITIAL_FEN,
+        checkingMoves: [],
+        requiredMoves: [],
+        actualMove: { from: 'e2', to: 'e4' } as any,
+        reportable: false,
+        violationType: 'missed_check',
+        severe: false,
+      },
+    });
+    const result = evaluateGameState(state);
+    // Should not suggest "Report" in penalty_on_miss mode.
+    expect(result.bestMove).not.toBe('Report');
+  });
+
+  it('should return a valid move for a simple position', () => {
+    // Standard starting position — verify best move is a valid SAN string.
+    const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const state = makeState({ fen, sideToMove: 'w' });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeTruthy();
+    expect(typeof result.bestMove).toBe('string');
   });
 });
