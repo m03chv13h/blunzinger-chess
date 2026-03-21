@@ -164,6 +164,8 @@ function App() {
             highlightedMoveIndex={review.isReviewing ? review.highlightedMoveIndex : -1}
             onMoveClick={review.isReviewing ? handleMoveListClick : undefined}
             violationReports={game.state.violationReports}
+            missedChecks={game.state.missedChecks}
+            gameOver={game.state.result !== null}
           />
         </aside>
       </main>

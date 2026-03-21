@@ -184,6 +184,14 @@ export interface ViolationReportEntry {
   valid: boolean;
 }
 
+/** Lightweight record of a missed-check (or gave-forbidden-check) violation for the move table. */
+export interface MissedCheckEntry {
+  /** Index of the violating move in moveHistory. */
+  moveIndex: number;
+  /** Type of violation committed. */
+  violationType: ViolationType;
+}
+
 // ── Score / Clock / Extra-Turn State ─────────────────────────────────
 
 export interface ScoreState {
@@ -244,6 +252,8 @@ export interface GameState {
   positionHistory: PositionHistoryEntry[];
   /** History of all violation reports made during the game. */
   violationReports: ViolationReportEntry[];
+  /** History of all missed-check violations that occurred during the game. */
+  missedChecks: MissedCheckEntry[];
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────

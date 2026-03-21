@@ -344,6 +344,7 @@ export function createInitialState(
     plyCount: 0,
     positionHistory: [{ fen: INITIAL_FEN, scores: { w: 0, b: 0 }, moveNotation: null }],
     violationReports: [],
+    missedChecks: [],
   };
 }
 
@@ -604,6 +605,9 @@ export function applyMoveWithRules(
     clocks: newClocks,
     pendingPieceRemoval,
     positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san }],
+    missedChecks: newViolation
+      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
+      : state.missedChecks,
   };
 }
 
