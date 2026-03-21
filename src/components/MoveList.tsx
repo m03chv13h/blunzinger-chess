@@ -15,6 +15,18 @@ interface MoveListProps {
   gameOver?: boolean;
 }
 
+interface MoveEntry {
+  move: Move;
+  moveIndex: number;
+  isExtra: boolean;
+}
+
+interface MoveRow {
+  number: number;
+  white?: MoveEntry;
+  black?: MoveEntry;
+}
+
 export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false }: MoveListProps) {
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
@@ -28,16 +40,26 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     missedCheckByMove.set(mc.moveIndex, mc);
   }
 
-  // Group moves into pairs (white, black)
-  const pairs: { number: number; white: Move; black?: Move; whiteIdx: number; blackIdx: number }[] = [];
-  for (let i = 0; i < moves.length; i += 2) {
-    pairs.push({
-      number: Math.floor(i / 2) + 1,
-      white: moves[i],
-      black: moves[i + 1],
-      whiteIdx: i,
-      blackIdx: i + 1,
-    });
+  // Group moves into rows using move.color to place them in the correct column.
+  // Extra moves (same color appearing consecutively) are marked.
+  const rows: MoveRow[] = [];
+  let moveNum = 1;
+
+  for (let i = 0; i < moves.length; i++) {
+    const move = moves[i];
+    const isExtra = i > 0 && moves[i].color === moves[i - 1].color;
+    const entry: MoveEntry = { move, moveIndex: i, isExtra };
+
+    if (move.color === 'w') {
+      rows.push({ number: moveNum++, white: entry });
+    } else {
+      const lastRow = rows[rows.length - 1];
+      if (lastRow && lastRow.white && !lastRow.black) {
+        lastRow.black = entry;
+      } else {
+        rows.push({ number: moveNum++, black: entry });
+      }
+    }
   }
 
   const handleClick = (idx: number) => {
@@ -71,38 +93,46 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     return <span className="report-icon missed-check" title={title}>🌭</span>;
   };
 
+  const renderMoveCell = (entry: MoveEntry | undefined, colorClass: string) => {
+    if (!entry) {
+      return <span className={colorClass} />;
+    }
+    const { move, moveIndex, isExtra } = entry;
+    return (
+      <span
+        className={[
+          colorClass,
+          moveIndex === highlightedMoveIndex ? 'move-active' : '',
+          onMoveClick ? 'move-clickable' : '',
+          isExtra ? 'move-extra' : '',
+        ].filter(Boolean).join(' ')}
+        onClick={() => handleClick(moveIndex)}
+        role={onMoveClick ? 'button' : undefined}
+        tabIndex={onMoveClick ? 0 : undefined}
+      >
+        {move.san}
+        {isExtra && <span className="extra-label" title="Extra move (penalty)">&nbsp;⚡</span>}
+        {renderReportIcon(moveIndex)}
+        {renderMissedCheckIcon(moveIndex)}
+      </span>
+    );
+  };
+
   return (
     <div className="move-list">
       <h3>Moves</h3>
       <div className="move-list-content">
-        {pairs.length === 0 && <p className="no-moves">No moves yet</p>}
-        {pairs.map((pair) => (
-          <div key={pair.number} className="move-pair">
-            <span className="move-number">{pair.number}.</span>
-            <span
-              className={[
-                'move-white',
-                pair.whiteIdx === highlightedMoveIndex ? 'move-active' : '',
-                onMoveClick ? 'move-clickable' : '',
-              ].filter(Boolean).join(' ')}
-              onClick={() => handleClick(pair.whiteIdx)}
-              role={onMoveClick ? 'button' : undefined}
-              tabIndex={onMoveClick ? 0 : undefined}
-            >
-              {pair.white.san}{renderReportIcon(pair.whiteIdx)}{renderMissedCheckIcon(pair.whiteIdx)}
-            </span>
-            <span
-              className={[
-                'move-black',
-                pair.blackIdx === highlightedMoveIndex ? 'move-active' : '',
-                onMoveClick && pair.black ? 'move-clickable' : '',
-              ].filter(Boolean).join(' ')}
-              onClick={() => pair.black && handleClick(pair.blackIdx)}
-              role={onMoveClick && pair.black ? 'button' : undefined}
-              tabIndex={onMoveClick && pair.black ? 0 : undefined}
-            >
-              {pair.black?.san ?? ''}{pair.black && renderReportIcon(pair.blackIdx)}{pair.black && renderMissedCheckIcon(pair.blackIdx)}
-            </span>
+        <div className="move-pair move-header" role="row">
+          <span className="move-number">#</span>
+          <span className="move-white">White</span>
+          <span className="move-black">Black</span>
+        </div>
+        {rows.length === 0 && <p className="no-moves">No moves yet</p>}
+        {rows.map((row) => (
+          <div key={`${row.number}-${row.white?.moveIndex ?? 'x'}-${row.black?.moveIndex ?? 'x'}`} className="move-pair">
+            <span className="move-number">{row.number}.</span>
+            {renderMoveCell(row.white, 'move-white')}
+            {renderMoveCell(row.black, 'move-black')}
           </div>
         ))}
       </div>
