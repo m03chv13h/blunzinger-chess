@@ -1,4 +1,4 @@
-import type { Move, ViolationReportEntry, MissedCheckEntry } from '../core/blunziger/types';
+import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import './MoveList.css';
 
@@ -14,6 +14,10 @@ interface MoveListProps {
   missedChecks?: MissedCheckEntry[];
   /** Whether the game is over (all missed-check icons become visible). */
   gameOver?: boolean;
+  /** Pieces removed as penalty, shown as chess-piece icons next to the offending move. */
+  pieceRemovals?: PieceRemovalEntry[];
+  /** Time reductions applied as penalty, shown as clock icons next to the offending move. */
+  timeReductions?: TimeReductionEntry[];
 }
 
 interface MoveEntry {
@@ -28,7 +32,7 @@ interface MoveRow {
   black?: MoveEntry;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [] }: MoveListProps) {
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
   for (const r of violationReports) {
@@ -39,6 +43,20 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
   const missedCheckByMove = new Map<number, MissedCheckEntry>();
   for (const mc of missedChecks) {
     missedCheckByMove.set(mc.moveIndex, mc);
+  }
+
+  // Build a lookup from moveIndex → removed pieces for O(1) access
+  const removalsByMove = new Map<number, PieceRemovalEntry[]>();
+  for (const pr of pieceRemovals) {
+    const list = removalsByMove.get(pr.moveIndex) ?? [];
+    list.push(pr);
+    removalsByMove.set(pr.moveIndex, list);
+  }
+
+  // Build a lookup from moveIndex → time reduction for O(1) access
+  const timeReductionByMove = new Map<number, TimeReductionEntry>();
+  for (const tr of timeReductions) {
+    timeReductionByMove.set(tr.moveIndex, tr);
   }
 
   // Group moves into rows using move.color to place them in the correct column.
@@ -94,6 +112,35 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     return <span className="report-icon missed-check" title={title}><BlutwurstIcon /></span>;
   };
 
+  /** Map piece type + color to a Unicode chess symbol. */
+  const pieceSymbol = (type: string, color: string): string => {
+    const symbols: Record<string, Record<string, string>> = {
+      w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕' },
+      b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛' },
+    };
+    return symbols[color]?.[type] ?? '?';
+  };
+
+  /** Render piece-removal icons for the given move index. */
+  const renderPieceRemovalIcons = (moveIndex: number) => {
+    const entries = removalsByMove.get(moveIndex);
+    if (!entries || entries.length === 0) return null;
+    return entries.map((entry, i) => (
+      <span key={`pr-${i}`} className="report-icon piece-removal" title={`Piece removed (penalty)`}>
+        {pieceSymbol(entry.pieceType, entry.pieceColor)}
+      </span>
+    ));
+  };
+
+  /** Render a time-reduction icon for the given move index. */
+  const renderTimeReductionIcon = (moveIndex: number) => {
+    const tr = timeReductionByMove.get(moveIndex);
+    if (!tr) return null;
+    return (
+      <span className="report-icon time-reduction" title={`−${tr.seconds}s time penalty`}>⏱️</span>
+    );
+  };
+
   const renderMoveCell = (entry: MoveEntry | undefined, colorClass: string) => {
     if (!entry) {
       return <span className={colorClass} />;
@@ -115,6 +162,8 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
         {isExtra && <span className="extra-label" title="Extra move (penalty)">&nbsp;⚡</span>}
         {renderReportIcon(moveIndex)}
         {renderMissedCheckIcon(moveIndex)}
+        {renderPieceRemovalIcons(moveIndex)}
+        {renderTimeReductionIcon(moveIndex)}
       </span>
     );
   };

@@ -192,6 +192,24 @@ export interface MissedCheckEntry {
   violationType: ViolationType;
 }
 
+/** Record of a piece removed as penalty, displayed as an icon next to the offending move. */
+export interface PieceRemovalEntry {
+  /** Index of the move in moveHistory that triggered the penalty. */
+  moveIndex: number;
+  /** Type of the piece that was removed (p, n, b, r, q). */
+  pieceType: string;
+  /** Color of the removed piece. */
+  pieceColor: Color;
+}
+
+/** Record of a clock-time reduction applied as penalty. */
+export interface TimeReductionEntry {
+  /** Index of the move in moveHistory that triggered the penalty. */
+  moveIndex: number;
+  /** Seconds deducted from the violator's clock. */
+  seconds: number;
+}
+
 // ── Score / Clock / Extra-Turn State ─────────────────────────────────
 
 export interface ScoreState {
@@ -219,6 +237,8 @@ export interface PendingPieceRemoval {
   removableSquares: Square[];
   /** How many more pieces to remove (starts at pieceRemovalCount, decrements) */
   remainingRemovals: number;
+  /** Index of the move in moveHistory that triggered this penalty */
+  triggerMoveIndex: number;
 }
 
 // ── Position History (for post-game review) ──────────────────────────
@@ -254,6 +274,10 @@ export interface GameState {
   violationReports: ViolationReportEntry[];
   /** History of all missed-check violations that occurred during the game. */
   missedChecks: MissedCheckEntry[];
+  /** History of pieces removed as penalty (for display in move list). */
+  pieceRemovals: PieceRemovalEntry[];
+  /** History of time reductions applied as penalty (for display in move list). */
+  timeReductions: TimeReductionEntry[];
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────

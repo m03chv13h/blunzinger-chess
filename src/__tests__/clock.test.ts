@@ -158,7 +158,7 @@ describe('Clock – core timing logic', () => {
     });
     let state = createInitialState('hvh', cfg);
     // Simulate having a pending piece removal
-    state = { ...state, pendingPieceRemoval: { targetSide: 'w', chooserSide: 'b', removableSquares: ['a2' as Square], remainingRemovals: 1 } };
+    state = { ...state, pendingPieceRemoval: { targetSide: 'w', chooserSide: 'b', removableSquares: ['a2' as Square], remainingRemovals: 1, triggerMoveIndex: 0 } };
     state = applyTimeout(state, 'b');
     expect(state.result!.reason).toBe('timeout');
     expect(state.pendingPieceRemoval).toBeNull();
