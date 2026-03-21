@@ -549,7 +549,7 @@ describe('bestMove in evaluateGameState', () => {
   });
 
   it('should return a valid move for a simple position', () => {
-    // Standard position with material imbalance — white has an extra rook.
+    // Standard starting position — verify best move is a valid SAN string.
     const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     const state = makeState({ fen, sideToMove: 'w' });
     const result = evaluateGameState(state);

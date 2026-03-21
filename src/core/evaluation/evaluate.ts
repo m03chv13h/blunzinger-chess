@@ -155,8 +155,9 @@ function findBestMove(state: GameState): string | null {
   if (state.result) return null;
   if (state.pendingPieceRemoval) return null;
 
-  const { fen, sideToMove, config } = state;
-  const isReverse = isReverseForcedCheckMode(config.variantMode);
+  const { fen, sideToMove } = state;
+  const { variantMode } = state.config;
+  const isReverse = isReverseForcedCheckMode(variantMode);
 
   // Determine candidate moves respecting variant rules.
   let candidates: Move[];
@@ -177,12 +178,12 @@ function findBestMove(state: GameState): string | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0].san;
 
-  const kothEnabled = isKingOfTheHillEnabled(config);
+  const kothEnabled = isKingOfTheHillEnabled(state.config);
   let bestMoveRef: Move = candidates[0];
   let bestScore = sideToMove === 'w' ? -Infinity : Infinity;
 
+  const chess = new Chess(fen);
   for (const move of candidates) {
-    const chess = new Chess(fen);
     chess.move(move.san);
 
     // Immediate checkmate — always best.
@@ -199,6 +200,8 @@ function findBestMove(state: GameState): string | null {
       bestScore = score;
       bestMoveRef = move;
     }
+
+    chess.undo();
   }
 
   return bestMoveRef.san;
