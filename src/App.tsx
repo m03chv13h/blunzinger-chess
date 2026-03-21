@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { GameSetupConfig } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
@@ -40,11 +40,12 @@ function App() {
   // Auto-enter review mode when the game ends.
   const gameIsOver = game.state.result !== null;
   const prevGameOverRef = usePrevious(gameIsOver);
+  const { enterReview } = review;
   useEffect(() => {
     if (gameIsOver && !prevGameOverRef) {
-      review.enterReview();
+      enterReview();
     }
-  }, [gameIsOver, prevGameOverRef, review.enterReview]);
+  }, [gameIsOver, prevGameOverRef, enterReview]);
 
   // The state used for evaluation: reviewed state when reviewing, otherwise live state.
   const stateForEval = review.reviewedGameState ?? game.state;
