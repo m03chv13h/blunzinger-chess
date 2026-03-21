@@ -70,7 +70,7 @@ export function TimeInput({
     <input
       id={id}
       type="text"
-      placeholder="M:SS"
+      placeholder="MM:SS"
       value={raw}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={(e) => handleBlur(e.target.value)}

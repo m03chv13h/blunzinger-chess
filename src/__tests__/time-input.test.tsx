@@ -5,31 +5,31 @@ import { TimeInput } from '../components/TimeInput';
 import { formatMsToTime, parseTimeToMs } from '../utils/timeFormat';
 
 describe('formatMsToTime', () => {
-  it('formats 0 ms as 0:00', () => {
-    expect(formatMsToTime(0)).toBe('0:00');
+  it('formats 0 ms as 00:00', () => {
+    expect(formatMsToTime(0)).toBe('00:00');
   });
 
   it('formats exact minutes', () => {
-    expect(formatMsToTime(5 * 60 * 1000)).toBe('5:00');
+    expect(formatMsToTime(5 * 60 * 1000)).toBe('05:00');
     expect(formatMsToTime(10 * 60 * 1000)).toBe('10:00');
   });
 
   it('formats minutes and seconds', () => {
-    expect(formatMsToTime(3 * 60 * 1000 + 12 * 1000)).toBe('3:12');
-    expect(formatMsToTime(1 * 60 * 1000 + 5 * 1000)).toBe('1:05');
+    expect(formatMsToTime(3 * 60 * 1000 + 12 * 1000)).toBe('03:12');
+    expect(formatMsToTime(1 * 60 * 1000 + 5 * 1000)).toBe('01:05');
   });
 
   it('pads seconds with leading zero', () => {
-    expect(formatMsToTime(60 * 1000 + 3 * 1000)).toBe('1:03');
+    expect(formatMsToTime(60 * 1000 + 3 * 1000)).toBe('01:03');
   });
 
-  it('handles negative ms as 0:00', () => {
-    expect(formatMsToTime(-1000)).toBe('0:00');
+  it('handles negative ms as 00:00', () => {
+    expect(formatMsToTime(-1000)).toBe('00:00');
   });
 
   it('rounds to nearest second', () => {
-    expect(formatMsToTime(5 * 60 * 1000 + 500)).toBe('5:01');
-    expect(formatMsToTime(5 * 60 * 1000 + 499)).toBe('5:00');
+    expect(formatMsToTime(5 * 60 * 1000 + 500)).toBe('05:01');
+    expect(formatMsToTime(5 * 60 * 1000 + 499)).toBe('05:00');
   });
 });
 
@@ -75,14 +75,14 @@ describe('TimeInput component', () => {
     const onChange = vi.fn();
     render(<TimeInput valueMs={5 * 60 * 1000} onChange={onChange} fallbackMs={5 * 60 * 1000} />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
-    expect(input.value).toBe('5:00');
+    expect(input.value).toBe('05:00');
   });
 
   it('shows minutes and seconds', () => {
     const onChange = vi.fn();
     render(<TimeInput valueMs={3 * 60 * 1000 + 12 * 1000} onChange={onChange} fallbackMs={5 * 60 * 1000} />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
-    expect(input.value).toBe('3:12');
+    expect(input.value).toBe('03:12');
   });
 
   it('allows user to clear the field during editing', () => {
@@ -122,7 +122,7 @@ describe('TimeInput component', () => {
     fireEvent.change(input, { target: { value: '' } });
     fireEvent.blur(input);
 
-    expect(input.value).toBe('5:00');
+    expect(input.value).toBe('05:00');
     expect(onChange).toHaveBeenCalledWith(5 * 60 * 1000);
   });
 
@@ -136,7 +136,7 @@ describe('TimeInput component', () => {
     fireEvent.change(input, { target: { value: '0:10' } });
     fireEvent.blur(input);
 
-    expect(input.value).toBe('1:00');
+    expect(input.value).toBe('01:00');
     expect(onChange).toHaveBeenLastCalledWith(60 * 1000);
   });
 
@@ -160,10 +160,10 @@ describe('TimeInput component', () => {
       <TimeInput valueMs={5 * 60 * 1000} onChange={onChange} fallbackMs={5 * 60 * 1000} />,
     );
     const input = screen.getByRole('textbox') as HTMLInputElement;
-    expect(input.value).toBe('5:00');
+    expect(input.value).toBe('05:00');
 
     rerender(<TimeInput valueMs={3 * 60 * 1000 + 30 * 1000} onChange={onChange} fallbackMs={5 * 60 * 1000} />);
-    expect(input.value).toBe('3:30');
+    expect(input.value).toBe('03:30');
   });
 
   it('normalizes invalid text to fallback on blur', () => {
@@ -174,7 +174,7 @@ describe('TimeInput component', () => {
     fireEvent.change(input, { target: { value: 'abc' } });
     fireEvent.blur(input);
 
-    expect(input.value).toBe('5:00');
+    expect(input.value).toBe('05:00');
     expect(onChange).toHaveBeenCalledWith(5 * 60 * 1000);
   });
 });

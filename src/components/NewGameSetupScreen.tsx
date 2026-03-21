@@ -255,7 +255,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
 
           {showClock && (
             <div className="setup-group">
-              <label htmlFor="time-control-input">Initial time (M:SS)</label>
+              <label htmlFor="time-control-input">Initial time (MM:SS)</label>
               <TimeInput
                 id="time-control-input"
                 valueMs={config.initialTimeMs}
