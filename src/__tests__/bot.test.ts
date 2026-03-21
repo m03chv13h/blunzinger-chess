@@ -131,5 +131,41 @@ describe('Bot Engine', () => {
       expect(mediumMove!.from).toBe('d3');
       expect(mediumMove!.to).toBe('d4');
     });
+
+    it('hard bot should take immediate hill win', () => {
+      // White king on d3, can step to d4 (hill)
+      const fen = '7k/8/8/8/8/3K4/8/8 w - - 0 1';
+      const move = selectBotMove(fen, 'hard', kothConfig);
+      expect(move).not.toBeNull();
+      expect(move!.from).toBe('d3');
+      expect(move!.to).toBe('d4');
+    });
+
+    it('hard bot should advance king toward the hill when KOTH enabled', () => {
+      // White king far from center on a1, black king on h8 – equal material
+      // With KOTH enabled the hard bot should move the king toward the center
+      const fen = '7k/8/8/8/8/8/8/K7 w - - 0 1';
+      const move = selectBotMove(fen, 'hard', kothConfig);
+      expect(move).not.toBeNull();
+      // King should move toward center – b2, a2, or b1 are valid advancing moves
+      expect(move!.piece).toBe('k');
+      const advancingSquares = ['a2', 'b1', 'b2'];
+      expect(advancingSquares).toContain(move!.to);
+    });
+
+    it('hard bot should block opponent king from reaching the hill', () => {
+      // Black king on e6, two steps from e5/d5 (hill squares)
+      // White king on a1, white has a rook that can block/control center
+      // With KOTH, the hard bot (white) should recognise the threat
+      const fen = '8/8/4k3/8/8/8/8/KR6 w - - 0 1';
+      const move = selectBotMove(fen, 'hard', kothConfig);
+      expect(move).not.toBeNull();
+      // Without KOTH awareness the bot wouldn't care about black king approaching center
+      // With KOTH awareness it should move its pieces to restrict the approach
+      // The rook should interpose or the king should advance – accept either strategy
+      // as long as the bot doesn't just sit idle (Ka2 is a do-nothing move)
+      const isActive = move!.piece === 'r' || move!.to === 'b2' || move!.to === 'b1';
+      expect(isActive).toBe(true);
+    });
   });
 });

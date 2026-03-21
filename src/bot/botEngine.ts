@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, MatchConfig } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Square } from '../core/blunziger/types';
 import { isReverseForcedCheckMode, isKingHuntVariant } from '../core/blunziger/types';
 import {
   getLegalMoves,
@@ -18,6 +18,12 @@ const PIECE_VALUES: Record<string, number> = {
   q: 9,
   k: 0,
 };
+
+// Score for a KOTH win (just below checkmate at -1000)
+const KOTH_WIN_SCORE = 900;
+
+// Hill square coordinates as [file, rank] (0-indexed) for proximity calculations
+const HILL_COORDINATES = [[3, 3], [3, 4], [4, 3], [4, 4]]; // d4, d5, e4, e5
 
 /**
  * Select a move for the bot, obeying mode-specific rules.
@@ -68,7 +74,7 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
     case 'medium':
       return selectMedium(candidateMoves, fen, config);
     case 'hard':
-      return selectHard(candidateMoves, fen, kingHunt);
+      return selectHard(candidateMoves, fen, kingHunt, config);
     default:
       return selectRandom(candidateMoves);
   }
@@ -101,14 +107,15 @@ function selectMedium(moves: Move[], fen: string, config?: MatchConfig): Move {
 /**
  * Hard bot: deeper evaluation using minimax.
  */
-function selectHard(moves: Move[], fen: string, kingHunt: boolean): Move {
+function selectHard(moves: Move[], fen: string, kingHunt: boolean, config?: MatchConfig): Move {
+  const kothEnabled = config ? isKingOfTheHillEnabled(config) : false;
   let bestScore = -Infinity;
   let bestMove = moves[0];
 
   for (const move of moves) {
     const chess = new Chess(fen);
     chess.move(move.san);
-    let score = -minimax(chess, 2, -Infinity, Infinity, false);
+    let score = -minimax(chess, 2, -Infinity, Infinity, false, kothEnabled);
     // King Hunter bonus for checks
     if (kingHunt && chess.inCheck()) {
       score += 3;
@@ -131,9 +138,18 @@ function minimax(
   alpha: number,
   beta: number,
   isMaximizing: boolean,
+  kothEnabled: boolean,
 ): number {
+  // KOTH terminal: the side that just moved may have won by reaching the hill
+  if (kothEnabled) {
+    const lastMover = chess.turn() === 'w' ? 'b' : 'w';
+    if (isKingOnHill(chess, lastMover)) {
+      return -KOTH_WIN_SCORE; // Last mover won – very bad for the current side to move
+    }
+  }
+
   if (depth === 0 || chess.isGameOver()) {
-    return evaluatePosition(chess);
+    return evaluatePosition(chess, kothEnabled);
   }
 
   const moves = chess.moves({ verbose: true });
@@ -142,7 +158,7 @@ function minimax(
     let maxEval = -Infinity;
     for (const move of moves) {
       chess.move(move.san);
-      const score = minimax(chess, depth - 1, alpha, beta, false);
+      const score = minimax(chess, depth - 1, alpha, beta, false, kothEnabled);
       chess.undo();
       maxEval = Math.max(maxEval, score);
       alpha = Math.max(alpha, score);
@@ -153,7 +169,7 @@ function minimax(
     let minEval = Infinity;
     for (const move of moves) {
       chess.move(move.san);
-      const score = minimax(chess, depth - 1, alpha, beta, true);
+      const score = minimax(chess, depth - 1, alpha, beta, true, kothEnabled);
       chess.undo();
       minEval = Math.min(minEval, score);
       beta = Math.min(beta, score);
@@ -166,7 +182,7 @@ function minimax(
 /**
  * Evaluate a position from the perspective of the side to move.
  */
-function evaluatePosition(chess: Chess): number {
+function evaluatePosition(chess: Chess, kothEnabled: boolean): number {
   if (chess.isCheckmate()) {
     return -1000; // Being checkmated is bad
   }
@@ -188,11 +204,48 @@ function evaluatePosition(chess: Chess): number {
         } else {
           score -= value;
         }
+        // KOTH: reward king proximity to the center hill squares
+        if (kothEnabled && square.type === 'k') {
+          const proximity = hillProximityScore(square.square as Square);
+          if (square.color === turn) {
+            score += proximity;
+          } else {
+            score -= proximity;
+          }
+        }
       }
     }
   }
 
   return score;
+}
+
+/**
+ * Check whether a side's king occupies a hill square on the given board.
+ */
+function isKingOnHill(chess: Chess, side: 'w' | 'b'): boolean {
+  for (const row of chess.board()) {
+    for (const cell of row) {
+      if (cell && cell.type === 'k' && cell.color === side) {
+        return isHillSquare(cell.square as Square);
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Return a proximity bonus (0-3) for how close the square is to the nearest
+ * hill center square (d4, d5, e4, e5).  Uses Chebyshev distance.
+ */
+function hillProximityScore(sq: Square): number {
+  const file = (sq as string).charCodeAt(0) - 'a'.charCodeAt(0);
+  const rank = parseInt((sq as string)[1]) - 1;
+  let minDist = Infinity;
+  for (const [hf, hr] of HILL_COORDINATES) {
+    minDist = Math.min(minDist, Math.max(Math.abs(file - hf), Math.abs(rank - hr)));
+  }
+  return Math.max(0, 3 - minDist);
 }
 
 /**
