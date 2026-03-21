@@ -1,5 +1,6 @@
 import type { GameSetupConfig } from '../core/blunziger/types';
 import { getVariantModeDefinition } from '../core/blunziger/types';
+import { formatMsToTime } from '../utils/timeFormat';
 import './GameSummaryPanel.css';
 
 interface GameSummaryPanelProps {
@@ -103,7 +104,7 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
         {showClock && (
           <div className="summary-item">
             <dt>Clock</dt>
-            <dd>{Math.round(config.initialTimeMs / 60000)} min</dd>
+            <dd>{formatMsToTime(config.initialTimeMs)}</dd>
           </div>
         )}
         <div className="summary-item">

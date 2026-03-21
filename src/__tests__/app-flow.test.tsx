@@ -164,9 +164,9 @@ describe('App game flow', () => {
 
     it('shows single time input when clock is enabled', () => {
       fireEvent.click(screen.getByLabelText('Clock'));
-      const input = screen.getByLabelText('Initial time (minutes)') as HTMLInputElement;
+      const input = screen.getByLabelText('Initial time (M:SS)') as HTMLInputElement;
       expect(input).toBeInTheDocument();
-      expect(input.value).toBe('5');
+      expect(input.value).toBe('5:00');
     });
 
     it('does not show per-side time inputs', () => {
@@ -176,7 +176,7 @@ describe('App game flow', () => {
     });
 
     it('hides time input when clock is disabled', () => {
-      expect(screen.queryByLabelText('Initial time (minutes)')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Initial time (M:SS)')).not.toBeInTheDocument();
     });
 
     it('clock summary shows chosen time during play', () => {
@@ -184,7 +184,7 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
-      expect(within(summary).getByText('5 min')).toBeInTheDocument();
+      expect(within(summary).getByText('5:00')).toBeInTheDocument();
     });
   });
 
