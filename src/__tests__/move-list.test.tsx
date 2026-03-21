@@ -6,7 +6,7 @@ import type { Move, Color } from 'chess.js';
 import type { MissedCheckEntry } from '../core/blunziger/types';
 
 /** Minimal Move stub – includes color for column placement. */
-function move(san: string, color: Color = (undefined as unknown as Color)): Move {
+function move(san: string, color: Color): Move {
   return { san, color } as Move;
 }
 
@@ -47,12 +47,12 @@ describe('MoveList – extra move column placement', () => {
   });
 
   it('should place an extra white move in the white column, not black', () => {
-    // Sequence: w(e4), b(e5), w(d4) extra white, b(d5)
+    // Sequence: w, b, w, w(extra), b
     const moves = [w('e4'), b('e5'), w('d4'), w('Nf3'), b('d5')];
     const { container } = render(<MoveList moves={moves} />);
     // Row 1: white=e4, black=e5
-    // Row 2: white=d4, black=d5 (but d4 comes before Nf3 which is also white)
-    // Actually: Row 2: white=d4, Row 3: white=Nf3, black=d5
+    // Row 2: white=d4 (no black yet)
+    // Row 3: white=Nf3 (extra), black=d5
     const rows = container.querySelectorAll('.move-pair:not(.move-header)');
     expect(rows).toHaveLength(3);
     // Row 1: e4 / e5
