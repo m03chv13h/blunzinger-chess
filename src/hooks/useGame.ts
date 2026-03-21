@@ -325,6 +325,12 @@ export function useGame(
         setBotThinking(false);
         return;
       }
+      // Bot reports the human's violation before making its own move
+      if (canReport(current, current.sideToMove)) {
+        setState(reportViolation(current, current.sideToMove));
+        setBotThinking(false);
+        return;
+      }
       const botMove = selectBotMove(current.fen, current.botLevel, current.config);
       if (botMove) {
         // Apply clock time for bot
