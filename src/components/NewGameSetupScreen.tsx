@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
 import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
 import { NumericInput } from './NumericInput';
+import { TimeInput } from './TimeInput';
 import './NewGameSetupScreen.css';
 
 interface NewGameSetupScreenProps {
@@ -254,14 +255,14 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
 
           {showClock && (
             <div className="setup-group">
-              <label htmlFor="time-control-input">Initial time (minutes)</label>
-              <NumericInput
+              <label htmlFor="time-control-input">Initial time (MM:SS)</label>
+              <TimeInput
                 id="time-control-input"
-                value={Math.round(config.initialTimeMs / 60000)}
-                onChange={(v) => update({ initialTimeMs: v * 60000 })}
-                min={1}
-                max={60}
-                fallback={5}
+                valueMs={config.initialTimeMs}
+                onChange={(ms) => update({ initialTimeMs: ms })}
+                minSeconds={10}
+                maxSeconds={3600}
+                fallbackMs={5 * 60 * 1000}
               />
             </div>
           )}
