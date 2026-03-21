@@ -172,6 +172,7 @@ An optional evaluation bar can be enabled during play to show which side is curr
 - Displays a vertical bar next to the board: more white area = White is better, more black area = Black is better
 - Shows a numeric score label (e.g. +1.8 / -0.6)
 - Displays "M" followed by a number for mate-in-N situations
+- **During post-game review**: evaluation recalculates for the currently viewed position
 
 ### Variant-Aware Evaluation
 
@@ -188,6 +189,33 @@ The evaluation bar is **variant-aware** — it does not just show standard chess
 - **Double Check Pressure**: multiple required moves increase tactical pressure
 
 **Important:** The evaluation is a heuristic estimate, not a perfect oracle. It uses material balance, mobility, and variant-specific game state to produce a practical approximation.
+
+## Post-Game Review
+
+After a game ends, a **review mode** activates automatically, allowing move-by-move inspection of the completed game.
+
+### Features
+
+- **Navigation controls**: step to first, previous, next, or last position using the `|◁ ◁ ▷ ▷|` buttons
+- **Move list integration**: click any move in the move list to jump directly to that position; the current reviewed move is highlighted
+- **Board updates**: the board shows the exact position at each reviewed step
+- **Evaluation bar updates**: if enabled, the evaluation bar recalculates for the currently reviewed position — not just the final position
+- **Position indicator**: shows the current step index (e.g. `5 / 23`)
+- **Read-only**: review mode is purely navigational — no moves can be made, no reports can be filed, no penalties are applied
+- **Game result remains visible**: the final result is always displayed alongside review controls
+- **Piece removal steps**: if piece removal penalties occurred during the game, those board changes are included as separate review steps
+
+### Review Steps
+
+Each board-changing state transition is one review step:
+- Normal chess moves
+- Piece removals caused by penalties
+
+The review accurately reflects what happened during the game, including variant-specific events.
+
+### Variant-Aware Review
+
+Review preserves the original match configuration. Evaluation during review uses the same variant mode, game type, and overlay settings that were active during the game.
 
 ## Player Modes
 
@@ -266,17 +294,20 @@ src/
 │   ├── GameControls.tsx      # New Game button + eval toggle + bot-vs-bot controls
 │   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
 │   ├── NewGameSetupScreen.tsx # Pre-game setup with variant/game-type/overlay selectors
-│   ├── MoveList.tsx          # Move history sidebar
+│   ├── MoveList.tsx          # Move history sidebar (click-to-jump in review mode)
+│   ├── ReviewControls.tsx    # Post-game review navigation (first/prev/next/last)
 │   └── RulesPanel.tsx        # Variant/game-type/overlay rule explanations
 ├── hooks/
 │   ├── useGame.ts      # React game state hook (clocks, scores, extra turns, piece removal)
-│   └── useEvaluation.ts # Memoized evaluation hook
+│   ├── useEvaluation.ts # Memoized evaluation hook
+│   └── useReview.ts    # Post-game review navigation state hook
 └── __tests__/
     ├── engine.test.ts    # Core logic tests
     ├── bot.test.ts       # Bot tests
     ├── modes.test.ts     # Variant mode, game type, overlay, combined penalty tests
     ├── evaluation.test.ts # Evaluation module tests (base + variant-aware)
     ├── evaluation-ui.test.tsx # Evaluation bar UI tests
+    ├── review.test.tsx   # Post-game review system tests
     ├── app-flow.test.tsx # UI flow tests (setup, clock, penalty, game type)
     └── numeric-input.test.tsx # NumericInput component tests
 ```
@@ -302,7 +333,8 @@ src/
 | `VariantSpecificConfig` | King Hunt ply limit, given-check target |
 | `VariantModeDefinition` | Name and description for a variant mode |
 | `GameSetupConfig` | What the user selects before starting a game |
-| `GameState` | Complete game state including scores, clocks, extra turns, pending piece removal |
+| `GameState` | Complete game state including scores, clocks, extra turns, pending piece removal, position history |
+| `PositionHistoryEntry` | FEN, scores, and move notation for a single board-changing event (for review) |
 | `EvaluationResult` | Evaluation output with score, normalized bar value, favored side, and explanation |
 | `ViolationRecord` | Detected violation with type, severity, required moves |
 | `PendingPieceRemoval` | State for piece removal penalty (target side, chooser side, removable squares, remaining count) |

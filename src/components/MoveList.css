@@ -47,3 +47,19 @@
 .move-white, .move-black {
   padding-left: 4px;
 }
+
+.move-clickable {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.move-clickable:hover {
+  background: #d0e4f7;
+}
+
+.move-active {
+  background: #4a90d9;
+  color: #fff;
+  border-radius: 3px;
+  font-weight: 600;
+}
