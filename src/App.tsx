@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { GameSetupConfig } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
@@ -172,10 +172,9 @@ function App() {
 
 /** Simple hook to track the previous value of a variable. */
 function usePrevious<T>(value: T): T | undefined {
-  const [prev, setPrev] = useState<T | undefined>(undefined);
-  useEffect(() => {
-    setPrev(value);
-  }, [value]);
+  const ref = useRef<T | undefined>(undefined);
+  const prev = ref.current;
+  ref.current = value;
   return prev;
 }
 

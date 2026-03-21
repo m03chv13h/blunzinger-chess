@@ -37,7 +37,11 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: Move
           <div key={pair.number} className="move-pair">
             <span className="move-number">{pair.number}.</span>
             <span
-              className={`move-white${pair.whiteIdx === highlightedMoveIndex ? ' move-active' : ''}${onMoveClick ? ' move-clickable' : ''}`}
+              className={[
+                'move-white',
+                pair.whiteIdx === highlightedMoveIndex ? 'move-active' : '',
+                onMoveClick ? 'move-clickable' : '',
+              ].filter(Boolean).join(' ')}
               onClick={() => handleClick(pair.whiteIdx)}
               role={onMoveClick ? 'button' : undefined}
               tabIndex={onMoveClick ? 0 : undefined}
@@ -45,7 +49,11 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick }: Move
               {pair.white.san}
             </span>
             <span
-              className={`move-black${pair.blackIdx === highlightedMoveIndex ? ' move-active' : ''}${onMoveClick && pair.black ? ' move-clickable' : ''}`}
+              className={[
+                'move-black',
+                pair.blackIdx === highlightedMoveIndex ? 'move-active' : '',
+                onMoveClick && pair.black ? 'move-clickable' : '',
+              ].filter(Boolean).join(' ')}
               onClick={() => pair.black && handleClick(pair.blackIdx)}
               role={onMoveClick && pair.black ? 'button' : undefined}
               tabIndex={onMoveClick && pair.black ? 0 : undefined}
