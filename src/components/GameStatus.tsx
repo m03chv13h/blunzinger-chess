@@ -22,7 +22,10 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
 
-  const showReportButton = config.gameType === 'report_incorrectness';
+  const isBotTurn =
+    state.mode === 'botvbot' ||
+    (state.mode === 'hvbot' && sideToMove === state.botColor);
+  const showReportButton = config.gameType === 'report_incorrectness' && !isBotTurn;
   const showScores = isKingHuntVariant(config.variantMode);
   const showClocks = config.overlays.enableClock;
   const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
