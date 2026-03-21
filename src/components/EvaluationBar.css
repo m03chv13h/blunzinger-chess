@@ -1,0 +1,39 @@
+.eval-bar {
+  position: relative;
+  width: 24px;
+  height: min(80vw, 560px); /* match chessboard height */
+  border: 2px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.eval-bar-black {
+  background: #333;
+  transition: height 0.3s ease;
+}
+
+.eval-bar-white {
+  background: #f0f0f0;
+  transition: height 0.3s ease;
+  flex: 1;
+}
+
+.eval-bar-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    1px 1px 0 #fff,
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff;
+}
