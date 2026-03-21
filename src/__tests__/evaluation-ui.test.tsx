@@ -53,4 +53,22 @@ describe('Evaluation bar UI', () => {
     expect(label).toBeInTheDocument();
     expect(label!.textContent).toBeTruthy();
   });
+
+  it('should show best move hint squares on the board when eval bar is enabled', () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('▶ Start Game'));
+    const toggle = screen.getByLabelText('Show evaluation bar');
+    fireEvent.click(toggle);
+    // The best move hint should be highlighted on the board.
+    const hintSquares = document.querySelectorAll('.square.best-move-hint');
+    expect(hintSquares.length).toBe(2); // from and to squares
+  });
+
+  it('should not show best move hint squares when eval bar is disabled', () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('▶ Start Game'));
+    // Eval bar is off by default — no hint should be shown.
+    const hintSquares = document.querySelectorAll('.square.best-move-hint');
+    expect(hintSquares.length).toBe(0);
+  });
 });

@@ -20,6 +20,8 @@ interface ChessboardProps {
   pendingPieceRemoval?: boolean;
   removableSquares?: Square[];
   onPieceRemoval?: (square: Square) => boolean;
+  bestMoveHintFrom?: Square | null;
+  bestMoveHintTo?: Square | null;
 }
 
 export function Chessboard({
@@ -31,6 +33,8 @@ export function Chessboard({
   pendingPieceRemoval,
   removableSquares,
   onPieceRemoval,
+  bestMoveHintFrom,
+  bestMoveHintTo,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
@@ -123,6 +127,7 @@ export function Chessboard({
             const isLastMove =
               lastMoveObj && (lastMoveObj.from === square || lastMoveObj.to === square);
             const isRemovalTarget = pendingPieceRemoval && removableSquares?.includes(square);
+            const isBestMoveHint = square === bestMoveHintFrom || square === bestMoveHintTo;
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 
@@ -136,6 +141,7 @@ export function Chessboard({
                   isHighlighted ? 'highlighted' : '',
                   isLastMove ? 'last-move' : '',
                   isRemovalTarget ? 'removal-target' : '',
+                  isBestMoveHint ? 'best-move-hint' : '',
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}

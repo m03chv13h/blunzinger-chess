@@ -50,6 +50,8 @@ export function evaluateGameState(
         favoredSide: 'equal',
         normalizedScore: 0,
         bestMove: null,
+        bestMoveFrom: null,
+        bestMoveTo: null,
         explanation: ['Game over — draw'],
       };
     }
@@ -60,6 +62,8 @@ export function evaluateGameState(
       favoredSide: state.result.winner === 'w' ? 'white' : 'black',
       normalizedScore: sign,
       bestMove: null,
+      bestMoveFrom: null,
+      bestMoveTo: null,
       explanation: [`Game over — ${state.result.winner === 'w' ? 'White' : 'Black'} wins (${state.result.reason})`],
     };
   }
@@ -74,6 +78,8 @@ export function evaluateGameState(
       favoredSide: state.sideToMove === 'w' ? 'white' : 'black',
       normalizedScore: sign,
       bestMove: 'Report',
+      bestMoveFrom: null,
+      bestMoveTo: null,
       explanation: [`${state.sideToMove === 'w' ? 'White' : 'Black'} can report opponent's violation for an immediate win`],
     };
   }
@@ -91,6 +97,8 @@ export function evaluateGameState(
       favoredSide: sign > 0 ? 'white' : 'black',
       normalizedScore: sign,
       bestMove: null,
+      bestMoveFrom: null,
+      bestMoveTo: null,
       explanation,
     };
   }
@@ -118,14 +126,16 @@ export function evaluateGameState(
   const normalizedScore = clampedSigmoid(totalCp);
 
   // 4. Find best theoretical next move.
-  const bestMove = findBestMove(state);
+  const bestMoveInfo = findBestMove(state);
 
   return {
     scoreCp: totalCp,
     mateIn: null,
     favoredSide,
     normalizedScore,
-    bestMove,
+    bestMove: bestMoveInfo?.san ?? null,
+    bestMoveFrom: bestMoveInfo?.from ?? null,
+    bestMoveTo: bestMoveInfo?.to ?? null,
     explanation,
   };
 }
@@ -151,7 +161,7 @@ function clampedSigmoid(cp: number): number {
  * Returns null when the game is over, during piece-removal selection,
  * or when no legal moves exist.
  */
-function findBestMove(state: GameState): string | null {
+function findBestMove(state: GameState): { san: string; from: string; to: string } | null {
   if (state.result) return null;
   if (state.pendingPieceRemoval) return null;
 
@@ -176,7 +186,7 @@ function findBestMove(state: GameState): string | null {
   }
 
   if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0].san;
+  if (candidates.length === 1) return { san: candidates[0].san, from: candidates[0].from, to: candidates[0].to };
 
   const kothEnabled = isKingOfTheHillEnabled(state.config);
   let bestMoveRef: Move = candidates[0];
@@ -187,11 +197,11 @@ function findBestMove(state: GameState): string | null {
     chess.move(move.san);
 
     // Immediate checkmate — always best.
-    if (chess.isCheckmate()) return move.san;
+    if (chess.isCheckmate()) return { san: move.san, from: move.from, to: move.to };
 
     // King of the Hill immediate win.
     if (kothEnabled && move.piece === 'k' && isHillSquare(move.to)) {
-      return move.san;
+      return { san: move.san, from: move.from, to: move.to };
     }
 
     const score = evaluateBasePosition(chess.fen()).scoreCp;
@@ -204,5 +214,5 @@ function findBestMove(state: GameState): string | null {
     chess.undo();
   }
 
-  return bestMoveRef.san;
+  return { san: bestMoveRef.san, from: bestMoveRef.from, to: bestMoveRef.to };
 }

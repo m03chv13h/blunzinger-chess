@@ -557,3 +557,77 @@ describe('bestMove in evaluateGameState', () => {
     expect(typeof result.bestMove).toBe('string');
   });
 });
+
+// ── Best Move Squares ────────────────────────────────────────────────
+
+describe('bestMoveFrom/bestMoveTo in evaluateGameState', () => {
+  it('should return from/to squares for starting position', () => {
+    const state = createInitialState();
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeTruthy();
+    expect(result.bestMoveFrom).toBeTruthy();
+    expect(result.bestMoveTo).toBeTruthy();
+    // Verify from/to squares are valid chess squares.
+    expect(result.bestMoveFrom).toMatch(/^[a-h][1-8]$/);
+    expect(result.bestMoveTo).toMatch(/^[a-h][1-8]$/);
+  });
+
+  it('should return null squares when game is over', () => {
+    const state = makeState({
+      result: { winner: 'w', reason: 'checkmate' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMoveFrom).toBeNull();
+    expect(result.bestMoveTo).toBeNull();
+  });
+
+  it('should return null squares for draw result', () => {
+    const state = makeState({
+      result: { winner: 'draw', reason: 'stalemate' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMoveFrom).toBeNull();
+    expect(result.bestMoveTo).toBeNull();
+  });
+
+  it('should return null squares when best move is Report', () => {
+    const state = makeState({
+      configOverrides: { gameType: 'report_incorrectness' },
+      sideToMove: 'b',
+      pendingViolation: {
+        violatingSide: 'w',
+        moveIndex: 1,
+        fenBeforeMove: INITIAL_FEN,
+        checkingMoves: [],
+        requiredMoves: [],
+        actualMove: { from: 'e2', to: 'e4' } as any,
+        reportable: true,
+        violationType: 'missed_check',
+        severe: false,
+      },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBe('Report');
+    expect(result.bestMoveFrom).toBeNull();
+    expect(result.bestMoveTo).toBeNull();
+  });
+
+  it('should return squares matching the best move SAN', () => {
+    // Position where Rh1 can give check: Rh8+
+    const fen = '4k3/8/8/8/8/8/8/4K2R w K - 0 1';
+    const state = makeState({
+      fen,
+      sideToMove: 'w',
+      configOverrides: { variantMode: 'classic_blunzinger' },
+    });
+    const result = evaluateGameState(state);
+    expect(result.bestMove).toBeTruthy();
+    expect(result.bestMoveFrom).toBeTruthy();
+    expect(result.bestMoveTo).toBeTruthy();
+    // Verify the from/to squares correspond to a valid move.
+    const chess = new Chess(fen);
+    const move = chess.move({ from: result.bestMoveFrom!, to: result.bestMoveTo! });
+    expect(move).not.toBeNull();
+    expect(move!.san).toBe(result.bestMove);
+  });
+});
