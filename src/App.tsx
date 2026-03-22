@@ -138,6 +138,8 @@ function App() {
             pendingPieceRemoval={game.pendingPieceRemoval && !review.isReviewing}
             removableSquares={review.isReviewing ? [] : game.removableSquares}
             onPieceRemoval={game.selectPieceForRemoval}
+            bestMoveHintFrom={(evaluation?.bestMoveFrom ?? null) as Square | null}
+            bestMoveHintTo={(evaluation?.bestMoveTo ?? null) as Square | null}
           />
         </section>
 

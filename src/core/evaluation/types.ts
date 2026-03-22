@@ -22,6 +22,10 @@ export interface EvaluationResult {
    * is over or no moves are available.
    */
   bestMove: string | null;
+  /** Origin square of the best move (e.g. "g1"), null when bestMove is null or "Report". */
+  bestMoveFrom: string | null;
+  /** Destination square of the best move (e.g. "f3"), null when bestMove is null or "Report". */
+  bestMoveTo: string | null;
   /**
    * Human-readable explanation lines (for debug / tooltip).
    * Each line describes one evaluation component.
