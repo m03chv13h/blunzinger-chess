@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
 import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
+import type { EngineId, EngineInfo } from '../core/engine/types';
+import { getAllEngineInfos } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
 import './NewGameSetupScreen.css';
+
+function formatEngineName(info: EngineInfo): string {
+  return info.availability === 'coming_soon' ? `${info.name} (coming soon)` : info.name;
+}
 
 interface NewGameSetupScreenProps {
   initialConfig: GameSetupConfig;
@@ -35,6 +41,10 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   const isPenaltyMode = config.gameType === 'penalty_on_miss';
   const showClock = config.enableClock;
   const showTimeReductionValue = config.enableTimeReductionPenalty && showClock;
+
+  const engineInfos = getAllEngineInfos();
+  const showEngineSelection = config.mode === 'hvbot' || config.mode === 'botvbot';
+  const showPerSideEngines = config.mode === 'botvbot';
 
   return (
     <div className="setup-screen">
@@ -112,6 +122,72 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               <option value="b">Black</option>
             </select>
           </div>
+        )}
+
+        {/* ── Engine Selection ── */}
+        {showEngineSelection && !showPerSideEngines && (
+          <div className="setup-group">
+            <label htmlFor="engine-select">Engine</label>
+            <select
+              id="engine-select"
+              value={config.engineId}
+              onChange={(e) => {
+                const id = e.target.value as EngineId;
+                update({ engineId: id, engineIdWhite: id, engineIdBlack: id });
+              }}
+            >
+              {engineInfos.map((info) => (
+                <option
+                  key={info.id}
+                  value={info.id}
+                  disabled={info.availability !== 'available'}
+                >
+                  {formatEngineName(info)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {showPerSideEngines && (
+          <>
+            <div className="setup-group">
+              <label htmlFor="engine-white-select">Engine (White)</label>
+              <select
+                id="engine-white-select"
+                value={config.engineIdWhite}
+                onChange={(e) => update({ engineIdWhite: e.target.value as EngineId })}
+              >
+                {engineInfos.map((info) => (
+                  <option
+                    key={info.id}
+                    value={info.id}
+                    disabled={info.availability !== 'available'}
+                  >
+                    {formatEngineName(info)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="setup-group">
+              <label htmlFor="engine-black-select">Engine (Black)</label>
+              <select
+                id="engine-black-select"
+                value={config.engineIdBlack}
+                onChange={(e) => update({ engineIdBlack: e.target.value as EngineId })}
+              >
+                {engineInfos.map((info) => (
+                  <option
+                    key={info.id}
+                    value={info.id}
+                    disabled={info.availability !== 'available'}
+                  >
+                    {formatEngineName(info)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         )}
 
         {/* ── Variant-Specific Config ── */}

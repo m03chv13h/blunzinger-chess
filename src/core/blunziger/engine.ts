@@ -13,6 +13,7 @@ import type {
   VariantMode,
   PendingPieceRemoval,
 } from './types';
+import type { EngineId } from '../engine/types';
 import {
   DEFAULT_CONFIG,
   INITIAL_FEN,
@@ -324,6 +325,8 @@ export function createInitialState(
   config: MatchConfig = DEFAULT_CONFIG,
   botLevel: BotLevel = 'easy',
   botColor: Color = 'b',
+  engineIdWhite: EngineId = 'heuristic',
+  engineIdBlack: EngineId = 'heuristic',
 ): GameState {
   return {
     fen: INITIAL_FEN,
@@ -337,6 +340,8 @@ export function createInitialState(
     mode,
     botLevel,
     botColor,
+    engineIdWhite,
+    engineIdBlack,
     scores: { w: 0, b: 0 },
     clocks: config.overlays.enableClock
       ? { whiteMs: config.overlays.initialTimeMs, blackMs: config.overlays.initialTimeMs, lastTimestamp: null }

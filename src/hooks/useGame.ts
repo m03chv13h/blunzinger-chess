@@ -7,6 +7,7 @@ import type {
   MatchConfig,
   Square,
 } from '../core/blunziger/types';
+import type { EngineId } from '../core/engine/types';
 import { DEFAULT_CONFIG } from '../core/blunziger/types';
 import {
   createInitialState,
@@ -29,6 +30,8 @@ export interface UseGameReturn {
     config?: MatchConfig,
     botLevel?: BotLevel,
     botColor?: Color,
+    engineIdWhite?: EngineId,
+    engineIdBlack?: EngineId,
   ) => void;
   canReportNow: boolean;
   legalMovesFrom: (square: Square) => Square[];
@@ -54,9 +57,11 @@ export function useGame(
   initialConfig: MatchConfig = DEFAULT_CONFIG,
   initialBotLevel: BotLevel = 'easy',
   initialBotColor: Color = 'b',
+  initialEngineIdWhite: EngineId = 'heuristic',
+  initialEngineIdBlack: EngineId = 'heuristic',
 ): UseGameReturn {
   const [state, setState] = useState<GameState>(() =>
-    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor),
+    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor, initialEngineIdWhite, initialEngineIdBlack),
   );
   const [botThinking, setBotThinking] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -233,12 +238,16 @@ export function useGame(
       config?: MatchConfig,
       botLevel?: BotLevel,
       botColor?: Color,
+      engineIdWhite?: EngineId,
+      engineIdBlack?: EngineId,
     ) => {
       const newState = createInitialState(
         mode ?? stateRef.current.mode,
         config ?? stateRef.current.config,
         botLevel ?? stateRef.current.botLevel,
         botColor ?? stateRef.current.botColor,
+        engineIdWhite ?? stateRef.current.engineIdWhite,
+        engineIdBlack ?? stateRef.current.engineIdBlack,
       );
       setState(newState);
       setBotThinking(false);
