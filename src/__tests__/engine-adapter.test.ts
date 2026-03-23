@@ -8,7 +8,7 @@ import {
   DEFAULT_ENGINE_ID,
 } from '../core/engine/engineRegistry';
 import { createHeuristicAdapter } from '../core/engine/adapters/heuristicAdapter';
-import { createBlunznforelleAdapter } from '../core/engine/adapters/blunznforelleAdapter';
+import { createBlunznforönAdapter } from '../core/engine/adapters/blunznforönAdapter';
 import { INITIAL_FEN, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
 import { createInitialState } from '../core/blunziger/engine';
 
@@ -20,7 +20,7 @@ describe('Engine Abstraction Layer', () => {
       const infos = getAllEngineInfos();
       const ids = infos.map((i) => i.id);
       expect(ids).toContain('heuristic');
-      expect(ids).toContain('blunznforelle');
+      expect(ids).toContain('blunznforön');
       expect(ids).toContain('blunznfish');
     });
 
@@ -32,11 +32,11 @@ describe('Engine Abstraction Layer', () => {
       expect(heuristic!.supportsEvaluation).toBe(true);
       expect(heuristic!.supportsBotPlay).toBe(true);
 
-      const blunznforelle = getEngineInfo('blunznforelle');
-      expect(blunznforelle).toBeDefined();
-      expect(blunznforelle!.name).toBe('Blunznforelle');
-      expect(blunznforelle!.availability).toBe('available');
-      expect(blunznforelle!.supportsVariantAwareness).toBe(true);
+      const blunznforön = getEngineInfo('blunznforön');
+      expect(blunznforön).toBeDefined();
+      expect(blunznforön!.name).toBe('Blunznforön');
+      expect(blunznforön!.availability).toBe('available');
+      expect(blunznforön!.supportsVariantAwareness).toBe(true);
     });
 
     it('should mark Blunznfish as coming_soon', () => {
@@ -50,7 +50,7 @@ describe('Engine Abstraction Layer', () => {
       const available = getAvailableEngineInfos();
       const ids = available.map((i) => i.id);
       expect(ids).toContain('heuristic');
-      expect(ids).toContain('blunznforelle');
+      expect(ids).toContain('blunznforön');
       expect(ids).not.toContain('blunznfish');
     });
 
@@ -59,9 +59,9 @@ describe('Engine Abstraction Layer', () => {
       expect(adapter).toBeDefined();
       expect(adapter.info.id).toBe('heuristic');
 
-      const blunzn = createEngineAdapter('blunznforelle');
+      const blunzn = createEngineAdapter('blunznforön');
       expect(blunzn).toBeDefined();
-      expect(blunzn.info.id).toBe('blunznforelle');
+      expect(blunzn.info.id).toBe('blunznforön');
     });
 
     it('should throw when creating adapter for unregistered engine', () => {
@@ -124,13 +124,13 @@ describe('Engine Abstraction Layer', () => {
     });
   });
 
-  // ── Blunznforelle Adapter ─────────────────────────────────────────
+  // ── Blunznforön Adapter ───────────────────────────────────────────
 
-  describe('blunznforelleAdapter', () => {
+  describe('blunznforönAdapter', () => {
     let adapter: VariantEngineAdapter;
 
     beforeEach(() => {
-      adapter = createBlunznforelleAdapter();
+      adapter = createBlunznforönAdapter();
     });
 
     afterEach(() => {
@@ -180,8 +180,8 @@ describe('Engine Abstraction Layer', () => {
 
   describe('per-side engine selection', () => {
     it('createInitialState should store engine IDs', () => {
-      const state = createInitialState('botvbot', undefined, 'easy', 'b', 'blunznforelle', 'heuristic');
-      expect(state.engineIdWhite).toBe('blunznforelle');
+      const state = createInitialState('botvbot', undefined, 'easy', 'b', 'blunznforön', 'heuristic');
+      expect(state.engineIdWhite).toBe('blunznforön');
       expect(state.engineIdBlack).toBe('heuristic');
     });
 
@@ -203,7 +203,7 @@ describe('Engine Abstraction Layer', () => {
   describe('adapter interface contract', () => {
     const adapterFactories: Array<{ id: EngineId; create: () => VariantEngineAdapter }> = [
       { id: 'heuristic', create: createHeuristicAdapter },
-      { id: 'blunznforelle', create: createBlunznforelleAdapter },
+      { id: 'blunznforön', create: createBlunznforönAdapter },
     ];
 
     for (const { id, create } of adapterFactories) {

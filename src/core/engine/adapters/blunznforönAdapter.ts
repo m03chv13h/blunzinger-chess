@@ -1,5 +1,5 @@
 /**
- * Blunznforelle engine adapter — Fairy-Stockfish integration.
+ * Blunznforön engine adapter — Fairy-Stockfish integration.
  *
  * Fairy-Stockfish is a UCI-compatible chess variant engine.  In a browser-only
  * deployment it would be loaded as a WASM module via a Web Worker.
@@ -25,8 +25,8 @@ import type {
 import { heuristicAnalysis } from './shared';
 
 const INFO: EngineInfo = {
-  id: 'blunznforelle',
-  name: 'Blunznforelle',
+  id: 'blunznforön',
+  name: 'Blunznforön',
   description: 'Fairy-Stockfish variant engine integration',
   availability: 'available',
   supportsEvaluation: true,
@@ -40,7 +40,7 @@ const INFO: EngineInfo = {
  */
 let wasmLoaded = false;
 
-export function createBlunznforelleAdapter(): VariantEngineAdapter {
+export function createBlunznforönAdapter(): VariantEngineAdapter {
   let disposed = false;
 
   return {
@@ -73,7 +73,7 @@ export function createBlunznforelleAdapter(): VariantEngineAdapter {
       }
 
       // Fallback: heuristic analysis (same quality as the Heuristic adapter
-      // but labelled as Blunznforelle so the adapter contract is exercised).
+      // but labelled as Blunznforön so the adapter contract is exercised).
       return heuristicAnalysis(options.fen);
     },
 
