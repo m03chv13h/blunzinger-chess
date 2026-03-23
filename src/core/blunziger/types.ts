@@ -1,4 +1,5 @@
 import type { Square, Move, Color } from 'chess.js';
+import type { EngineId } from '../engine/types';
 
 export type { Square, Move, Color };
 
@@ -264,6 +265,10 @@ export interface GameState {
   mode: GameMode;
   botLevel: BotLevel;
   botColor: Color;
+  /** Engine used for the White bot side (advisory — app rules remain authoritative). */
+  engineIdWhite: EngineId;
+  /** Engine used for the Black bot side (advisory — app rules remain authoritative). */
+  engineIdBlack: EngineId;
   scores: ScoreState;
   clocks: ClockState | null;
   extraTurns: ExtraTurnState;
@@ -289,6 +294,12 @@ export interface GameSetupConfig {
   botDifficulty: BotLevel;
   variantMode: VariantMode;
   gameType: GameType;
+  // Engine selection
+  engineId: EngineId;
+  /** Engine for the White bot side (botvbot only; falls back to engineId). */
+  engineIdWhite: EngineId;
+  /** Engine for the Black bot side (botvbot only; falls back to engineId). */
+  engineIdBlack: EngineId;
   // Overlays
   enableKingOfTheHill: boolean;
   enableClock: boolean;
@@ -316,6 +327,9 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   botDifficulty: 'easy',
   variantMode: 'classic_blunzinger',
   gameType: 'report_incorrectness',
+  engineId: 'heuristic',
+  engineIdWhite: 'heuristic',
+  engineIdBlack: 'heuristic',
   enableKingOfTheHill: false,
   enableClock: false,
   initialTimeMs: 5 * 60 * 1000,
