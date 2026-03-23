@@ -1,5 +1,6 @@
 import type { GameSetupConfig } from '../core/blunziger/types';
 import { getVariantModeDefinition } from '../core/blunziger/types';
+import { getEngineInfo } from '../core/engine/engineRegistry';
 import { formatMsToTime } from '../utils/timeFormat';
 import './GameSummaryPanel.css';
 
@@ -72,6 +73,24 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
             <dt>Playing As</dt>
             <dd>{config.botSide === 'b' ? 'White' : 'Black'}</dd>
           </div>
+        )}
+        {config.mode === 'hvbot' && (
+          <div className="summary-item">
+            <dt>Engine</dt>
+            <dd>{getEngineInfo(config.engineId)?.name ?? config.engineId}</dd>
+          </div>
+        )}
+        {config.mode === 'botvbot' && (
+          <>
+            <div className="summary-item">
+              <dt>Engine (White)</dt>
+              <dd>{getEngineInfo(config.engineIdWhite)?.name ?? config.engineIdWhite}</dd>
+            </div>
+            <div className="summary-item">
+              <dt>Engine (Black)</dt>
+              <dd>{getEngineInfo(config.engineIdBlack)?.name ?? config.engineIdBlack}</dd>
+            </div>
+          </>
         )}
         {isReport && (
           <div className="summary-item">
