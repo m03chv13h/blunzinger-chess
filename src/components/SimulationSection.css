@@ -1,0 +1,310 @@
+/* ── Simulation Section (shared by setup + running view) ── */
+
+.simulation-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.simulation-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.simulation-card--wide {
+  max-width: 720px;
+}
+
+.simulation-card h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.simulation-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+/* ── Setup form groups ── */
+
+.sim-setup-group {
+  margin-bottom: 14px;
+}
+
+.sim-setup-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.sim-setup-group select,
+.sim-setup-group input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.sim-description {
+  font-size: 12px;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+.sim-start-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 18px;
+  background: #5b8def;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sim-start-btn:hover {
+  background: #4a7bde;
+}
+
+/* ── Config summary tags ── */
+
+.sim-config-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.sim-tag {
+  display: inline-block;
+  background: #e8f0fe;
+  color: #1a5cb0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* ── Standing display ── */
+
+.sim-standing {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sim-standing-row {
+  text-align: center;
+}
+
+.sim-standing-label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sim-standing-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+
+.sim-standing-white {
+  color: #1a1a2e;
+}
+
+.sim-standing-black {
+  color: #444;
+}
+
+.sim-standing-draw {
+  color: #888;
+}
+
+/* ── Progress bar ── */
+
+.sim-progress-bar {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.sim-progress-fill {
+  height: 100%;
+  background: #5b8def;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ── Controls ── */
+
+.sim-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.sim-stop-btn {
+  padding: 8px 20px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sim-stop-btn:hover {
+  background: #c0392b;
+}
+
+.sim-back-btn {
+  padding: 8px 20px;
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sim-back-btn:hover {
+  background: #5a6268;
+}
+
+/* ── Game list ── */
+
+.sim-game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.sim-game-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.sim-game-number {
+  font-weight: 700;
+  color: #555;
+  min-width: 36px;
+}
+
+.sim-game-moves {
+  color: #666;
+  min-width: 70px;
+}
+
+.sim-game-result {
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.sim-game-reason {
+  font-size: 12px;
+  color: #888;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-game-pending {
+  color: #999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-analyse-btn {
+  padding: 4px 10px;
+  background: #e8f0fe;
+  color: #1a5cb0;
+  border: 1px solid #c4d8f5;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.sim-analyse-btn:hover {
+  background: #d0e2fc;
+}
+
+/* ── Spinner animation ── */
+
+.sim-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ccc;
+  border-top-color: #5b8def;
+  border-radius: 50%;
+  animation: sim-spin 0.6s linear infinite;
+}
+
+@keyframes sim-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .simulation-card {
+    padding: 18px 16px;
+  }
+
+  .sim-game-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sim-game-reason {
+    width: 100%;
+  }
+}
