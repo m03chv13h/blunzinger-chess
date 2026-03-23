@@ -54,14 +54,14 @@ describe('Evaluation bar UI', () => {
     expect(label!.textContent).toBeTruthy();
   });
 
-  it('should show best move hint squares on the board when eval bar is enabled', () => {
+  it('should not show best move hint squares during active play even when eval bar is enabled', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
     const toggle = screen.getByLabelText('Show evaluation bar');
     fireEvent.click(toggle);
-    // The best move hint should be highlighted on the board.
+    // Best move hints should only show during game analysis (review mode), not during active play.
     const hintSquares = document.querySelectorAll('.square.best-move-hint');
-    expect(hintSquares.length).toBe(2); // from and to squares
+    expect(hintSquares.length).toBe(0);
   });
 
   it('should not show best move hint squares when eval bar is disabled', () => {
