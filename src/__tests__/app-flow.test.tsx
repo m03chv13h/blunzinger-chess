@@ -311,6 +311,39 @@ describe('App game flow', () => {
     });
   });
 
+  describe('MODE DESCRIPTIONS', () => {
+    beforeEach(() => {
+      goToNewGame();
+    });
+
+    it('shows description for default player mode (Human vs Human)', () => {
+      expect(screen.getByText('Two players take turns on the same device.')).toBeInTheDocument();
+    });
+
+    it('updates player mode description when switching to Human vs Bot', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'hvbot' } });
+      expect(screen.getByText('Play against a computer opponent.')).toBeInTheDocument();
+    });
+
+    it('updates player mode description when switching to Bot vs Bot', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'botvbot' } });
+      expect(screen.getByText('Watch two bots play against each other.')).toBeInTheDocument();
+    });
+
+    it('shows description for default game type (Report Incorrectness)', () => {
+      expect(screen.getByText(/Opponent can report violations manually/)).toBeInTheDocument();
+    });
+
+    it('updates game type description when switching to Penalty on Miss', () => {
+      fireEvent.change(screen.getByLabelText('Game Type'), { target: { value: 'penalty_on_miss' } });
+      expect(screen.getByText(/Penalties.*are applied automatically on violations/)).toBeInTheDocument();
+    });
+
+    it('shows variant mode description for Classic Blunzinger', () => {
+      expect(screen.getByText(/checking move exists, the player is required/)).toBeInTheDocument();
+    });
+  });
+
   describe('REPORT BUTTON VISIBILITY', () => {
     it('shows report button for Human vs Human game', () => {
       goToNewGame();

@@ -88,8 +88,9 @@ function App() {
 
   // Flush any pending game record into history when navigating away from playing.
   const flushPendingRecord = useCallback(() => {
-    if (pendingRecordRef.current) {
-      setGameHistory(prev => [pendingRecordRef.current!, ...prev]);
+    const record = pendingRecordRef.current;
+    if (record) {
+      setGameHistory(prev => [record, ...prev]);
       pendingRecordRef.current = null;
     }
   }, []);
