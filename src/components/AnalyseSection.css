@@ -1,0 +1,120 @@
+.analyse-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.analyse-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.analyse-card h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.analyse-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+.analyse-empty {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  padding: 20px 0;
+  line-height: 1.6;
+}
+
+.analyse-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analyse-game-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyse-game-item:hover {
+  background: #e8f0fe;
+  border-color: #5b8def;
+}
+
+.analyse-game-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.analyse-game-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.analyse-separator {
+  margin: 0 4px;
+  color: #999;
+}
+
+.analyse-gametype {
+  font-weight: 400;
+  color: #666;
+}
+
+.analyse-game-mode {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.analyse-game-result {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.analyse-reason {
+  font-weight: 400;
+  color: #666;
+  font-size: 12px;
+}
+
+.result-white {
+  color: #1a1a2e;
+}
+
+.result-black {
+  color: #444;
+}
+
+.result-draw {
+  color: #777;
+}
+
+.analyse-game-details {
+  font-size: 11px;
+  color: #999;
+}

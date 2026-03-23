@@ -1,0 +1,111 @@
+.quick-start-screen {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.quick-start-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.quick-start-card h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.quick-start-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+.qs-group {
+  margin-bottom: 14px;
+}
+
+.qs-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #444;
+}
+
+.qs-group select,
+.qs-group input[type="number"],
+.qs-group input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.qs-description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.qs-clock-group {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.qs-clock-group legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  padding: 0 4px;
+}
+
+.qs-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.qs-sub-group {
+  margin-top: 8px;
+}
+
+.qs-sub-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.qs-start-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.15s;
+}
+
+.qs-start-btn:hover {
+  background: #218838;
+}

@@ -104,14 +104,21 @@ describe('NumericInput component', () => {
 });
 
 describe('Setup screen numeric input editing', () => {
+  /** Navigate to the New Game setup screen via the sidebar. */
+  function goToNewGame() {
+    fireEvent.click(screen.getByRole('button', { name: /New Game/i }));
+  }
+
   it('threshold input initially shows default value 2', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
     expect(input.value).toBe('2');
   });
 
   it('user can clear the threshold field while editing', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
 
     fireEvent.focus(input);
@@ -123,6 +130,7 @@ describe('Setup screen numeric input editing', () => {
 
   it('user can replace threshold 2 with 1', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: '1' } });
@@ -131,6 +139,7 @@ describe('Setup screen numeric input editing', () => {
 
   it('user can type a multi-digit threshold', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: '7' } });
@@ -139,6 +148,7 @@ describe('Setup screen numeric input editing', () => {
 
   it('empty threshold normalizes to fallback on blur', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
 
     fireEvent.focus(input);
@@ -150,6 +160,7 @@ describe('Setup screen numeric input editing', () => {
 
   it('starting a game uses the committed numeric value', () => {
     render(<App />);
+    goToNewGame();
     const input = screen.getByLabelText('Invalid Report Loss Threshold') as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: '4' } });
@@ -162,6 +173,7 @@ describe('Setup screen numeric input editing', () => {
 
   it('ply limit input can be edited cleanly', () => {
     render(<App />);
+    goToNewGame();
 
     // Switch to a variant mode that shows ply limit
     fireEvent.change(screen.getByLabelText('Variant Mode'), {
