@@ -278,7 +278,7 @@ export function useGame(
     );
     const sideToMove = (() => {
       const parts = record.finalFen.split(' ');
-      return parts[1] === 'b' ? 'b' as const : 'w' as const;
+      return (parts.length >= 2 && parts[1] === 'b') ? 'b' as const : 'w' as const;
     })();
     const reviewState: GameState = {
       ...base,

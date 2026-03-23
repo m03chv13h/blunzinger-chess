@@ -446,6 +446,8 @@ describe('Post-game review system', () => {
         mc,
         record.config.botDifficulty,
         record.config.botSide,
+        record.config.engineIdWhite,
+        record.config.engineIdBlack,
       );
       const loadedState: GameState = {
         ...base,
