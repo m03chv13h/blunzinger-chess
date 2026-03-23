@@ -22,8 +22,7 @@ import type {
   AnalyzePositionOptions,
   EngineLine,
 } from '../types';
-import { evaluateBasePosition } from '../../evaluation/evaluatePosition';
-import { Chess } from 'chess.js';
+import { heuristicAnalysis } from './shared';
 
 const INFO: EngineInfo = {
   id: 'blunznforelle',
@@ -75,7 +74,7 @@ export function createBlunznforelleAdapter(): VariantEngineAdapter {
 
       // Fallback: heuristic analysis (same quality as the Heuristic adapter
       // but labelled as Blunznforelle so the adapter contract is exercised).
-      return heuristicFallback(options);
+      return heuristicAnalysis(options.fen);
     },
 
     async getBestMove(options: AnalyzePositionOptions): Promise<string | null> {
@@ -95,54 +94,4 @@ export function createBlunznforelleAdapter(): VariantEngineAdapter {
       // TODO: Terminate the Fairy-Stockfish Web Worker when WASM is loaded.
     },
   };
-}
-
-// ── Heuristic fallback (used until WASM is bundled) ──────────────────
-
-function heuristicFallback(options: AnalyzePositionOptions): EngineLine[] {
-  const base = evaluateBasePosition(options.fen);
-  const bestMoveUci = findBestMoveUci(options.fen);
-
-  return [
-    {
-      bestMove: bestMoveUci,
-      pv: bestMoveUci ? [bestMoveUci] : [],
-      score: {
-        scoreCp: base.scoreCp,
-        mateIn: base.mateIn,
-        favoredSide:
-          base.scoreCp > 25
-            ? 'white'
-            : base.scoreCp < -25
-              ? 'black'
-              : 'equal',
-      },
-    },
-  ];
-}
-
-function findBestMoveUci(fen: string): string | null {
-  const chess = new Chess(fen);
-  const moves = chess.moves({ verbose: true });
-  if (moves.length === 0) return null;
-  if (moves.length === 1) return `${moves[0].from}${moves[0].to}${moves[0].promotion ?? ''}`;
-
-  const isWhite = fen.split(' ')[1] === 'w';
-  let bestMove = moves[0];
-  let bestScore = isWhite ? -Infinity : Infinity;
-
-  for (const move of moves) {
-    chess.move(move.san);
-    if (chess.isCheckmate()) {
-      return `${move.from}${move.to}${move.promotion ?? ''}`;
-    }
-    const score = evaluateBasePosition(chess.fen()).scoreCp;
-    if (isWhite ? score > bestScore : score < bestScore) {
-      bestScore = score;
-      bestMove = move;
-    }
-    chess.undo();
-  }
-
-  return `${bestMove.from}${bestMove.to}${bestMove.promotion ?? ''}`;
 }
