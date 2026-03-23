@@ -9,7 +9,7 @@
 // ── Engine identification ────────────────────────────────────────────
 
 export type EngineId =
-  | 'blunznforelle'
+  | 'blunznforön'
   | 'heuristic'
   | 'blunznfish';
 

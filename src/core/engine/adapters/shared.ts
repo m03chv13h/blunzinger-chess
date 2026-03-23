@@ -11,7 +11,7 @@ const EQUAL_THRESHOLD_CP = 25;
 
 /**
  * Simple 1-ply best-move search returning a UCI move string (e.g. "e2e4").
- * Shared between the Heuristic and Blunznforelle (fallback) adapters.
+ * Shared between the Heuristic and Blunznforön (fallback) adapters.
  */
 export function findBestMoveUci(fen: string): string | null {
   const chess = new Chess(fen);

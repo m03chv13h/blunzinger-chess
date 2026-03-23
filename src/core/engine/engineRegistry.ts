@@ -7,7 +7,7 @@
 
 import type { EngineId, EngineInfo, VariantEngineAdapter } from './types';
 import { createHeuristicAdapter } from './adapters/heuristicAdapter';
-import { createBlunznforelleAdapter } from './adapters/blunznforelleAdapter';
+import { createBlunznforönAdapter } from './adapters/blunznforönAdapter';
 
 // ── Factory type ─────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ function register(factory: AdapterFactory): void {
 // ── Register built-in engines ────────────────────────────────────────
 
 register(createHeuristicAdapter);
-register(createBlunznforelleAdapter);
+register(createBlunznforönAdapter);
 
 // Blunznfish — placeholder, not yet implemented.
 infoMap.set('blunznfish', {
