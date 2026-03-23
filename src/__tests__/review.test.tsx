@@ -10,6 +10,7 @@ import {
 import type { GameState } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 import { evaluateGameState } from '../core/evaluation/evaluate';
+import { createGameRecord } from '../core/gameRecord';
 import App from '../App';
 
 // ── Helper: apply a series of SAN moves to a state ──────────────────
@@ -393,6 +394,118 @@ describe('Post-game review system', () => {
       state = playMoves(state, ['e4', 'e5', 'Nf3']);
 
       expect(state.positionHistory).toHaveLength(4);
+    });
+  });
+
+  describe('Loading a game record for review (Analyse mode)', () => {
+    let finishedState: GameState;
+    let record: ReturnType<typeof createGameRecord>;
+
+    beforeEach(() => {
+      finishedState = playMoves(createInitialState(), SCHOLARS_MATE);
+      record = createGameRecord(
+        DEFAULT_SETUP_CONFIG,
+        finishedState.result!,
+        finishedState.fen,
+        finishedState.moveHistory.length,
+        finishedState.scores,
+        finishedState.positionHistory,
+        finishedState.moveHistory,
+        finishedState.violationReports,
+        finishedState.missedChecks,
+        finishedState.pieceRemovals,
+        finishedState.timeReductions,
+      );
+    });
+
+    it('loaded game record preserves position history', () => {
+      expect(record.positionHistory).toHaveLength(8);
+      expect(record.positionHistory[0].fen).toBe(INITIAL_FEN);
+      expect(record.positionHistory[7].fen).toBe(finishedState.fen);
+    });
+
+    it('loaded game record preserves move history', () => {
+      expect(record.moveHistory).toHaveLength(7);
+      // SAN includes check/checkmate symbols (e.g. Qxf7#)
+      const sans = record.moveHistory.map(m => m.san);
+      expect(sans.slice(0, 6)).toEqual(SCHOLARS_MATE.slice(0, 6));
+      expect(sans[6]).toBe('Qxf7#');
+    });
+
+    it('loaded game record preserves result', () => {
+      expect(record.result).not.toBeNull();
+      expect(record.result.winner).toBe('w');
+      expect(record.result.reason).toBe('checkmate');
+    });
+
+    it('reconstructed state from record enables review mode', () => {
+      // Simulate what loadGameForReview does: reconstruct a GameState from a record
+      const mc = buildMatchConfig(record.config);
+      const base = createInitialState(
+        record.config.mode,
+        mc,
+        record.config.botDifficulty,
+        record.config.botSide,
+      );
+      const loadedState: GameState = {
+        ...base,
+        fen: record.finalFen,
+        moveHistory: record.moveHistory,
+        result: record.result,
+        scores: record.scores,
+        clocks: null,
+        plyCount: record.moveCount,
+        positionHistory: record.positionHistory,
+        violationReports: record.violationReports,
+        missedChecks: record.missedChecks,
+        pieceRemovals: record.pieceRemovals,
+        timeReductions: record.timeReductions,
+      };
+
+      // State should have result set (enabling review mode)
+      expect(loadedState.result).not.toBeNull();
+      // positionHistory should be complete for review step building
+      expect(loadedState.positionHistory).toHaveLength(8);
+      // moveHistory should be complete for move list display
+      expect(loadedState.moveHistory).toHaveLength(7);
+    });
+
+    it('review steps can be built from loaded state positionHistory', () => {
+      // Build review steps the same way useReview does
+      let moveCounter = -1;
+      const steps = record.positionHistory.map((entry, index) => {
+        if (entry.moveNotation !== null) moveCounter++;
+        return {
+          index,
+          fen: entry.fen,
+          moveNotation: entry.moveNotation,
+          moveIndex: entry.moveNotation !== null ? moveCounter : -1,
+        };
+      });
+
+      expect(steps).toHaveLength(8);
+      expect(steps[0].moveNotation).toBeNull(); // initial position
+      expect(steps[0].moveIndex).toBe(-1);
+      expect(steps[1].moveNotation).toBe('e4');
+      expect(steps[1].moveIndex).toBe(0);
+      expect(steps[7].moveNotation).toBe('Qxf7#');
+      expect(steps[7].moveIndex).toBe(6);
+    });
+
+    it('review navigation across all steps of a loaded game works', () => {
+      const steps = record.positionHistory;
+
+      // All FENs should be valid
+      for (const entry of steps) {
+        const parts = entry.fen.split(' ');
+        expect(parts).toHaveLength(6);
+        expect(parts[0].split('/')).toHaveLength(8);
+      }
+
+      // Step 0 is initial position
+      expect(steps[0].fen).toBe(INITIAL_FEN);
+      // Last step is checkmate position
+      expect(steps[steps.length - 1].fen).toBe(record.finalFen);
     });
   });
 });

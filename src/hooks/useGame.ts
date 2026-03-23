@@ -8,7 +8,8 @@ import type {
   Square,
 } from '../core/blunziger/types';
 import type { EngineId } from '../core/engine/types';
-import { DEFAULT_CONFIG } from '../core/blunziger/types';
+import type { GameRecord } from '../core/gameRecord';
+import { DEFAULT_CONFIG, buildMatchConfig } from '../core/blunziger/types';
 import {
   createInitialState,
   applyMoveWithRules,
@@ -50,6 +51,8 @@ export interface UseGameReturn {
   pendingPieceRemoval: boolean;
   /** Squares that are valid targets for piece removal. */
   removableSquares: Square[];
+  /** Load a completed game record for review/analysis. */
+  loadGameForReview: (record: GameRecord) => void;
 }
 
 export function useGame(
@@ -263,6 +266,43 @@ export function useGame(
     [],
   );
 
+  const loadGameForReview = useCallback((record: GameRecord) => {
+    const mc = buildMatchConfig(record.config);
+    const base = createInitialState(
+      record.config.mode,
+      mc,
+      record.config.botDifficulty,
+      record.config.botSide,
+      record.config.engineIdWhite,
+      record.config.engineIdBlack,
+    );
+    const sideToMove = (() => {
+      const parts = record.finalFen.split(' ');
+      return parts[1] === 'b' ? 'b' as const : 'w' as const;
+    })();
+    const reviewState: GameState = {
+      ...base,
+      fen: record.finalFen,
+      moveHistory: record.moveHistory,
+      sideToMove,
+      result: record.result,
+      scores: record.scores,
+      clocks: null,
+      plyCount: record.moveCount,
+      positionHistory: record.positionHistory,
+      violationReports: record.violationReports,
+      missedChecks: record.missedChecks,
+      pieceRemovals: record.pieceRemovals,
+      timeReductions: record.timeReductions,
+    };
+    setState(reviewState);
+    setBotThinking(false);
+    clockActiveRef.current = null;
+    clockCommittedRef.current = null;
+    setClockWhiteMs(0);
+    setClockBlackMs(0);
+  }, []);
+
   const canReportNow = canReport(state, state.sideToMove);
 
   const legalMovesFrom = useCallback(
@@ -408,5 +448,6 @@ export function useGame(
     selectPieceForRemoval,
     pendingPieceRemoval: !!state.pendingPieceRemoval,
     removableSquares: state.pendingPieceRemoval?.removableSquares ?? [],
+    loadGameForReview,
   };
 }

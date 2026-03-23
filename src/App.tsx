@@ -60,6 +60,15 @@ function App() {
     }
   }, [gameIsOver, prevGameOverRef, enterReview]);
 
+  // Enter review after loading a game from the Analyse section.
+  const reviewLoadedRef = useRef(false);
+  useEffect(() => {
+    if (reviewLoadedRef.current && gameIsOver) {
+      reviewLoadedRef.current = false;
+      enterReview();
+    }
+  }, [gameIsOver, enterReview]);
+
   // Save completed game to history.
   const prevSavedRef = useRef(false);
   const pendingRecordRef = useRef<GameRecord | null>(null);
@@ -141,15 +150,10 @@ function App() {
   const handleSelectGameForReview = (record: GameRecord) => {
     setLastConfig(record.config);
     setScreen({ type: 'playing', config: record.config });
-    const mc = buildMatchConfig(record.config);
-    game.resetGame(
-      record.config.mode,
-      mc,
-      record.config.botDifficulty,
-      record.config.botSide,
-      record.config.engineIdWhite,
-      record.config.engineIdBlack,
-    );
+    game.loadGameForReview(record);
+    reviewLoadedRef.current = true;
+    // Prevent saving a duplicate record for the loaded game.
+    prevSavedRef.current = true;
   };
 
   const activeSection: NavSection | 'playing' =
