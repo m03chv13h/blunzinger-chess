@@ -1,0 +1,32 @@
+.mini-board {
+  display: inline-grid;
+  grid-template-rows: repeat(8, 1fr);
+  width: 80px;
+  height: 80px;
+  border: 1px solid #999;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mini-row {
+  display: flex;
+}
+
+.mini-cell {
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.mini-cell--light {
+  background: #f0d9b5;
+}
+
+.mini-cell--dark {
+  background: #b58863;
+}

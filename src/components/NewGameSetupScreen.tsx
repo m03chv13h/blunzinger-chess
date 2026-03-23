@@ -7,6 +7,17 @@ import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
 import './NewGameSetupScreen.css';
 
+const MODE_DESCRIPTIONS: Record<GameMode, string> = {
+  hvh: 'Two players take turns on the same device.',
+  hvbot: 'Play against a computer opponent.',
+  botvbot: 'Watch two bots play against each other.',
+};
+
+const GAME_TYPE_DESCRIPTIONS: Record<GameType, string> = {
+  report_incorrectness: 'Opponent can report violations manually. A valid report wins; too many invalid reports loses.',
+  penalty_on_miss: 'Penalties (extra moves, piece removal, time reduction) are applied automatically on violations.',
+};
+
 function formatEngineName(info: EngineInfo): string {
   return info.availability === 'coming_soon' ? `${info.name} (coming soon)` : info.name;
 }
@@ -79,6 +90,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
             <option value="report_incorrectness">Report Incorrectness</option>
             <option value="penalty_on_miss">Penalty on Miss</option>
           </select>
+          <p className="mode-description">{GAME_TYPE_DESCRIPTIONS[config.gameType]}</p>
         </div>
 
         {/* ── Player Mode ── */}
@@ -93,6 +105,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
             <option value="hvbot">Human vs Bot</option>
             <option value="botvbot">Bot vs Bot</option>
           </select>
+          <p className="mode-description">{MODE_DESCRIPTIONS[config.mode]}</p>
         </div>
 
         {(config.mode === 'hvbot' || config.mode === 'botvbot') && (

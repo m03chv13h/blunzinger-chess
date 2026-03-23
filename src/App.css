@@ -13,27 +13,16 @@ body {
   min-height: 100vh;
 }
 
-.app {
-  max-width: 1200px;
-  margin: 0 auto;
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-with-sidebar {
+  flex: 1;
+  margin-left: 220px;
   padding: 16px;
-}
-
-.app-header {
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 28px;
-  color: #1a1a2e;
-}
-
-.subtitle {
-  margin: 4px 0 0 0;
-  color: #666;
-  font-size: 14px;
+  max-width: 1200px;
 }
 
 .app-main {
@@ -63,6 +52,12 @@ body {
 }
 
 @media (max-width: 900px) {
+  .app-with-sidebar {
+    margin-left: 0;
+    padding: 16px;
+    padding-top: 56px;
+  }
+
   .app-main {
     flex-direction: column;
     align-items: center;
