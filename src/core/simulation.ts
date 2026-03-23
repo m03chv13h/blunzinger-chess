@@ -24,7 +24,11 @@ import {
 } from './blunziger/engine';
 import { selectBotMove, shouldBotReport } from '../bot/botEngine';
 
-/** Maximum number of plies before forcing a draw to prevent infinite games. */
+/**
+ * Maximum number of plies (half-moves) before forcing a draw to prevent
+ * infinite games.  600 plies ≈ 300 full moves — well beyond the longest
+ * standard games (which rarely exceed 200 full moves).
+ */
 const MAX_PLIES = 600;
 
 export interface SimulationProgress {

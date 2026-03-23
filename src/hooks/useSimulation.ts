@@ -118,12 +118,13 @@ export function useSimulation(): UseSimulationReturn {
         return updated;
       });
 
-      // Use setTimeout(0) to yield to the browser between games
+      // Yield to the browser between games so the UI can render updates
       setTimeout(runNext, 0);
     };
 
-    // Start the first game after a brief delay
-    setTimeout(runNext, 10);
+    // Kick off the first game on the next microtask to allow the React
+    // state update (game list initialisation) to render first.
+    setTimeout(runNext, 0);
 
     return () => {
       cancelledRef.current = true;
