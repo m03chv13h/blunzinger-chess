@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Sidebar.css';
 
-export type NavSection = 'quick-start' | 'new-game' | 'analyse' | 'rules';
+export type NavSection = 'quick-start' | 'new-game' | 'analyse' | 'simulate' | 'rules';
 
 interface SidebarProps {
   activeSection: NavSection | 'playing';
@@ -63,6 +63,15 @@ export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) 
               <span className="sidebar-icon">📊</span>
               <span className="sidebar-label">Analyse</span>
               {gameCount > 0 && <span className="sidebar-badge">{gameCount}</span>}
+            </button>
+          </li>
+          <li>
+            <button
+              className={`sidebar-item ${activeSection === 'simulate' ? 'sidebar-item--active' : ''}`}
+              onClick={() => handleNav('simulate')}
+            >
+              <span className="sidebar-icon">🔬</span>
+              <span className="sidebar-label">Simulate</span>
             </button>
           </li>
           <li>

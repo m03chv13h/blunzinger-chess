@@ -16,17 +16,22 @@ import { NewGameSetupScreen } from './components/NewGameSetupScreen';
 import { RulesPanel } from './components/RulesPanel';
 import { RulesPage } from './components/RulesPage';
 import { AnalyseSection } from './components/AnalyseSection';
+import { SimulationSetupScreen } from './components/SimulationSetupScreen';
+import { SimulationView } from './components/SimulationView';
 import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
+import { useSimulation } from './hooks/useSimulation';
 import './App.css';
 
 type AppScreen =
   | { type: 'quick-start' }
   | { type: 'new-game' }
   | { type: 'analyse' }
+  | { type: 'simulate' }
+  | { type: 'simulation-running' }
   | { type: 'rules' }
   | { type: 'playing'; config: GameSetupConfig };
 
@@ -35,6 +40,8 @@ function App() {
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
+
+  const simulation = useSimulation();
 
   const activeConfig = screen.type === 'playing' ? screen.config : lastConfig;
   const matchConfig = buildMatchConfig(activeConfig);
@@ -148,6 +155,10 @@ function App() {
   };
 
   const handleSelectGameForReview = (record: GameRecord) => {
+    // If reviewing a game from a running simulation, flush completed records first
+    if (screen.type === 'simulation-running' && simulation.completedRecords.length > 0) {
+      setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
+    }
     setLastConfig(record.config);
     setScreen({ type: 'playing', config: record.config });
     game.loadGameForReview(record);
@@ -156,11 +167,33 @@ function App() {
     prevSavedRef.current = true;
   };
 
+  const handleStartSimulation = (config: GameSetupConfig, count: number) => {
+    simulation.start(config, count);
+    setScreen({ type: 'simulation-running' });
+  };
+
+  const handleSimulationBackToSetup = () => {
+    // Flush completed simulation records into game history for analysis
+    if (simulation.completedRecords.length > 0) {
+      setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
+    }
+    setScreen({ type: 'simulate' });
+  };
+
   const activeSection: NavSection | 'playing' =
-    screen.type === 'playing' ? 'playing' : screen.type;
+    screen.type === 'playing' ? 'playing'
+    : screen.type === 'simulation-running' ? 'simulate'
+    : screen.type;
 
   const handleNavigate = (section: NavSection) => {
     flushPendingRecord();
+    // If leaving a running simulation, stop it and flush records
+    if (screen.type === 'simulation-running') {
+      simulation.stop();
+      if (simulation.completedRecords.length > 0) {
+        setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
+      }
+    }
     setScreen({ type: section });
   };
 
@@ -188,6 +221,20 @@ function App() {
               <AnalyseSection
                 games={gameHistory}
                 onSelectGame={handleSelectGameForReview}
+              />
+            )}
+            {screen.type === 'simulate' && (
+              <SimulationSetupScreen onStart={handleStartSimulation} />
+            )}
+            {screen.type === 'simulation-running' && simulation.config && (
+              <SimulationView
+                config={simulation.config}
+                games={simulation.games}
+                standing={simulation.standing}
+                running={simulation.running}
+                onStop={simulation.stop}
+                onAnalyseGame={handleSelectGameForReview}
+                onBackToSetup={handleSimulationBackToSetup}
               />
             )}
             {screen.type === 'rules' && <RulesPage />}
