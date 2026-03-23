@@ -156,6 +156,33 @@ describe('App game flow', () => {
       // More specifically, verify King of the Hill label exists
       expect(within(summary).getByText('King of the Hill')).toBeInTheDocument();
     });
+
+    it('shows engine name in summary for Human vs Bot game', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'hvbot' } });
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summary).getByText('Engine')).toBeInTheDocument();
+      expect(within(summary).getByText('Heuristic')).toBeInTheDocument();
+    });
+
+    it('shows per-side engine names in summary for Bot vs Bot game', () => {
+      fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'botvbot' } });
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summary).getByText('Engine (White)')).toBeInTheDocument();
+      expect(within(summary).getByText('Engine (Black)')).toBeInTheDocument();
+    });
+
+    it('does not show engine name in summary for Human vs Human game', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summary).queryByText('Engine')).not.toBeInTheDocument();
+      expect(within(summary).queryByText('Engine (White)')).not.toBeInTheDocument();
+      expect(within(summary).queryByText('Engine (Black)')).not.toBeInTheDocument();
+    });
   });
 
   describe('CLOCK SETUP', () => {
