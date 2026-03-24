@@ -598,8 +598,8 @@ export function applyMoveWithRules(
 
   // Carry forward an existing reportable violation when the violating side
   // is making consecutive moves (extra turns) and no new violation occurred.
-  if (!result && !violationForState && state.pendingViolation?.reportable &&
-      state.pendingViolation.violatingSide === movingSide) {
+  if (!result && !violationForState && state.pendingViolation &&
+      state.pendingViolation.reportable && state.pendingViolation.violatingSide === movingSide) {
     violationForState = state.pendingViolation;
   }
 
