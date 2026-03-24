@@ -75,4 +75,27 @@ describe('Simulation UI', () => {
     expect(screen.getByLabelText('King of the Hill')).toBeInTheDocument();
     expect(screen.getByLabelText('Double Check Pressure')).toBeInTheDocument();
   });
+
+  it('shows per-side engine selectors', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    expect(screen.getByLabelText('Engine (White)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Engine (Black)')).toBeInTheDocument();
+  });
+
+  it('defaults engine selectors to Heuristic', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    const whiteSelect = screen.getByLabelText('Engine (White)') as HTMLSelectElement;
+    const blackSelect = screen.getByLabelText('Engine (Black)') as HTMLSelectElement;
+    expect(whiteSelect.value).toBe('heuristic');
+    expect(blackSelect.value).toBe('heuristic');
+  });
+
+  it('allows selecting different engines for each side', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    const whiteSelect = screen.getByLabelText('Engine (White)') as HTMLSelectElement;
+    const blackSelect = screen.getByLabelText('Engine (Black)') as HTMLSelectElement;
+    fireEvent.change(whiteSelect, { target: { value: 'blunznforön' } });
+    expect(whiteSelect.value).toBe('blunznforön');
+    expect(blackSelect.value).toBe('heuristic');
+  });
 });

@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import type { GameSetupConfig, VariantMode, GameType, BotLevel } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
+import type { EngineId, EngineInfo } from '../core/engine/types';
+import { getAllEngineInfos } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import './SimulationSection.css';
+
+function formatEngineName(info: EngineInfo): string {
+  return info.availability === 'coming_soon' ? `${info.name} (coming soon)` : info.name;
+}
 
 interface SimulationSetupScreenProps {
   onStart: (config: GameSetupConfig, count: number) => void;
@@ -24,6 +30,7 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
   const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
   const isReportMode = config.gameType === 'report_incorrectness';
   const isPenaltyMode = config.gameType === 'penalty_on_miss';
+  const engineInfos = getAllEngineInfos();
 
   const handleStart = () => {
     onStart(config, gameCount);
@@ -59,6 +66,44 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
             <option value="easy">Easy (Random)</option>
             <option value="medium">Medium (Heuristic)</option>
             <option value="hard">Hard (Minimax)</option>
+          </select>
+        </div>
+
+        <div className="sim-setup-group">
+          <label htmlFor="sim-engine-white-select">Engine (White)</label>
+          <select
+            id="sim-engine-white-select"
+            value={config.engineIdWhite}
+            onChange={(e) => update({ engineIdWhite: e.target.value as EngineId })}
+          >
+            {engineInfos.map((info) => (
+              <option
+                key={info.id}
+                value={info.id}
+                disabled={info.availability !== 'available'}
+              >
+                {formatEngineName(info)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sim-setup-group">
+          <label htmlFor="sim-engine-black-select">Engine (Black)</label>
+          <select
+            id="sim-engine-black-select"
+            value={config.engineIdBlack}
+            onChange={(e) => update({ engineIdBlack: e.target.value as EngineId })}
+          >
+            {engineInfos.map((info) => (
+              <option
+                key={info.id}
+                value={info.id}
+                disabled={info.availability !== 'available'}
+              >
+                {formatEngineName(info)}
+              </option>
+            ))}
           </select>
         </div>
 
