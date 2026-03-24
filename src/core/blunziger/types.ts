@@ -284,6 +284,8 @@ export interface GameState {
   pieceRemovals: PieceRemovalEntry[];
   /** History of time reductions applied as penalty (for display in move list). */
   timeReductions: TimeReductionEntry[];
+  /** True when the current side to move is in an extra (bonus) turn granted by a penalty. */
+  inExtraTurn: boolean;
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────

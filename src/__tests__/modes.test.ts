@@ -311,6 +311,180 @@ describe('Extra Move Penalty', () => {
   });
 });
 
+// ── Extra Turn Violation Reporting ────────────────────────────────────
+
+describe('Extra Turn Violation Reporting', () => {
+  const penaltyConfig: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    gameType: 'penalty_on_miss',
+    enableAdditionalMovePenalty: true,
+  });
+
+  // After 1.e4 f5 2.d3 (White violates: Qh5+ available), Black gets 1 extra move.
+  // After Black plays e6 (normal move), the extra is consumed and Black moves again.
+  // In the extra-turn position Black can play Bb4+ (checking move).
+  // Playing d6 instead is a violation that should be reportable.
+
+  it('inExtraTurn is true during the extra turn', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White violates
+    expect(state.inExtraTurn).toBe(false);
+
+    state = applyMoveWithRules(state, 'e6'); // Black normal move, consumes extra
+    expect(state.inExtraTurn).toBe(true);
+    expect(state.sideToMove).toBe('b');
+  });
+
+  it('violation during extra turn is reportable (classic blunzinger)', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White violates
+    state = applyMoveWithRules(state, 'e6'); // Black normal move
+    expect(state.inExtraTurn).toBe(true);
+
+    // Verify Bb4+ is available
+    const checks = getCheckingMoves(state.fen);
+    expect(checks.length).toBeGreaterThan(0);
+
+    // Black plays d6 instead of Bb4+ → violation during extra turn
+    state = applyMoveWithRules(state, 'd6');
+    expect(state.result).toBeNull();
+    expect(state.pendingViolation).not.toBeNull();
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.pendingViolation!.violationType).toBe('missed_check');
+    expect(state.sideToMove).toBe('w');
+  });
+
+  it('no auto-penalties applied for violation during extra turn', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    state = applyMoveWithRules(state, 'e6');
+    state = applyMoveWithRules(state, 'd6'); // Extra turn violation
+
+    // No additional moves should be granted (no auto-penalty)
+    expect(state.extraTurns.pendingExtraMovesWhite).toBe(0);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(0);
+  });
+
+  it('opponent can report violation from extra turn', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    state = applyMoveWithRules(state, 'e6');
+    state = applyMoveWithRules(state, 'd6'); // Extra turn violation
+
+    expect(canReport(state, 'w')).toBe(true);
+    expect(canReport(state, 'b')).toBe(false);
+
+    state = reportViolation(state, 'w');
+    expect(state.result).not.toBeNull();
+    expect(state.result!.winner).toBe('w');
+    expect(state.result!.reason).toBe('valid-report');
+  });
+
+  it('violation expires if opponent plays instead of reporting', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    state = applyMoveWithRules(state, 'e6');
+    state = applyMoveWithRules(state, 'd6'); // Extra turn violation
+    expect(state.pendingViolation!.reportable).toBe(true);
+
+    // White plays instead of reporting → violation should expire
+    state = applyMoveWithRules(state, 'a3');
+    expect(state.pendingViolation?.reportable ?? false).toBe(false);
+    expect(canReport(state, 'b')).toBe(false);
+  });
+
+  it('reportable violation persists across consecutive extra turns', () => {
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      gameType: 'penalty_on_miss',
+      enableAdditionalMovePenalty: true,
+      additionalMoveCount: 2,
+    });
+    let state = createInitialState('hvh', cfg);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White violates → 2 extra
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(2);
+
+    state = applyMoveWithRules(state, 'e6'); // Normal move, extra consumed → 1
+    expect(state.inExtraTurn).toBe(true);
+    expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+
+    // Black violates on extra move 1 (d6 instead of Bb4+)
+    state = applyMoveWithRules(state, 'd6');
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.inExtraTurn).toBe(true); // Still has another extra
+    expect(state.sideToMove).toBe('b');
+
+    // Black plays extra move 2 (violation should persist)
+    state = applyMoveWithRules(state, 'a6');
+    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.sideToMove).toBe('w');
+    expect(state.inExtraTurn).toBe(false);
+
+    // White can now report
+    expect(canReport(state, 'w')).toBe(true);
+  });
+
+  it('inExtraTurn is false after extra turns are consumed', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3');
+    state = applyMoveWithRules(state, 'e6'); // consumes extra
+    expect(state.inExtraTurn).toBe(true);
+
+    state = applyMoveWithRules(state, 'd6'); // extra move
+    expect(state.inExtraTurn).toBe(false);
+    expect(state.sideToMove).toBe('w');
+  });
+
+  describe('reverse blunzinger extra turn reporting', () => {
+    const reversePenaltyConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'reverse_blunzinger',
+      gameType: 'penalty_on_miss',
+      enableAdditionalMovePenalty: true,
+    });
+
+    it('giving check during extra turn is reportable (reverse blunzinger)', () => {
+      let state = createInitialState('hvh', reversePenaltyConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      // White gives check (Qh5+) when non-checking moves exist → violation
+      state = applyMoveWithRules(state, { from: 'd1', to: 'h5' });
+      expect(state.pendingViolation!.violationType).toBe('gave_forbidden_check');
+      expect(state.extraTurns.pendingExtraMovesBlack).toBe(1);
+
+      state = applyMoveWithRules(state, 'g6'); // Black normal move
+      expect(state.inExtraTurn).toBe(true);
+
+      // During extra turn, if Black gives check when avoidable → reportable
+      const checks = getCheckingMoves(state.fen);
+      if (checks.length > 0) {
+        const nonChecks = getNonCheckingMoves(state.fen);
+        if (nonChecks.length > 0) {
+          // Play a checking move (violation in reverse mode)
+          state = applyMoveWithRules(state, checks[0].san);
+          expect(state.pendingViolation).not.toBeNull();
+          expect(state.pendingViolation!.reportable).toBe(true);
+          expect(state.pendingViolation!.violationType).toBe('gave_forbidden_check');
+        }
+      }
+    });
+  });
+});
+
 // ── Penalty + Clock (Time Penalty) ────────────────────────────────────
 
 describe('Extra Move Penalty + Clock time reduction', () => {
