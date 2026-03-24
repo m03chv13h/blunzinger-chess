@@ -354,6 +354,7 @@ export function createInitialState(
     missedChecks: [],
     pieceRemovals: [],
     timeReductions: [],
+    inExtraTurn: false,
   };
 }
 
@@ -377,12 +378,15 @@ export function createInitialState(
  *    - DCP overlay + severe → immediate loss
  *    - else → create reportable miss state
  * 7. If violation and game type is Penalty on Miss:
- *    - apply penalties in deterministic order:
+ *    - If violation occurs during an extra (bonus) turn, make it reportable
+ *      (opponent can report when their turn comes) — no auto-penalties.
+ *    - Otherwise, apply penalties in deterministic order:
  *      a. Additional move (opponent gets extra consecutive turns)
  *      b. Piece removal (pending selection by opponent)
  *      c. Time reduction (violator's clock reduced; if ≤0 → immediate loss)
  * 8. If penalty effects create terminal condition: resolve and end
- * 9. Handle extra-turn state (only when no pending piece removal)
+ * 9. Carry forward reportable violations during consecutive extra-turn moves
+ * 10. Handle extra-turn state (only when no pending piece removal)
  *
  * Clock interaction:
  * - This pure function does NOT manage wall-clock time; it only applies
@@ -535,8 +539,12 @@ export function applyMoveWithRules(
         // Normal reportable violation
         violationForState = { ...newViolation, reportable: true };
       }
+    } else if (state.inExtraTurn) {
+      // Penalty on Miss — violation during an extra (bonus) turn:
+      // make it reportable so the opponent can report when their turn comes.
+      violationForState = { ...newViolation, reportable: true };
     } else {
-      // Penalty on Miss
+      // Penalty on Miss — normal move
       violationForState = { ...newViolation, reportable: false };
 
       // 1. Additional move penalty
@@ -588,9 +596,17 @@ export function applyMoveWithRules(
     }
   }
 
+  // Carry forward an existing reportable violation when the violating side
+  // is making consecutive moves (extra turns) and no new violation occurred.
+  if (!result && !violationForState && state.pendingViolation?.reportable &&
+      state.pendingViolation.violatingSide === movingSide) {
+    violationForState = state.pendingViolation;
+  }
+
   // Determine effective side to move (may stay same for extra turns)
   let effectiveSideToMove = chess.turn();
   let effectiveFen = newFen;
+  let nextInExtraTurn = false;
   if (!result && !pendingPieceRemoval) {
     // If the side that just moved has pending extra moves, they keep moving
     // and we consume one extra move in the process
@@ -600,6 +616,7 @@ export function applyMoveWithRules(
       effectiveSideToMove = movingSide;
       // Swap the active color in the FEN so chess.js accepts the extra move
       effectiveFen = swapFenTurn(newFen);
+      nextInExtraTurn = true;
     }
   }
 
@@ -621,6 +638,7 @@ export function applyMoveWithRules(
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
+    inExtraTurn: nextInExtraTurn,
   };
 }
 
@@ -628,11 +646,13 @@ export function applyMoveWithRules(
 
 /**
  * Can the given side report a missed violation?
- * Only available when game type is Report Incorrectness and a reportable violation exists.
+ * Available when a reportable violation exists and the reporting side is
+ * the opponent whose turn it is. In Report Incorrectness mode, violations
+ * on normal moves are reportable. In Penalty on Miss mode, violations that
+ * occur during an opponent's extra (bonus) turn are reportable.
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
-  if (state.config.gameType !== 'report_incorrectness') return false;
   if (!state.pendingViolation) return false;
   if (!state.pendingViolation.reportable) return false;
   if (state.pendingViolation.violatingSide === reportingSide) return false;
