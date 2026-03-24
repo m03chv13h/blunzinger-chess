@@ -14,7 +14,7 @@ import {
   selectBestPieceForRemoval,
   getCheckCreatingRemovals,
 } from '../core/blunziger/engine';
-import type { MatchConfig, Square, GameState, PendingPieceRemoval } from '../core/blunziger/types';
+import type { MatchConfig, Square, GameState } from '../core/blunziger/types';
 import {
   VARIANT_MODE_DEFINITIONS,
   getVariantModeDefinition,

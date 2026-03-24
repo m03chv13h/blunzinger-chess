@@ -164,7 +164,8 @@ export interface ViolationRecord {
   checkingMoves: Move[];
   /** The moves the player was required to choose from. */
   requiredMoves: Move[];
-  actualMove: Move;
+  /** The move that was actually played (not set for piece removal violations). */
+  actualMove?: Move;
   reportable: boolean;
   violationType: ViolationType;
   /** True when Double Check Pressure overlay is active and ≥2 required moves exist. */
