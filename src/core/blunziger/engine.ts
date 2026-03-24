@@ -115,16 +115,59 @@ const REMOVAL_PIECE_VALUES: Record<string, number> = {
 };
 
 /**
- * Select the best piece to remove from the target side (bot heuristic).
- * Prefers highest-value piece. Deterministic tie-breaking by square name.
+ * Determine which piece removals from the given squares would put the
+ * target side's king in check (discovered check via removal).
  */
-export function selectBestPieceForRemoval(fen: string, targetSide: Color): Square | null {
+export function getCheckCreatingRemovals(fen: string, targetSide: Color, removableSquares: Square[]): Square[] {
+  const chooserSide: Color = targetSide === 'w' ? 'b' : 'w';
+  const result: Square[] = [];
+  for (const sq of removableSquares) {
+    const chess = new Chess(fen);
+    chess.remove(sq);
+    // Find target king square and check if it's attacked by the chooser's pieces
+    const board = chess.board();
+    let kingSquare: Square | null = null;
+    for (const row of board) {
+      for (const cell of row) {
+        if (cell && cell.color === targetSide && cell.type === 'k') {
+          kingSquare = cell.square as Square;
+        }
+      }
+    }
+    if (kingSquare && chess.isAttacked(kingSquare, chooserSide)) {
+      result.push(sq);
+    }
+  }
+  return result;
+}
+
+/**
+ * Select the best piece to remove from the target side (bot heuristic).
+ * Respects variant rules: in classic mode, prefers check-creating removals;
+ * in reverse mode, avoids them. Within rule-compliant candidates, prefers
+ * highest-value piece. Deterministic tie-breaking by square name.
+ */
+export function selectBestPieceForRemoval(fen: string, targetSide: Color, variantMode?: VariantMode): Square | null {
   const removable = getRemovablePieces(fen, targetSide);
   if (removable.length === 0) return null;
+
+  let candidates = removable;
+  if (variantMode) {
+    const checkCreating = getCheckCreatingRemovals(fen, targetSide, removable);
+    if (isClassicForcedCheck(variantMode)) {
+      // Classic: must choose a check-creating removal if one exists
+      if (checkCreating.length > 0) candidates = checkCreating;
+    } else {
+      // Reverse: must avoid check-creating removals if alternatives exist
+      const nonCheckCreating = removable.filter((sq) => !checkCreating.includes(sq));
+      if (nonCheckCreating.length > 0 && checkCreating.length > 0) candidates = nonCheckCreating;
+    }
+  }
+
   const chess = new Chess(fen);
-  let bestSquare = removable[0];
+  let bestSquare = candidates[0];
   let bestValue = 0;
-  for (const sq of removable) {
+  for (const sq of candidates) {
     const piece = chess.get(sq);
     if (piece) {
       const val = REMOVAL_PIECE_VALUES[piece.type] ?? 0;
@@ -142,6 +185,11 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color): Squar
  * Returns a new game state with the piece removed.
  * If more removals remain, keeps the pending piece removal state.
  * If the removal leaves the game in a terminal state, that is evaluated.
+ *
+ * Variant check rules apply to piece removal: in classic mode the chooser
+ * must pick a removal that creates check if one exists; in reverse mode the
+ * chooser must avoid creating check if alternatives exist. Violations are
+ * made reportable so the target side can report them.
  *
  * Clock behavior: piece removal does not modify clocks. The clock tick
  * in useGame.ts continues to run for the chooser side (= sideToMove)
@@ -200,10 +248,58 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     }
   }
 
+  // ── Detect piece-removal check violation ──
+  // Variant rules extend to the piece-removal phase: in classic mode the
+  // chooser must create a check via removal when possible; in reverse mode
+  // the chooser must avoid it.
+  let newPendingViolation = state.pendingViolation;
+  if (!result) {
+    const variantMode = state.config.variantMode;
+    const checkCreating = getCheckCreatingRemovals(state.fen, targetSide, removableSquares);
+
+    if (isClassicForcedCheck(variantMode)) {
+      // Classic: chooser must pick a check-creating removal if one exists
+      if (checkCreating.length > 0 && !checkCreating.includes(square)) {
+        newPendingViolation = {
+          violatingSide: chooserSide,
+          moveIndex: triggerMoveIndex,
+          fenBeforeMove: state.fen,
+          checkingMoves: [],
+          requiredMoves: [],
+          actualMove: {} as Move,
+          reportable: true,
+          violationType: 'missed_check_removal',
+          severe: false,
+          requiredRemovalSquares: checkCreating,
+          chosenRemovalSquare: square,
+        };
+      }
+    } else {
+      // Reverse: chooser must avoid check-creating removal if alternatives exist
+      const nonCheckCreating = removableSquares.filter((sq) => !checkCreating.includes(sq));
+      if (checkCreating.includes(square) && nonCheckCreating.length > 0) {
+        newPendingViolation = {
+          violatingSide: chooserSide,
+          moveIndex: triggerMoveIndex,
+          fenBeforeMove: state.fen,
+          checkingMoves: [],
+          requiredMoves: [],
+          actualMove: {} as Move,
+          reportable: true,
+          violationType: 'gave_forbidden_check_removal',
+          severe: false,
+          requiredRemovalSquares: nonCheckCreating,
+          chosenRemovalSquare: square,
+        };
+      }
+    }
+  }
+
   return {
     ...state,
     fen: newFen,
     pendingPieceRemoval: newPendingPieceRemoval,
+    pendingViolation: newPendingViolation,
     result,
     positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null }],
     pieceRemovals: [...state.pieceRemovals, { moveIndex: triggerMoveIndex, pieceType: piece.type, pieceColor: piece.color }],
@@ -667,15 +763,27 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
   if (canReport(state, reportingSide)) {
     const violation = state.pendingViolation!;
     const violatorLabel = violation.violatingSide === 'w' ? 'White' : 'Black';
-    const isReverse = violation.violationType === 'gave_forbidden_check';
+    const isReverse = violation.violationType === 'gave_forbidden_check' || violation.violationType === 'gave_forbidden_check_removal';
+    const isRemoval = violation.violationType === 'missed_check_removal' || violation.violationType === 'gave_forbidden_check_removal';
 
-    const detailMsg = isReverse
-      ? `${violatorLabel} gave check when non-checking moves were available. Required non-checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`
-      : `${violatorLabel} missed a forced check. Available checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`;
-
-    const feedbackMsg = isReverse
-      ? 'Correct! The opponent gave check when they should have avoided it.'
-      : 'Correct! The opponent missed a forced check.';
+    let detailMsg: string;
+    let feedbackMsg: string;
+    if (isRemoval) {
+      const requiredSquares = violation.requiredRemovalSquares ?? [];
+      detailMsg = isReverse
+        ? `${violatorLabel} removed a piece that created check when non-check-creating removals were available. Required removal square(s): ${requiredSquares.join(', ')}`
+        : `${violatorLabel} missed a removal that would create check. Available check-creating removal square(s): ${requiredSquares.join(', ')}`;
+      feedbackMsg = isReverse
+        ? 'Correct! The opponent removed a piece that created check when they should have avoided it.'
+        : 'Correct! The opponent missed a piece removal that would create check.';
+    } else {
+      detailMsg = isReverse
+        ? `${violatorLabel} gave check when non-checking moves were available. Required non-checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`
+        : `${violatorLabel} missed a forced check. Available checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`;
+      feedbackMsg = isReverse
+        ? 'Correct! The opponent gave check when they should have avoided it.'
+        : 'Correct! The opponent missed a forced check.';
+    }
 
     const reportEntry = { moveIndex: violation.moveIndex, reportingSide, valid: true };
 
