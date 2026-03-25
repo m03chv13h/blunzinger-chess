@@ -348,6 +348,7 @@ export function useGame(
         const targetSquare = selectBestPieceForRemoval(
           current.fen,
           current.pendingPieceRemoval.targetSide,
+          current.config.variantMode,
         );
         if (targetSquare) {
           const newState = applyPieceRemoval(current, targetSquare);

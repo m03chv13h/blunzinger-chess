@@ -151,7 +151,11 @@ export interface GameResult {
   detail?: string;
 }
 
-export type ViolationType = 'missed_check' | 'gave_forbidden_check';
+export type ViolationType =
+  | 'missed_check'
+  | 'gave_forbidden_check'
+  | 'missed_check_removal'
+  | 'gave_forbidden_check_removal';
 
 export interface ViolationRecord {
   violatingSide: Color;
@@ -160,11 +164,16 @@ export interface ViolationRecord {
   checkingMoves: Move[];
   /** The moves the player was required to choose from. */
   requiredMoves: Move[];
-  actualMove: Move;
+  /** The move that was actually played (not set for piece removal violations). */
+  actualMove?: Move;
   reportable: boolean;
   violationType: ViolationType;
   /** True when Double Check Pressure overlay is active and ≥2 required moves exist. */
   severe: boolean;
+  /** Squares whose removal would satisfy the variant rule (piece removal violations only). */
+  requiredRemovalSquares?: Square[];
+  /** The square that was actually chosen for removal (piece removal violations only). */
+  chosenRemovalSquare?: Square;
 }
 
 export interface InvalidReportCounts {

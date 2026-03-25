@@ -70,6 +70,7 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
       const targetSquare = selectBestPieceForRemoval(
         state.fen,
         state.pendingPieceRemoval.targetSide,
+        state.config.variantMode,
       );
       if (targetSquare) {
         state = applyPieceRemoval(state, targetSquare);
