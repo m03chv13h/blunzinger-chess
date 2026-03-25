@@ -429,7 +429,7 @@ export function useGame(
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [state.fen, state.result, state.mode, state.botColor, state.botLevel, paused, state.pendingPieceRemoval]);
+  }, [state.fen, state.sideToMove, state.result, state.mode, state.botColor, state.botLevel, paused, state.pendingPieceRemoval]);
 
   return {
     state,
