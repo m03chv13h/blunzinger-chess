@@ -236,6 +236,74 @@ describe('Bot Engine', () => {
       // In penalty_on_miss mode, violations are not reportable
       expect(canReport(s, 'b')).toBe(false);
     });
+
+    it('should detect and report when human gives forbidden check in reverse_blunzinger mode', () => {
+      const config = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        variantMode: 'reverse_blunzinger',
+      });
+      const state = createInitialState('hvbot', config, 'hard', 'b');
+
+      // 1. e4 (no checking moves from starting position → no violation)
+      let s = applyMoveWithRules(state, 'e4');
+      expect(s.pendingViolation).toBeNull();
+      // 1... f5 (no checking moves for black → no violation)
+      s = applyMoveWithRules(s, 'f5');
+      expect(s.pendingViolation).toBeNull();
+      // 2. Qh5+ (human gives check when non-checking moves exist → violation)
+      s = applyMoveWithRules(s, { from: 'd1', to: 'h5' });
+
+      expect(s.pendingViolation).not.toBeNull();
+      expect(s.pendingViolation!.reportable).toBe(true);
+      expect(s.pendingViolation!.violationType).toBe('gave_forbidden_check');
+      expect(s.pendingViolation!.violatingSide).toBe('w');
+      expect(s.sideToMove).toBe('b');
+
+      // Bot can report
+      expect(canReport(s, 'b')).toBe(true);
+      // shouldBotReport always returns true for gave_forbidden_check (all levels)
+      expect(shouldBotReport('easy', s.pendingViolation!)).toBe(true);
+      expect(shouldBotReport('medium', s.pendingViolation!)).toBe(true);
+      expect(shouldBotReport('hard', s.pendingViolation!)).toBe(true);
+
+      // Bot reports → game over, bot wins
+      const reported = reportViolation(s, 'b');
+      expect(reported.result).not.toBeNull();
+      expect(reported.result!.winner).toBe('b');
+      expect(reported.result!.reason).toBe('valid-report');
+    });
+
+    it('hard bot always reports missed_check via shouldBotReport integration', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG });
+      const state = createInitialState('hvbot', config, 'hard', 'b');
+
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // misses Qh5+
+
+      expect(canReport(s, 'b')).toBe(true);
+      expect(shouldBotReport('hard', s.pendingViolation!)).toBe(true);
+
+      const reported = reportViolation(s, 'b');
+      expect(reported.result!.winner).toBe('b');
+      expect(reported.result!.reason).toBe('valid-report');
+    });
+
+    it('medium bot always reports missed_check via shouldBotReport integration', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG });
+      const state = createInitialState('hvbot', config, 'medium', 'b');
+
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // misses Qh5+
+
+      expect(canReport(s, 'b')).toBe(true);
+      expect(shouldBotReport('medium', s.pendingViolation!)).toBe(true);
+
+      const reported = reportViolation(s, 'b');
+      expect(reported.result!.winner).toBe('b');
+      expect(reported.result!.reason).toBe('valid-report');
+    });
   });
 
   describe('shouldBotReport', () => {
@@ -331,6 +399,30 @@ describe('Bot Engine', () => {
       const v = makeViolation();
       expect(shouldBotReport('easy', v)).toBe(false);
       vi.restoreAllMocks();
+    });
+
+    it('easy bot always reports gave_forbidden_check_removal violations', () => {
+      const v = makeViolation({
+        violationType: 'gave_forbidden_check_removal',
+        checkingMoves: [],
+        requiredMoves: [],
+        requiredRemovalSquares: ['a7', 'b7'] as ViolationRecord['requiredRemovalSquares'],
+      });
+      for (let i = 0; i < 50; i++) {
+        expect(shouldBotReport('easy', v)).toBe(true);
+      }
+    });
+
+    it('hard bot always reports missed_check_removal violations', () => {
+      const v = makeViolation({
+        violationType: 'missed_check_removal',
+        checkingMoves: [],
+        requiredMoves: [],
+        requiredRemovalSquares: ['a7'] as ViolationRecord['requiredRemovalSquares'],
+      });
+      for (let i = 0; i < 50; i++) {
+        expect(shouldBotReport('hard', v)).toBe(true);
+      }
     });
   });
 });

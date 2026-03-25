@@ -29,10 +29,20 @@ export function shouldBotReport(level: BotLevel, violation: ViolationRecord): bo
   if (level !== 'easy') return true;
 
   // In reverse mode the opponent gave check — the bot always notices that.
-  if (violation.violationType === 'gave_forbidden_check') return true;
+  // This applies both to regular moves and piece removal violations.
+  if (
+    violation.violationType === 'gave_forbidden_check' ||
+    violation.violationType === 'gave_forbidden_check_removal'
+  ) {
+    return true;
+  }
 
   // For missed checks: more available checking moves → easier to notice.
-  const checkCount = violation.checkingMoves.length;
+  // For piece removal violations, use the number of required removal squares
+  // since checkingMoves is empty for removal violations.
+  const checkCount = violation.violationType === 'missed_check_removal'
+    ? (violation.requiredRemovalSquares?.length ?? 0)
+    : violation.checkingMoves.length;
   const reportProbability = Math.min(
     EASY_BOT_MAX_REPORT_PROBABILITY,
     EASY_BOT_BASE_REPORT_PROBABILITY + checkCount * EASY_BOT_PROBABILITY_PER_CHECK,
