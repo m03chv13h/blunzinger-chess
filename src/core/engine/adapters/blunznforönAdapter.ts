@@ -27,8 +27,9 @@ import { heuristicAnalysis } from './shared';
 const INFO: EngineInfo = {
   id: 'blunznforön',
   name: 'Blunznforön',
-  description: 'Fairy-Stockfish variant engine integration',
-  availability: 'available',
+  description:
+    'Fairy-Stockfish variant engine — will provide deep multi-PV search with native variant support. Currently awaiting WASM integration.',
+  availability: 'coming_soon',
   supportsEvaluation: true,
   supportsBotPlay: true,
   supportsVariantAwareness: true,

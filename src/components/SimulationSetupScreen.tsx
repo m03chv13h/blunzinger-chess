@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { GameSetupConfig, VariantMode, GameType, BotLevel } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
 import type { EngineId, EngineInfo } from '../core/engine/types';
-import { getAllEngineInfos } from '../core/engine/engineRegistry';
+import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import './SimulationSection.css';
 
@@ -86,6 +86,7 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
               </option>
             ))}
           </select>
+          <p className="sim-description">{getEngineInfo(config.engineIdWhite)?.description}</p>
         </div>
 
         <div className="sim-setup-group">
@@ -105,6 +106,7 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
               </option>
             ))}
           </select>
+          <p className="sim-description">{getEngineInfo(config.engineIdBlack)?.description}</p>
         </div>
 
         <div className="sim-setup-group">

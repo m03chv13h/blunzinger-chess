@@ -229,7 +229,7 @@ Review preserves the original match configuration. Evaluation during review uses
 
 - **Easy**: Random legal move (respecting mode rules)
 - **Medium**: Heuristic evaluation (captures, checks, central control)
-- **Hard**: Minimax with alpha-beta pruning (depth 3)
+- **Hard**: Minimax with alpha-beta pruning (depth 2)
 
 ### Bot Mode Awareness
 
@@ -240,6 +240,26 @@ Bots obey all mode restrictions:
 - **Penalty modes**: Functions correctly with penalties (extra turns, piece removal, time reduction)
 - **Clock**: Consumes time normally
 - **Piece removal (chooser)**: Automatically selects highest-value removable piece
+
+## Engines
+
+Bot move selection uses a built-in move picker (easy/medium/hard levels above). The **engine** system is a separate, pluggable layer that powers the optional **evaluation bar** and provides best-move hints.
+
+| Engine | Status | Description |
+|--------|--------|-------------|
+| **Heuristic** | ✅ Available | Built-in lightweight evaluator using material balance and mobility. Powers the evaluation bar and 1-ply best-move hints. |
+| **Blunznforön** | ⏳ Coming soon | Fairy-Stockfish variant engine — will provide deep multi-PV search with native variant support. Currently awaiting WASM integration. |
+| **Blunznfish** | ⏳ Coming soon | Custom engine built specifically for Blunziger Chess variants with native rule awareness. Not yet implemented. |
+
+### Engine Architecture
+
+Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.ts`) and are registered in a pluggable registry. Each engine can provide:
+
+- **Position analysis** — evaluate who is better with a centipawn score
+- **Best-move hints** — suggest the best move in UCI notation
+- **Variant awareness** — factor variant rules into analysis (planned for Blunznforön / Blunznfish)
+
+Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunziger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
 
 ## Getting Started
 
@@ -285,6 +305,14 @@ src/
 │   ├── evaluateVariant.ts   # Variant/game-type/overlay adjustments
 │   ├── evaluate.ts     # Main evaluation orchestrator
 │   └── index.ts        # Re-exports
+├── core/engine/        # Pluggable engine abstraction (advisory evaluation + best-move)
+│   ├── types.ts        # EngineId, EngineInfo, VariantEngineAdapter interface
+│   ├── engineRegistry.ts  # Factory registry for engine adapters
+│   ├── adapters/       # Engine adapter implementations
+│   │   ├── heuristicAdapter.ts    # Built-in heuristic engine
+│   │   ├── blunznforönAdapter.ts  # Fairy-Stockfish integration (coming soon)
+│   │   └── shared.ts              # Shared utility functions
+│   └── index.ts        # Re-exports
 ├── bot/
 │   └── botEngine.ts    # Bot move selection (variant-mode-aware, easy/medium/hard)
 ├── components/
@@ -303,6 +331,7 @@ src/
 │   └── useReview.ts    # Post-game review navigation state hook
 └── __tests__/
     ├── engine.test.ts    # Core logic tests
+    ├── engine-adapter.test.ts # Engine abstraction layer tests
     ├── bot.test.ts       # Bot tests
     ├── modes.test.ts     # Variant mode, game type, overlay, combined penalty tests
     ├── evaluation.test.ts # Evaluation module tests (base + variant-aware)
@@ -316,6 +345,7 @@ src/
 
 - **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Can be reused server-side.
 - **`core/evaluation/`**: Pure evaluation functions. Combines base chess evaluation with variant-aware adjustments.
+- **`core/engine/`**: Pluggable engine adapters for evaluation bar and best-move hints. Engines are advisory — game rules stay in `core/blunziger/`.
 - **`bot/`**: Bot logic, depends only on `core/` and `chess.js`.
 - **`components/`**: React UI, depends on `core/` through the `useGame` and `useEvaluation` hooks.
 - **`hooks/`**: Bridges core logic and React state. Manages clocks and evaluation memoization.

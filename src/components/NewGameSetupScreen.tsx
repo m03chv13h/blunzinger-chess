@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
 import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
 import type { EngineId, EngineInfo } from '../core/engine/types';
-import { getAllEngineInfos } from '../core/engine/engineRegistry';
+import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
 import './NewGameSetupScreen.css';
@@ -159,6 +159,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                 </option>
               ))}
             </select>
+            <p className="mode-description">{getEngineInfo(config.engineId)?.description}</p>
           </div>
         )}
 
@@ -181,6 +182,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                   </option>
                 ))}
               </select>
+              <p className="mode-description">{getEngineInfo(config.engineIdWhite)?.description}</p>
             </div>
             <div className="setup-group">
               <label htmlFor="engine-black-select">Engine (Black)</label>
@@ -199,6 +201,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                   </option>
                 ))}
               </select>
+              <p className="mode-description">{getEngineInfo(config.engineIdBlack)?.description}</p>
             </div>
           </>
         )}
