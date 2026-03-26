@@ -34,7 +34,8 @@ register(createBlunznforönAdapter);
 infoMap.set('blunznfish', {
   id: 'blunznfish',
   name: 'Blunznfish',
-  description: 'Custom Blunziger-native engine (coming soon)',
+  description:
+    'Custom engine built specifically for Blunziger Chess variants with native rule awareness. Not yet implemented.',
   availability: 'coming_soon',
   supportsEvaluation: false,
   supportsBotPlay: false,

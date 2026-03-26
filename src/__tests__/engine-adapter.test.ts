@@ -35,7 +35,7 @@ describe('Engine Abstraction Layer', () => {
       const blunznforön = getEngineInfo('blunznforön');
       expect(blunznforön).toBeDefined();
       expect(blunznforön!.name).toBe('Blunznforön');
-      expect(blunznforön!.availability).toBe('available');
+      expect(blunznforön!.availability).toBe('coming_soon');
       expect(blunznforön!.supportsVariantAwareness).toBe(true);
     });
 
@@ -50,7 +50,7 @@ describe('Engine Abstraction Layer', () => {
       const available = getAvailableEngineInfos();
       const ids = available.map((i) => i.id);
       expect(ids).toContain('heuristic');
-      expect(ids).toContain('blunznforön');
+      expect(ids).not.toContain('blunznforön');
       expect(ids).not.toContain('blunznfish');
     });
 

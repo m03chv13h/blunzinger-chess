@@ -16,7 +16,8 @@ import { findBestMoveUci, heuristicAnalysis } from './shared';
 const INFO: EngineInfo = {
   id: 'heuristic',
   name: 'Heuristic',
-  description: 'Built-in heuristic evaluator (material + mobility)',
+  description:
+    'Built-in lightweight evaluator using material balance and mobility. Powers the evaluation bar and 1-ply best-move hints.',
   availability: 'available',
   supportsEvaluation: true,
   supportsBotPlay: true,
