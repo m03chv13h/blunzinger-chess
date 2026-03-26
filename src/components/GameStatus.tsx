@@ -137,6 +137,9 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
         {config.overlays.enableKingOfTheHill && (
           <span className="koth-indicator">👑 King of the Hill enabled</span>
         )}
+        {config.overlays.enableCrazyhouse && (
+          <span className="koth-indicator">♻ Crazyhouse enabled</span>
+        )}
       </div>
     </div>
   );

@@ -76,7 +76,7 @@ If a move produces an immediate terminal result (checkmate, King of the Hill, et
 - Only relevant when Clock overlay is enabled
 - Default: 60 seconds
 
-## C) Overlays / Options (3)
+## C) Overlays / Options (4)
 
 All variant modes and both game types can be extended with:
 
@@ -97,6 +97,32 @@ When enabled, if **2 or more** required moves exist for the current side (under 
 
 - **Report Incorrectness**: severe miss → immediate loss (no report needed)
 - **Penalty on Miss**: penalties applied as normal
+
+### Crazyhouse (Optional)
+
+When enabled, captured pieces go into the capturing player's **reserve** and can be placed back on the board instead of making a normal move.
+
+**Rules:**
+- When a piece is captured, it is added to the capturing player's reserve (changing color)
+- Instead of a normal move, a player may **drop** a piece from their reserve onto any empty square
+- Pawns cannot be dropped on the 1st or 8th rank
+- A drop must not leave the dropping player's king in check
+- Dropped pieces behave like normal pieces and can be captured and re-added to reserve
+
+**Reserves:**
+Each player has a reserve that tracks: pawns, knights, bishops, rooks, and queens.
+
+**Interaction with Blunziger rules:**
+- Drop moves are included in checking/non-checking move detection
+- In Classic mode: if a checking drop exists, the player must give check (via drop or regular move)
+- In Reverse mode: if non-checking drops exist, the player must avoid giving check
+- Drop violations are reportable (Report mode) or auto-penalized (Penalty mode)
+
+**Evaluation:**
+Reserve material is included in the evaluation. Values: pawn=100, knight=300, bishop=300, rook=500, queen=900 centipawns.
+
+**Bot support:**
+Bots consider drop moves alongside regular moves, respecting variant rules.
 
 ## Termination / Precedence
 
@@ -129,6 +155,8 @@ Examples of valid setups:
 - Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Clock, King of the Hill
 - Variant Mode: Reverse Blunzinger / Game Type: Penalty on Miss / Penalties: Additional move = 1, Piece removal = 2 / Overlays: Clock
 - Variant Mode: Classic Blunzinger – King Hunt – Move Limit / Game Type: Penalty on Miss / Penalties: Time reduction = 60s / Overlays: Double Check Pressure, Clock
+- Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Crazyhouse, Clock
+- Variant Mode: Reverse Blunzinger / Game Type: Penalty on Miss / Overlays: Crazyhouse, King of the Hill
 
 ## Default Values
 
@@ -152,7 +180,7 @@ The New Game setup screen presents:
 4. Bot settings (when applicable)
 5. Variant-specific fields (ply limit, check target — shown when relevant)
 6. Game-type-specific fields (report threshold / penalty checkboxes + values)
-7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure)
+7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure, Crazyhouse)
 
 Fields are shown/hidden based on selections. Irrelevant fields are not exposed.
 

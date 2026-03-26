@@ -22,6 +22,10 @@ interface ChessboardProps {
   onPieceRemoval?: (square: Square) => boolean;
   bestMoveHintFrom?: Square | null;
   bestMoveHintTo?: Square | null;
+  /** Crazyhouse: squares where a drop is legal (shown when a reserve piece is selected). */
+  dropSquares?: Square[];
+  /** Crazyhouse: handler when a drop square is clicked. */
+  onDropSquareClick?: (square: Square) => boolean;
 }
 
 export function Chessboard({
@@ -35,6 +39,8 @@ export function Chessboard({
   onPieceRemoval,
   bestMoveHintFrom,
   bestMoveHintTo,
+  dropSquares,
+  onDropSquareClick,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
@@ -57,6 +63,15 @@ export function Chessboard({
           onPieceRemoval(square);
         }
         return;
+      }
+
+      // Handle crazyhouse drop
+      if (dropSquares && dropSquares.length > 0 && onDropSquareClick) {
+        if (dropSquares.includes(square)) {
+          onDropSquareClick(square);
+          return;
+        }
+        // Click on non-drop square: fall through to allow normal piece selection
       }
 
       if (selectedSquare) {
@@ -98,7 +113,7 @@ export function Chessboard({
         }
       }
     },
-    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData, pendingPieceRemoval, removableSquares, onPieceRemoval],
+    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData, pendingPieceRemoval, removableSquares, onPieceRemoval, dropSquares, onDropSquareClick],
   );
 
   const handlePromotion = useCallback(
@@ -128,6 +143,7 @@ export function Chessboard({
               lastMoveObj && (lastMoveObj.from === square || lastMoveObj.to === square);
             const isRemovalTarget = pendingPieceRemoval && removableSquares?.includes(square);
             const isBestMoveHint = square === bestMoveHintFrom || square === bestMoveHintTo;
+            const isDropTarget = dropSquares?.includes(square);
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 
@@ -142,6 +158,7 @@ export function Chessboard({
                   isLastMove ? 'last-move' : '',
                   isRemovalTarget ? 'removal-target' : '',
                   isBestMoveHint ? 'best-move-hint' : '',
+                  isDropTarget ? 'drop-target' : '',
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}
@@ -157,6 +174,7 @@ export function Chessboard({
                 )}
                 {isHighlighted && !piece && <span className="move-dot" />}
                 {isHighlighted && piece && <span className="capture-ring" />}
+                {isDropTarget && !piece && <span className="move-dot drop-dot" />}
               </div>
             );
           }),

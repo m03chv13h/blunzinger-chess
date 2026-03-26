@@ -12,11 +12,16 @@ import type {
   Square,
   VariantMode,
   PendingPieceRemoval,
+  CrazyhouseState,
+  CrazyhousePieceType,
+  PlayerReserve,
+  DropMove,
 } from './types';
 import type { EngineId } from '../engine/types';
 import {
   DEFAULT_CONFIG,
   INITIAL_FEN,
+  EMPTY_RESERVE,
   isClassicForcedCheck,
   isKingHuntVariant,
 } from './types';
@@ -401,6 +406,577 @@ export function isReverseForcedState(fen: string): boolean {
   return getCheckingMoves(fen).length > 0;
 }
 
+// ── Crazyhouse helpers ───────────────────────────────────────────────
+
+/** All valid squares on the board. */
+const ALL_SQUARES: Square[] = (() => {
+  const sqs: Square[] = [];
+  for (const file of 'abcdefgh') {
+    for (let rank = 1; rank <= 8; rank++) {
+      sqs.push(`${file}${rank}` as Square);
+    }
+  }
+  return sqs;
+})();
+
+/**
+ * Check whether Crazyhouse overlay is enabled in the config.
+ */
+export function isCrazyhouseEnabled(config: MatchConfig): boolean {
+  return config.overlays.enableCrazyhouse;
+}
+
+/**
+ * Create the initial crazyhouse state (empty reserves).
+ */
+export function createCrazyhouseState(): CrazyhouseState {
+  return {
+    whiteReserve: { ...EMPTY_RESERVE },
+    blackReserve: { ...EMPTY_RESERVE },
+  };
+}
+
+/**
+ * Update the crazyhouse reserve after a capture:
+ * the captured piece is added to the capturer's reserve.
+ */
+export function updateReserveAfterCapture(
+  ch: CrazyhouseState,
+  capturerSide: Color,
+  capturedPieceType: string,
+): CrazyhouseState {
+  if (capturedPieceType === 'k') return ch; // Kings can never be captured in reserve
+  const pieceType = capturedPieceType as CrazyhousePieceType;
+  const reserveKey = capturerSide === 'w' ? 'whiteReserve' : 'blackReserve';
+  return {
+    ...ch,
+    [reserveKey]: {
+      ...ch[reserveKey],
+      [pieceType]: ch[reserveKey][pieceType] + 1,
+    },
+  };
+}
+
+/**
+ * Update the crazyhouse reserve after a drop:
+ * remove one piece of the given type from the dropper's reserve.
+ */
+export function updateReserveAfterDrop(
+  ch: CrazyhouseState,
+  dropperSide: Color,
+  pieceType: CrazyhousePieceType,
+): CrazyhouseState {
+  const reserveKey = dropperSide === 'w' ? 'whiteReserve' : 'blackReserve';
+  const current = ch[reserveKey][pieceType];
+  if (current <= 0) return ch;
+  return {
+    ...ch,
+    [reserveKey]: {
+      ...ch[reserveKey],
+      [pieceType]: current - 1,
+    },
+  };
+}
+
+/**
+ * Get the reserve for a given side.
+ */
+export function getReserve(ch: CrazyhouseState, side: Color): PlayerReserve {
+  return side === 'w' ? ch.whiteReserve : ch.blackReserve;
+}
+
+/**
+ * Get all empty squares on the board.
+ */
+function getEmptySquares(fen: string): Square[] {
+  const chess = new Chess(fen);
+  return ALL_SQUARES.filter((sq) => !chess.get(sq));
+}
+
+/**
+ * Generate all legal drop moves for the given side from its reserve.
+ *
+ * Rules:
+ * - Cannot drop on occupied square
+ * - Pawns cannot be dropped on first or last rank
+ * - Drop must not leave own king in check
+ */
+export function getCrazyhouseDropMoves(
+  fen: string,
+  ch: CrazyhouseState,
+  side: Color,
+): DropMove[] {
+  const reserve = getReserve(ch, side);
+  const emptySquares = getEmptySquares(fen);
+  const drops: DropMove[] = [];
+
+  const pieceTypes: CrazyhousePieceType[] = ['p', 'n', 'b', 'r', 'q'];
+
+  for (const pt of pieceTypes) {
+    if (reserve[pt] <= 0) continue;
+
+    for (const sq of emptySquares) {
+      // Pawn restrictions: cannot drop on first or last rank
+      if (pt === 'p') {
+        const rank = sq[1];
+        if (rank === '1' || rank === '8') continue;
+      }
+
+      // Legality: drop must not leave own king in check
+      if (doesDropLeaveKingInCheck(fen, side, pt, sq)) continue;
+
+      drops.push({ type: 'drop', piece: pt, to: sq, color: side });
+    }
+  }
+
+  return drops;
+}
+
+/**
+ * Get drop squares that are legal for a specific piece type.
+ */
+export function getLegalDropSquares(
+  fen: string,
+  ch: CrazyhouseState,
+  side: Color,
+  pieceType: CrazyhousePieceType,
+): Square[] {
+  const reserve = getReserve(ch, side);
+  if (reserve[pieceType] <= 0) return [];
+
+  const emptySquares = getEmptySquares(fen);
+  const squares: Square[] = [];
+
+  for (const sq of emptySquares) {
+    if (pieceType === 'p') {
+      const rank = sq[1];
+      if (rank === '1' || rank === '8') continue;
+    }
+    if (doesDropLeaveKingInCheck(fen, side, pieceType, sq)) continue;
+    squares.push(sq);
+  }
+
+  return squares;
+}
+
+/**
+ * Check whether dropping a piece on a square leaves the dropping side's king in check.
+ */
+function doesDropLeaveKingInCheck(
+  fen: string,
+  side: Color,
+  pieceType: CrazyhousePieceType,
+  square: Square,
+): boolean {
+  const chess = new Chess(fen);
+  // Place the piece
+  chess.put({ type: pieceType, color: side }, square);
+  // Ensure the turn is set to the opponent (to check if our king is attacked)
+  const parts = chess.fen().split(' ');
+  const opponentSide: Color = side === 'w' ? 'b' : 'w';
+  parts[1] = opponentSide;
+  try {
+    const testChess = new Chess(parts.join(' '));
+    // Find our king
+    const board = testChess.board();
+    for (const row of board) {
+      for (const cell of row) {
+        if (cell && cell.type === 'k' && cell.color === side) {
+          return testChess.isAttacked(cell.square as Square, opponentSide);
+        }
+      }
+    }
+  } catch {
+    // Invalid FEN after drop — treat as illegal
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Check whether a drop move gives check to the opponent.
+ */
+export function doesDropGiveCheck(
+  fen: string,
+  side: Color,
+  pieceType: CrazyhousePieceType,
+  square: Square,
+): boolean {
+  const chess = new Chess(fen);
+  chess.put({ type: pieceType, color: side }, square);
+  const opponentSide: Color = side === 'w' ? 'b' : 'w';
+  // Set the turn to the opponent to test if they are in check
+  const parts = chess.fen().split(' ');
+  parts[1] = opponentSide;
+  try {
+    const testChess = new Chess(parts.join(' '));
+    return testChess.inCheck();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get all drop moves that give check.
+ */
+export function getCheckingDropMoves(
+  fen: string,
+  ch: CrazyhouseState,
+  side: Color,
+): DropMove[] {
+  return getCrazyhouseDropMoves(fen, ch, side).filter(
+    (drop) => doesDropGiveCheck(fen, side, drop.piece, drop.to),
+  );
+}
+
+/**
+ * Get all drop moves that do NOT give check.
+ */
+export function getNonCheckingDropMoves(
+  fen: string,
+  ch: CrazyhouseState,
+  side: Color,
+): DropMove[] {
+  return getCrazyhouseDropMoves(fen, ch, side).filter(
+    (drop) => !doesDropGiveCheck(fen, side, drop.piece, drop.to),
+  );
+}
+
+/**
+ * Apply a drop move to the board, returning the new FEN.
+ * The turn is swapped to the opponent after the drop.
+ */
+export function applyDropToFen(
+  fen: string,
+  side: Color,
+  pieceType: CrazyhousePieceType,
+  square: Square,
+): string {
+  const chess = new Chess(fen);
+  chess.put({ type: pieceType, color: side }, square);
+  // Swap active side, clear en passant, increment halfmove/fullmove
+  const parts = chess.fen().split(' ');
+  parts[1] = side === 'w' ? 'b' : 'w';
+  parts[3] = '-'; // No en passant after drop
+  parts[4] = String(parseInt(parts[4]) + 1); // Increment halfmove
+  if (side === 'b') {
+    parts[5] = String(parseInt(parts[5]) + 1); // Increment fullmove
+  }
+  return parts.join(' ');
+}
+
+/**
+ * Apply a crazyhouse drop move with full variant rules.
+ * Returns updated GameState, or unchanged state if the drop is illegal.
+ */
+export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameState {
+  if (state.result) return state;
+  if (!state.crazyhouse) return state;
+
+  const { fen, sideToMove, crazyhouse: ch } = state;
+  if (drop.color !== sideToMove) return state;
+
+  // Validate the piece is in reserve
+  const reserve = getReserve(ch, sideToMove);
+  if (reserve[drop.piece] <= 0) return state;
+
+  // Validate the target square is empty
+  const chess = new Chess(fen);
+  if (chess.get(drop.to)) return state;
+
+  // Pawn rank restrictions
+  if (drop.piece === 'p') {
+    const rank = drop.to[1];
+    if (rank === '1' || rank === '8') return state;
+  }
+
+  // Validate legality (does not leave king in check)
+  if (doesDropLeaveKingInCheck(fen, sideToMove, drop.piece, drop.to)) return state;
+
+  const cfg = state.config;
+  const opponentSide: Color = sideToMove === 'w' ? 'b' : 'w';
+  const moveIndex = state.moveHistory.length;
+  const fenBeforeMove = fen;
+
+  // Apply the drop
+  const newFen = applyDropToFen(fen, sideToMove, drop.piece, drop.to);
+  const newCh = updateReserveAfterDrop(ch, sideToMove, drop.piece);
+  const gaveCheck = doesDropGiveCheck(fen, sideToMove, drop.piece, drop.to);
+
+  // ── Expire previous pending violation ──
+  let updatedPendingViolation = state.pendingViolation;
+  if (updatedPendingViolation && updatedPendingViolation.reportable) {
+    updatedPendingViolation = { ...updatedPendingViolation, reportable: false };
+  }
+
+  // ── Detect violation for drop move ──
+  const newViolation = detectDropViolation(
+    fenBeforeMove,
+    drop,
+    gaveCheck,
+    moveIndex,
+    cfg.variantMode,
+    cfg.overlays.enableDoubleCheckPressure,
+    ch,
+    sideToMove,
+  );
+
+  // ── Score update (King Hunt) ──
+  const newScores = { ...state.scores };
+  if (isKingHuntVariant(cfg.variantMode) && gaveCheck) {
+    newScores[sideToMove] = (newScores[sideToMove] || 0) + 1;
+  }
+
+  const newPlyCount = state.plyCount + 1;
+  const sideLabel = (s: Color) => (s === 'w' ? 'White' : 'Black');
+
+  // ── Termination conditions ──
+  let result: GameResult | null = null;
+
+  // Check for checkmate/stalemate after drop
+  const postChess = new Chess(newFen);
+  if (postChess.isCheckmate()) {
+    result = { winner: sideToMove, reason: 'checkmate' };
+  }
+
+  if (!result && isKingOfTheHillEnabled(cfg)) {
+    // Drops can't move kings, but check both sides for completeness
+    if (didKingReachHill(newFen, sideToMove)) {
+      result = {
+        winner: sideToMove,
+        reason: 'king_of_the_hill',
+        detail: `${sideLabel(sideToMove)}'s king reached a center square!`,
+      };
+    }
+  }
+
+  if (!result) {
+    if (postChess.isStalemate()) {
+      result = { winner: 'draw', reason: 'stalemate' };
+    } else if (postChess.isDraw()) {
+      if (postChess.isInsufficientMaterial()) {
+        result = { winner: 'draw', reason: 'insufficient-material' };
+      } else if (postChess.isThreefoldRepetition()) {
+        result = { winner: 'draw', reason: 'threefold-repetition' };
+      } else {
+        result = { winner: 'draw', reason: 'fifty-move-rule' };
+      }
+    }
+  }
+
+  // King Hunt Given Check Limit
+  if (!result && cfg.variantMode === 'classic_king_hunt_given_check_limit') {
+    const target = cfg.variantSpecific.kingHuntGivenCheckTarget;
+    if (newScores[sideToMove] >= target) {
+      result = {
+        winner: sideToMove,
+        reason: 'king_hunt_given_check_limit',
+        detail: `${sideLabel(sideToMove)} reached ${target} given check(s)! Score: White ${newScores.w} – Black ${newScores.b}.`,
+      };
+    }
+  }
+
+  // King Hunt Ply Limit
+  if (!result && cfg.variantMode === 'classic_king_hunt_move_limit') {
+    if (newPlyCount >= cfg.variantSpecific.kingHuntPlyLimit) {
+      if (newScores.w > newScores.b) {
+        result = { winner: 'w', reason: 'king_hunt_ply_limit', detail: `Ply limit reached. White wins ${newScores.w}–${newScores.b}.` };
+      } else if (newScores.b > newScores.w) {
+        result = { winner: 'b', reason: 'king_hunt_ply_limit', detail: `Ply limit reached. Black wins ${newScores.b}–${newScores.w}.` };
+      } else {
+        result = { winner: 'draw', reason: 'king_hunt_ply_limit_draw', detail: `Ply limit reached. Tied ${newScores.w}–${newScores.b}.` };
+      }
+    }
+  }
+
+  // ── If game is over, stop — do not apply violations or penalties ──
+  let violationForState: ViolationRecord | null = result ? null : newViolation;
+
+  // ── Composable penalty / report handling ──
+  let newExtraTurns = { ...state.extraTurns };
+  let newClocks = state.clocks;
+  let pendingPieceRemoval: PendingPieceRemoval | null = null;
+  let newTimeReductions = state.timeReductions;
+
+  if (!result && newViolation) {
+    if (cfg.gameType === 'report_incorrectness') {
+      if (newViolation.severe) {
+        result = {
+          winner: opponentSide,
+          reason: 'double_check_pressure_violation',
+          detail: `${sideLabel(sideToMove)} missed ${newViolation.requiredMoves.length} required moves. Immediate loss under Double Check Pressure!`,
+        };
+        violationForState = null;
+      } else {
+        violationForState = { ...newViolation, reportable: true };
+      }
+    } else {
+      violationForState = { ...newViolation, reportable: false };
+
+      if (cfg.penaltyConfig.enableAdditionalMovePenalty) {
+        const count = cfg.penaltyConfig.additionalMoveCount;
+        const oppKey = opponentSide === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+        newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + count };
+      }
+
+      if (!result && cfg.penaltyConfig.enablePieceRemovalPenalty) {
+        const count = cfg.penaltyConfig.pieceRemovalCount;
+        const removableSquares = getRemovablePieces(newFen, sideToMove);
+        if (removableSquares.length === 0) {
+          result = {
+            winner: opponentSide,
+            reason: 'piece_removal_no_piece_loss',
+            detail: `${sideLabel(sideToMove)} missed a required move but has no removable pieces. Immediate loss.`,
+          };
+        } else {
+          pendingPieceRemoval = {
+            targetSide: sideToMove,
+            chooserSide: opponentSide,
+            removableSquares,
+            remainingRemovals: count,
+            triggerMoveIndex: moveIndex,
+          };
+        }
+      }
+
+      if (!result && cfg.penaltyConfig.enableTimeReductionPenalty && cfg.overlays.enableClock && cfg.penaltyConfig.timeReductionSeconds > 0 && newClocks) {
+        const penaltyMs = cfg.penaltyConfig.timeReductionSeconds * 1000;
+        const clockKey = sideToMove === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+        newClocks = { ...newClocks, [clockKey]: remaining };
+        newTimeReductions = [...newTimeReductions, { moveIndex, seconds: cfg.penaltyConfig.timeReductionSeconds }];
+
+        if (remaining <= 0) {
+          result = {
+            winner: opponentSide,
+            reason: 'timeout_penalty',
+            detail: `${sideLabel(sideToMove)} missed a required move and lost ${cfg.penaltyConfig.timeReductionSeconds}s. Clock reached 0.`,
+          };
+          pendingPieceRemoval = null;
+        }
+      }
+    }
+  }
+
+  // Create a synthetic Move object for the drop to store in move history
+  const dropSanNotation = `${drop.piece.toUpperCase()}@${drop.to}`;
+  const syntheticMove: Move = {
+    color: sideToMove,
+    from: drop.to, // drops have no source square; use target
+    to: drop.to,
+    piece: drop.piece,
+    san: dropSanNotation,
+    lan: dropSanNotation,
+    before: fenBeforeMove,
+    after: newFen,
+    flags: '',
+  };
+
+  // Determine effective side to move (may stay same for extra turns)
+  let effectiveSideToMove: Color = opponentSide;
+  let effectiveFen = newFen;
+  let nextInExtraTurn = false;
+  if (!result && !pendingPieceRemoval) {
+    const movingSideKey = sideToMove === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+    if (newExtraTurns[movingSideKey] > 0) {
+      newExtraTurns = { ...newExtraTurns, [movingSideKey]: newExtraTurns[movingSideKey] - 1 };
+      effectiveSideToMove = sideToMove;
+      effectiveFen = swapFenTurn(newFen);
+      nextInExtraTurn = true;
+    }
+  }
+
+  return {
+    ...state,
+    fen: effectiveFen,
+    moveHistory: [...state.moveHistory, syntheticMove],
+    sideToMove: effectiveSideToMove,
+    pendingViolation: result ? null : violationForState,
+    lastReportFeedback: null,
+    result,
+    scores: newScores,
+    plyCount: newPlyCount,
+    extraTurns: newExtraTurns,
+    clocks: newClocks,
+    pendingPieceRemoval,
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh }],
+    missedChecks: newViolation
+      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
+      : state.missedChecks,
+    timeReductions: newTimeReductions,
+    inExtraTurn: nextInExtraTurn,
+    crazyhouse: newCh,
+  };
+}
+
+/**
+ * Detect whether a drop move constitutes a violation under the selected variant mode.
+ *
+ * This considers BOTH regular moves and drop moves available at the position.
+ *
+ * Classic / King Hunt variants:
+ *   Violation = checking moves exist (regular or drop) but player played a non-checking drop.
+ *
+ * Reverse Blunzinger:
+ *   Violation = checking moves exist, non-checking alternatives exist,
+ *   and the player played a checking drop.
+ */
+function detectDropViolation(
+  fenBeforeMove: string,
+  _drop: DropMove,
+  gaveCheck: boolean,
+  moveIndex: number,
+  variantMode: VariantMode,
+  dcpEnabled: boolean,
+  ch: CrazyhouseState,
+  side: Color,
+): ViolationRecord | null {
+  // Get ALL checking moves (regular + drop)
+  const regularCheckingMoves = getCheckingMoves(fenBeforeMove);
+  const checkingDrops = getCheckingDropMoves(fenBeforeMove, ch, side);
+  const totalCheckingCount = regularCheckingMoves.length + checkingDrops.length;
+
+  if (isClassicForcedCheck(variantMode)) {
+    if (totalCheckingCount === 0) return null;
+    if (gaveCheck) return null;
+
+    // Build required moves list from regular checking moves
+    const requiredMoves = regularCheckingMoves;
+
+    return {
+      violatingSide: side,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves: regularCheckingMoves,
+      requiredMoves,
+      reportable: true,
+      violationType: 'missed_check',
+      severe: dcpEnabled && totalCheckingCount >= 2,
+    };
+  } else {
+    // Reverse Blunzinger
+    if (totalCheckingCount === 0) return null;
+
+    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    const nonCheckingDrops = getNonCheckingDropMoves(fenBeforeMove, ch, side);
+    const totalNonCheckingCount = regularNonCheckingMoves.length + nonCheckingDrops.length;
+
+    if (totalNonCheckingCount === 0) return null;
+    if (!gaveCheck) return null;
+
+    return {
+      violatingSide: side,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves: regularCheckingMoves,
+      requiredMoves: regularNonCheckingMoves,
+      reportable: true,
+      violationType: 'gave_forbidden_check',
+      severe: dcpEnabled && totalNonCheckingCount >= 2,
+    };
+  }
+}
+
 /**
  * Did a move result in check?
  */
@@ -496,6 +1072,72 @@ export function detectViolation(
   }
 }
 
+/**
+ * Detect violation considering BOTH regular moves and drop moves (Crazyhouse).
+ *
+ * The key difference from detectViolation: checking/non-checking counts include drops.
+ * For example, if a drop move can give check, the player has a checking option.
+ */
+function detectViolationWithDrops(
+  fenBeforeMove: string,
+  move: Move,
+  moveIndex: number,
+  variantMode: VariantMode,
+  dcpEnabled: boolean,
+  ch: CrazyhouseState,
+  side: Color,
+): ViolationRecord | null {
+  const regularCheckingMoves = getCheckingMoves(fenBeforeMove);
+  const checkingDrops = getCheckingDropMoves(fenBeforeMove, ch, side);
+  const totalCheckingCount = regularCheckingMoves.length + checkingDrops.length;
+
+  if (isClassicForcedCheck(variantMode)) {
+    if (totalCheckingCount === 0) return null;
+
+    const isCheckingMove = regularCheckingMoves.some(
+      (cm) => cm.from === move.from && cm.to === move.to && cm.promotion === move.promotion,
+    );
+    if (isCheckingMove) return null;
+
+    return {
+      violatingSide: side,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves: regularCheckingMoves,
+      requiredMoves: regularCheckingMoves,
+      actualMove: move,
+      reportable: true,
+      violationType: 'missed_check',
+      severe: dcpEnabled && totalCheckingCount >= 2,
+    };
+  } else {
+    // Reverse Blunzinger
+    if (totalCheckingCount === 0) return null;
+
+    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    const nonCheckingDrops = getNonCheckingDropMoves(fenBeforeMove, ch, side);
+    const totalNonCheckingCount = regularNonCheckingMoves.length + nonCheckingDrops.length;
+
+    if (totalNonCheckingCount === 0) return null;
+
+    const chess = new Chess(fenBeforeMove);
+    chess.move(move.san);
+    if (!chess.inCheck()) return null;
+
+    return {
+      violatingSide: side,
+      moveIndex,
+      fenBeforeMove,
+      checkingMoves: regularCheckingMoves,
+      requiredMoves: regularNonCheckingMoves,
+      actualMove: move,
+      reportable: true,
+      violationType: 'gave_forbidden_check',
+      severe: dcpEnabled && totalNonCheckingCount >= 2,
+    };
+  }
+}
+
 // ── State creation ───────────────────────────────────────────────────
 
 /**
@@ -536,6 +1178,7 @@ export function createInitialState(
     pieceRemovals: [],
     timeReductions: [],
     inExtraTurn: false,
+    crazyhouse: config.overlays.enableCrazyhouse ? createCrazyhouseState() : null,
   };
 }
 
@@ -609,13 +1252,31 @@ export function applyMoveWithRules(
   }
 
   // ── Detect violation ──
-  const newViolation = detectViolation(
-    fenBeforeMove,
-    move,
-    moveIndex,
-    cfg.variantMode,
-    cfg.overlays.enableDoubleCheckPressure,
-  );
+  // When Crazyhouse is enabled, drop moves contribute to checking/non-checking
+  // move detection for violation purposes.
+  const newViolation = state.crazyhouse
+    ? detectViolationWithDrops(
+        fenBeforeMove,
+        move,
+        moveIndex,
+        cfg.variantMode,
+        cfg.overlays.enableDoubleCheckPressure,
+        state.crazyhouse,
+        movingSide,
+      )
+    : detectViolation(
+        fenBeforeMove,
+        move,
+        moveIndex,
+        cfg.variantMode,
+        cfg.overlays.enableDoubleCheckPressure,
+      );
+
+  // ── Crazyhouse reserve update ──
+  let newCrazyhouse = state.crazyhouse;
+  if (newCrazyhouse && move.captured) {
+    newCrazyhouse = updateReserveAfterCapture(newCrazyhouse, movingSide, move.captured);
+  }
 
   // ── Score update (King Hunt) ──
   const newScores = { ...state.scores };
@@ -802,12 +1463,13 @@ export function applyMoveWithRules(
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
-    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san }],
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined }],
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
     inExtraTurn: nextInExtraTurn,
+    crazyhouse: newCrazyhouse,
   };
 }
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { GameSetupConfig } from './core/blunziger/types';
+import type { GameSetupConfig, CrazyhousePieceType } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
 import type { GameRecord } from './core/gameRecord';
@@ -20,6 +20,7 @@ import { SimulationSetupScreen } from './components/SimulationSetupScreen';
 import { SimulationView } from './components/SimulationView';
 import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
+import { CrazyhouseReserves } from './components/CrazyhouseReserve';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -151,8 +152,26 @@ function App() {
   };
 
   const handleMove = (from: Square, to: Square, promotion?: string): boolean => {
+    // If a drop piece is selected but user clicks the board for a regular move, deselect
+    if (selectedDropPiece) setSelectedDropPiece(null);
     return game.makeMove(from, to, promotion);
   };
+
+  // ── Crazyhouse drop state ──
+  const [selectedDropPiece, setSelectedDropPiece] = useState<CrazyhousePieceType | null>(null);
+  const crazyhouseEnabled = screen.type === 'playing' && screen.config.enableCrazyhouse;
+  const crazyhouse = game.state.crazyhouse;
+
+  const handleDropSquareClick = useCallback((square: Square): boolean => {
+    if (!selectedDropPiece) return false;
+    const success = game.makeDropMove(selectedDropPiece, square);
+    if (success) setSelectedDropPiece(null);
+    return success;
+  }, [selectedDropPiece, game]);
+
+  const dropSquares = selectedDropPiece
+    ? game.getDropSquares(selectedDropPiece)
+    : [];
 
   const handleSelectGameForReview = (record: GameRecord) => {
     // If reviewing a game from a running simulation, flush completed records first
@@ -271,6 +290,21 @@ function App() {
 
           <section className="board-section">
             {showEvalBar && evaluation && <EvaluationBar evaluation={evaluation} />}
+            {crazyhouseEnabled && crazyhouse && (
+              <CrazyhouseReserves
+                whiteReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
+                  ? review.reviewedGameState.crazyhouse.whiteReserve
+                  : crazyhouse.whiteReserve}
+                blackReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
+                  ? review.reviewedGameState.crazyhouse.blackReserve
+                  : crazyhouse.blackReserve}
+                interactive={game.isPlayerTurn && !review.isReviewing}
+                activeSide={game.state.sideToMove}
+                selectedDropPiece={selectedDropPiece}
+                onSelectDropPiece={setSelectedDropPiece}
+                flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
+              />
+            )}
             <Chessboard
               fen={displayFen}
               onMove={handleMove}
@@ -282,6 +316,8 @@ function App() {
               onPieceRemoval={game.selectPieceForRemoval}
               bestMoveHintFrom={review.isReviewing ? (evaluation?.bestMoveFrom ?? null) as Square | null : null}
               bestMoveHintTo={review.isReviewing ? (evaluation?.bestMoveTo ?? null) as Square | null : null}
+              dropSquares={!review.isReviewing ? dropSquares : undefined}
+              onDropSquareClick={!review.isReviewing ? handleDropSquareClick : undefined}
             />
           </section>
 

@@ -29,6 +29,7 @@ export interface OverlayConfig {
   incrementMs: number;
   decrementMs: number;
   enableDoubleCheckPressure: boolean;
+  enableCrazyhouse: boolean;
 }
 
 // ── Game-Type-Specific Config ────────────────────────────────────────
@@ -252,12 +253,39 @@ export interface PendingPieceRemoval {
   triggerMoveIndex: number;
 }
 
+// ── Crazyhouse State ─────────────────────────────────────────────────
+
+export type CrazyhousePieceType = 'p' | 'n' | 'b' | 'r' | 'q';
+
+export interface PlayerReserve {
+  p: number;
+  n: number;
+  b: number;
+  r: number;
+  q: number;
+}
+
+export interface CrazyhouseState {
+  whiteReserve: PlayerReserve;
+  blackReserve: PlayerReserve;
+}
+
+export const EMPTY_RESERVE: PlayerReserve = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+
+export interface DropMove {
+  type: 'drop';
+  piece: CrazyhousePieceType;
+  to: Square;
+  color: Color;
+}
+
 // ── Position History (for post-game review) ──────────────────────────
 
 export interface PositionHistoryEntry {
   fen: string;
   scores: ScoreState;
   moveNotation: string | null;
+  crazyhouse?: CrazyhouseState;
 }
 
 // ── Game State ───────────────────────────────────────────────────────
@@ -295,6 +323,8 @@ export interface GameState {
   timeReductions: TimeReductionEntry[];
   /** True when the current side to move is in an extra (bonus) turn granted by a penalty. */
   inExtraTurn: boolean;
+  /** Crazyhouse reserve state (present only when overlay is enabled). */
+  crazyhouse: CrazyhouseState | null;
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────
@@ -318,6 +348,7 @@ export interface GameSetupConfig {
   incrementMs: number;
   decrementMs: number;
   enableDoubleCheckPressure: boolean;
+  enableCrazyhouse: boolean;
   // Report config
   invalidReportLossThreshold: number;
   // Penalty config
@@ -347,6 +378,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   incrementMs: 0,
   decrementMs: 0,
   enableDoubleCheckPressure: false,
+  enableCrazyhouse: false,
   invalidReportLossThreshold: 2,
   enableAdditionalMovePenalty: false,
   additionalMoveCount: 1,
@@ -371,6 +403,7 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
       incrementMs: clockEnabled ? setup.incrementMs : 0,
       decrementMs: clockEnabled ? setup.decrementMs : 0,
       enableDoubleCheckPressure: setup.enableDoubleCheckPressure,
+      enableCrazyhouse: setup.enableCrazyhouse,
     },
     reportConfig: {
       invalidReportLossThreshold: setup.invalidReportLossThreshold,

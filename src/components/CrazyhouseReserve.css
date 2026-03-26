@@ -1,0 +1,65 @@
+.crazyhouse-reserve {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--bg-secondary, #2a2a2a);
+  border-radius: 4px;
+  min-height: 36px;
+  flex-wrap: wrap;
+}
+
+.crazyhouse-reserve-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #999);
+  margin-right: 4px;
+}
+
+.reserve-piece {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 1.3rem;
+  cursor: default;
+  border-radius: 4px;
+  user-select: none;
+  position: relative;
+}
+
+.reserve-piece.clickable {
+  cursor: pointer;
+}
+
+.reserve-piece.clickable:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.reserve-piece.selected {
+  background: rgba(66, 133, 244, 0.4);
+  outline: 2px solid #4285f4;
+}
+
+.reserve-piece .reserve-count {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 0.6rem;
+  background: var(--bg-primary, #1a1a1a);
+  color: var(--text-primary, #fff);
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.crazyhouse-reserves-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}

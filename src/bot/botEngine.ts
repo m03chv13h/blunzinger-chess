@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, MatchConfig, Square, ViolationRecord } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color } from '../core/blunziger/types';
 import { isReverseForcedCheckMode, isKingHuntVariant } from '../core/blunziger/types';
 import {
   getLegalMoves,
@@ -7,6 +7,11 @@ import {
   getNonCheckingMoves,
   isKingOfTheHillEnabled,
   isHillSquare,
+  getCrazyhouseDropMoves,
+  getCheckingDropMoves,
+  getNonCheckingDropMoves,
+  doesDropGiveCheck,
+  applyDropToFen,
 } from '../core/blunziger/engine';
 
 /**
@@ -350,4 +355,108 @@ function scoreMove(move: Move, fen: string, config?: MatchConfig): number {
   }
 
   return score;
+}
+
+// ── Crazyhouse bot support ───────────────────────────────────────────
+
+/** Piece values for drop move scoring. */
+const DROP_PIECE_VALUES: Record<string, number> = {
+  p: 1,
+  n: 3,
+  b: 3,
+  r: 5,
+  q: 9,
+};
+
+/**
+ * Select a drop move for the bot (Crazyhouse overlay).
+ *
+ * Returns a DropMove if the bot decides to drop, or null if it prefers a normal move.
+ * The bot considers available drop moves alongside regular moves and may choose
+ * a drop when it offers the best outcome.
+ *
+ * Variant rules apply: in classic mode, if checking drops exist, they are preferred;
+ * in reverse mode, checking drops are avoided.
+ */
+export function selectBotDropMove(
+  fen: string,
+  level: BotLevel,
+  ch: CrazyhouseState,
+  side: Color,
+  config?: MatchConfig,
+): DropMove | null {
+  const allDrops = getCrazyhouseDropMoves(fen, ch, side);
+  if (allDrops.length === 0) return null;
+
+  // Apply variant filtering to drops
+  let candidateDrops: DropMove[];
+
+  if (config && isReverseForcedCheckMode(config.variantMode)) {
+    const checkingDrops = getCheckingDropMoves(fen, ch, side);
+    if (checkingDrops.length > 0) {
+      const nonCheckingDrops = getNonCheckingDropMoves(fen, ch, side);
+      const regularNonChecking = getNonCheckingMoves(fen);
+      const totalNonChecking = nonCheckingDrops.length + regularNonChecking.length;
+      if (totalNonChecking > 0) {
+        candidateDrops = nonCheckingDrops;
+      } else {
+        candidateDrops = allDrops;
+      }
+    } else {
+      candidateDrops = allDrops;
+    }
+  } else {
+    // Classic / King Hunt: prefer checking drops
+    const checkingDrops = getCheckingDropMoves(fen, ch, side);
+    if (checkingDrops.length > 0) {
+      candidateDrops = checkingDrops;
+    } else {
+      const regularChecking = getCheckingMoves(fen);
+      if (regularChecking.length > 0) {
+        return null;
+      }
+      candidateDrops = allDrops;
+    }
+  }
+
+  if (candidateDrops.length === 0) return null;
+
+  if (level === 'easy') {
+    // Easy bot skips drops 50% of the time to simulate not always noticing
+    // the drop option — mirrors easy bot behavior for regular moves.
+    if (Math.random() < 0.5) return null;
+    return candidateDrops[Math.floor(Math.random() * candidateDrops.length)];
+  }
+
+  // Medium / Hard: score drops by resulting position
+  let bestDrop: DropMove | null = null;
+  let bestScore = -Infinity;
+
+  for (const drop of candidateDrops) {
+    let score = DROP_PIECE_VALUES[drop.piece] ?? 0;
+
+    if (doesDropGiveCheck(fen, side, drop.piece, drop.to)) {
+      const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
+      score += kingHunt ? 20 : 5;
+    }
+
+    const centralSquares = ['d4', 'd5', 'e4', 'e5'];
+    if (centralSquares.includes(drop.to)) {
+      score += 2;
+    }
+
+    if (level === 'hard') {
+      const resultFen = applyDropToFen(fen, side, drop.piece, drop.to);
+      const chess = new Chess(resultFen);
+      const posScore = evaluatePosition(chess, config ? isKingOfTheHillEnabled(config) : false);
+      score += -posScore * 0.5;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestDrop = drop;
+    }
+  }
+
+  return bestDrop;
 }
