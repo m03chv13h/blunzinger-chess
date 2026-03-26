@@ -25,6 +25,9 @@ const EASY_BOT_PROBABILITY_PER_CHECK = 0.25;
 /** Upper cap on the easy bot's report probability. */
 const EASY_BOT_MAX_REPORT_PROBABILITY = 0.9;
 
+/** Probability that the easy bot makes a move violation (misses check or gives forbidden check). */
+const EASY_BOT_VIOLATION_PROBABILITY = 0.25;
+
 export function shouldBotReport(level: BotLevel, violation: ViolationRecord): boolean {
   if (level !== 'easy') return true;
 
@@ -86,14 +89,34 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
     const checkingMoves = getCheckingMoves(fen);
     if (checkingMoves.length > 0) {
       const nonCheckingMoves = getNonCheckingMoves(fen);
-      candidateMoves = nonCheckingMoves.length > 0 ? nonCheckingMoves : legalMoves;
+      if (nonCheckingMoves.length > 0) {
+        // Easy bot sometimes gives a forbidden check (violation)
+        if (level === 'easy' && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
+          candidateMoves = checkingMoves;
+        } else {
+          candidateMoves = nonCheckingMoves;
+        }
+      } else {
+        // All legal moves give check — no violation possible
+        candidateMoves = legalMoves;
+      }
     } else {
       candidateMoves = legalMoves;
     }
   } else {
     // Classic / King Hunt variants: bot must pick checking moves when available
     const checkingMoves = getCheckingMoves(fen);
-    candidateMoves = checkingMoves.length > 0 ? checkingMoves : legalMoves;
+    if (checkingMoves.length > 0) {
+      // Easy bot sometimes misses a check (picks a non-checking move)
+      const nonCheckingMoves = level === 'easy' ? getNonCheckingMoves(fen) : [];
+      if (nonCheckingMoves.length > 0 && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
+        candidateMoves = nonCheckingMoves;
+      } else {
+        candidateMoves = checkingMoves;
+      }
+    } else {
+      candidateMoves = legalMoves;
+    }
   }
 
   // King of the Hill: prioritize immediate hill win among candidates
