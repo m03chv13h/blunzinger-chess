@@ -6,6 +6,8 @@ import type {
   BotLevel,
   MatchConfig,
   Square,
+  CrazyhousePieceType,
+  DropMove,
 } from '../core/blunziger/types';
 import type { EngineId } from '../core/engine/types';
 import type { GameRecord } from '../core/gameRecord';
@@ -13,18 +15,24 @@ import { DEFAULT_CONFIG, buildMatchConfig } from '../core/blunziger/types';
 import {
   createInitialState,
   applyMoveWithRules,
+  applyDropMoveWithRules,
   canReport,
   reportViolation,
   getLegalMoves,
+  getLegalDropSquares as coreLegalDropSquares,
   applyTimeout,
   applyPieceRemoval,
   selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
-import { selectBotMove, shouldBotReport } from '../bot/botEngine';
+import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 
 export interface UseGameReturn {
   state: GameState;
   makeMove: (from: Square, to: Square, promotion?: string) => boolean;
+  /** Make a crazyhouse drop move. */
+  makeDropMove: (piece: CrazyhousePieceType, to: Square) => boolean;
+  /** Get legal drop squares for a piece type (Crazyhouse). */
+  getDropSquares: (piece: CrazyhousePieceType) => Square[];
   report: () => void;
   resetGame: (
     mode?: GameMode,
@@ -217,6 +225,66 @@ export function useGame(
     [],
   );
 
+  const makeDropMove = useCallback(
+    (piece: CrazyhousePieceType, to: Square): boolean => {
+      const current = stateRef.current;
+      if (current.result) return false;
+      if (current.pendingPieceRemoval) return false;
+      if (!current.crazyhouse) return false;
+
+      const drop: DropMove = { type: 'drop', piece, to, color: current.sideToMove };
+
+      // Apply clock time before drop
+      let stateBeforeDrop = current;
+      if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
+        const now = Date.now();
+        const elapsed = now - clockActiveRef.current;
+        const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
+        if (remaining <= 0) {
+          const timeoutState = applyTimeout(
+            { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
+            current.sideToMove,
+          );
+          setState(timeoutState);
+          return false;
+        }
+        const increment = current.config.overlays.incrementMs || 0;
+        const decrement = current.config.overlays.decrementMs || 0;
+        stateBeforeDrop = {
+          ...current,
+          clocks: {
+            ...current.clocks,
+            [key]: Math.max(0, remaining + increment - decrement),
+            lastTimestamp: now,
+          },
+        };
+      }
+
+      const newState = applyDropMoveWithRules(stateBeforeDrop, drop);
+      if (newState === stateBeforeDrop) return false;
+
+      if (newState.clocks) {
+        const ts = Date.now();
+        newState.clocks = { ...newState.clocks, lastTimestamp: ts };
+        clockActiveRef.current = ts;
+        clockCommittedRef.current = { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs };
+      }
+
+      setState(newState);
+      return true;
+    },
+    [],
+  );
+
+  const getDropSquares = useCallback(
+    (piece: CrazyhousePieceType): Square[] => {
+      if (!state.crazyhouse) return [];
+      return coreLegalDropSquares(state.fen, state.crazyhouse, state.sideToMove, piece);
+    },
+    [state.fen, state.crazyhouse, state.sideToMove],
+  );
+
   const report = useCallback(() => {
     const current = stateRef.current;
     if (!current.result) {
@@ -385,6 +453,53 @@ export function useGame(
         setBotThinking(false);
         return;
       }
+      // Crazyhouse: bot tries a drop move first
+      if (current.crazyhouse) {
+        const dropMove = selectBotDropMove(
+          current.fen,
+          current.botLevel,
+          current.crazyhouse,
+          current.sideToMove,
+          current.config,
+        );
+        if (dropMove) {
+          let stateBeforeDrop = current;
+          if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
+            const now = Date.now();
+            const elapsed = now - clockActiveRef.current;
+            const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
+            const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
+            if (remaining <= 0) {
+              setState(applyTimeout(
+                { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
+                current.sideToMove,
+              ));
+              setBotThinking(false);
+              return;
+            }
+            const increment = current.config.overlays.incrementMs || 0;
+            const decrement = current.config.overlays.decrementMs || 0;
+            stateBeforeDrop = {
+              ...current,
+              clocks: { ...current.clocks, [key]: Math.max(0, remaining + increment - decrement), lastTimestamp: now },
+            };
+          }
+
+          const dropState = applyDropMoveWithRules(stateBeforeDrop, dropMove);
+          if (dropState !== stateBeforeDrop) {
+            if (dropState.clocks) {
+              const ts = Date.now();
+              dropState.clocks = { ...dropState.clocks, lastTimestamp: ts };
+              clockActiveRef.current = ts;
+              clockCommittedRef.current = { whiteMs: dropState.clocks.whiteMs, blackMs: dropState.clocks.blackMs };
+            }
+            setState(dropState);
+            setBotThinking(false);
+            return;
+          }
+        }
+      }
+
       const botMove = selectBotMove(current.fen, current.botLevel, current.config);
       if (botMove) {
         // Apply clock time for bot
@@ -434,6 +549,8 @@ export function useGame(
   return {
     state,
     makeMove,
+    makeDropMove,
+    getDropSquares,
     report,
     resetGame,
     canReportNow,

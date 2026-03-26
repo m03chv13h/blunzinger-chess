@@ -17,12 +17,13 @@ import { createGameRecord } from './gameRecord';
 import {
   createInitialState,
   applyMoveWithRules,
+  applyDropMoveWithRules,
   canReport,
   reportViolation,
   applyPieceRemoval,
   selectBestPieceForRemoval,
 } from './blunziger/engine';
-import { selectBotMove, shouldBotReport } from '../bot/botEngine';
+import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 
 /**
  * Maximum number of plies (half-moves) before forcing a draw to prevent
@@ -93,6 +94,24 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
 
     const botMove = selectBotMove(state.fen, state.botLevel, state.config);
     if (!botMove) break;
+
+    // Crazyhouse: try a drop move first
+    if (state.crazyhouse) {
+      const dropMove = selectBotDropMove(
+        state.fen,
+        state.botLevel,
+        state.crazyhouse,
+        state.sideToMove,
+        state.config,
+      );
+      if (dropMove) {
+        const dropState = applyDropMoveWithRules(state, dropMove);
+        if (dropState !== state) {
+          state = dropState;
+          continue;
+        }
+      }
+    }
 
     const newState = applyMoveWithRules(state, {
       from: botMove.from as Square,

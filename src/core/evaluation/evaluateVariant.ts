@@ -428,6 +428,46 @@ export function evaluateDoubleCheckPressure(state: GameState): Adjustment {
   return NO_ADJUSTMENT;
 }
 
+// ── 10. Crazyhouse ───────────────────────────────────────────────────
+
+/** Piece values in centipawns for reserve evaluation. */
+const RESERVE_PIECE_CP: Record<string, number> = {
+  p: 100,
+  n: 300,
+  b: 300,
+  r: 500,
+  q: 900,
+};
+
+/**
+ * Evaluate Crazyhouse reserve material advantage.
+ *
+ * Each reserve piece has value — the side with more material in reserve
+ * has a strategic advantage (more drop options).
+ */
+export function evaluateCrazyhouse(state: GameState): Adjustment {
+  if (!state.crazyhouse) return NO_ADJUSTMENT;
+
+  const { whiteReserve, blackReserve } = state.crazyhouse;
+  let whiteValue = 0;
+  let blackValue = 0;
+
+  for (const pt of Object.keys(RESERVE_PIECE_CP)) {
+    whiteValue += (whiteReserve[pt as keyof typeof whiteReserve] ?? 0) * RESERVE_PIECE_CP[pt];
+    blackValue += (blackReserve[pt as keyof typeof blackReserve] ?? 0) * RESERVE_PIECE_CP[pt];
+  }
+
+  const diff = whiteValue - blackValue;
+  if (diff === 0) return NO_ADJUSTMENT;
+
+  return {
+    scoreCp: diff,
+    explanation: [
+      `Crazyhouse reserves: White ${whiteValue} cp, Black ${blackValue} cp → ${diff >= 0 ? '+' : ''}${diff} cp`,
+    ],
+  };
+}
+
 // ── Orchestrator ─────────────────────────────────────────────────────
 
 /**
@@ -480,6 +520,9 @@ export function evaluateVariantAdjustments(
   }
   if (config.overlays.enableDoubleCheckPressure) {
     add(evaluateDoubleCheckPressure(state));
+  }
+  if (config.overlays.enableCrazyhouse) {
+    add(evaluateCrazyhouse(state));
   }
 
   return { scoreCp: totalCp, explanation };
