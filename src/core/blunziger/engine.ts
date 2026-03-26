@@ -188,8 +188,12 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color, varian
  *
  * Variant check rules apply to piece removal: in classic mode the chooser
  * must pick a removal that creates check if one exists; in reverse mode the
- * chooser must avoid creating check if alternatives exist. Violations are
- * made reportable so the target side can report them.
+ * chooser must avoid creating check if alternatives exist.
+ *
+ * In penalty_on_miss mode, violations are auto-penalised (additional moves,
+ * piece removal, time reduction) exactly like normal-move violations. In
+ * report_incorrectness mode, violations are made reportable so the target
+ * side can report them.
  *
  * Clock behavior: piece removal does not modify clocks. The clock tick
  * in useGame.ts continues to run for the chooser side (= sideToMove)
@@ -252,15 +256,28 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
   // Variant rules extend to the piece-removal phase: in classic mode the
   // chooser must create a check via removal when possible; in reverse mode
   // the chooser must avoid it.
+  //
+  // In penalty_on_miss mode the violation is auto-penalised (same as for
+  // normal-move violations): additional moves, piece removal, and time
+  // reduction penalties are applied to the violating chooser side.
+  // In report_incorrectness mode the violation is made reportable so the
+  // target side can report it.
   let newPendingViolation = state.pendingViolation;
+  let newExtraTurns = state.extraTurns;
+  let newClocks = state.clocks;
+  let newTimeReductions = state.timeReductions;
+  let newMissedChecks = state.missedChecks;
   if (!result) {
-    const variantMode = state.config.variantMode;
+    const cfg = state.config;
+    const variantMode = cfg.variantMode;
     const checkCreating = getCheckCreatingRemovals(state.fen, targetSide, removableSquares);
+
+    let removalViolation: ViolationRecord | null = null;
 
     if (isClassicForcedCheck(variantMode)) {
       // Classic: chooser must pick a check-creating removal if one exists
       if (checkCreating.length > 0 && !checkCreating.includes(square)) {
-        newPendingViolation = {
+        removalViolation = {
           violatingSide: chooserSide,
           moveIndex: triggerMoveIndex,
           fenBeforeMove: state.fen,
@@ -277,7 +294,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
       // Reverse: chooser must avoid check-creating removal if alternatives exist
       const nonCheckCreating = removableSquares.filter((sq) => !checkCreating.includes(sq));
       if (checkCreating.includes(square) && nonCheckCreating.length > 0) {
-        newPendingViolation = {
+        removalViolation = {
           violatingSide: chooserSide,
           moveIndex: triggerMoveIndex,
           fenBeforeMove: state.fen,
@@ -291,16 +308,82 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
         };
       }
     }
+
+    if (removalViolation) {
+      if (cfg.gameType === 'penalty_on_miss') {
+        // Auto-apply penalties — mirrors the normal-move penalty logic in
+        // applyMoveWithRules so the chooser is penalised the same way.
+        removalViolation = { ...removalViolation, reportable: false };
+
+        const violatorSide = chooserSide;
+        const penaltyOpponent = targetSide;
+
+        // 1. Additional move penalty
+        if (cfg.penaltyConfig.enableAdditionalMovePenalty) {
+          const count = cfg.penaltyConfig.additionalMoveCount;
+          const oppKey = penaltyOpponent === 'w' ? 'pendingExtraMovesWhite' : 'pendingExtraMovesBlack';
+          newExtraTurns = { ...newExtraTurns, [oppKey]: newExtraTurns[oppKey] + count };
+        }
+
+        // 2. Piece removal penalty (on the violator's own pieces)
+        if (!result && cfg.penaltyConfig.enablePieceRemovalPenalty) {
+          const count = cfg.penaltyConfig.pieceRemovalCount;
+          const violatorRemovable = getRemovablePieces(newFen, violatorSide);
+          if (violatorRemovable.length === 0) {
+            const label = violatorSide === 'w' ? 'White' : 'Black';
+            result = {
+              winner: penaltyOpponent,
+              reason: 'piece_removal_no_piece_loss',
+              detail: `${label} violated during piece removal but has no removable pieces (only the king remains). Immediate loss.`,
+            };
+          } else {
+            newPendingPieceRemoval = {
+              targetSide: violatorSide,
+              chooserSide: penaltyOpponent,
+              removableSquares: violatorRemovable,
+              remainingRemovals: count,
+              triggerMoveIndex,
+            };
+          }
+        }
+
+        // 3. Time reduction penalty
+        if (!result && cfg.penaltyConfig.enableTimeReductionPenalty && cfg.overlays.enableClock && cfg.penaltyConfig.timeReductionSeconds > 0 && newClocks) {
+          const penaltyMs = cfg.penaltyConfig.timeReductionSeconds * 1000;
+          const clockKey = violatorSide === 'w' ? 'whiteMs' : 'blackMs';
+          const remaining = Math.max(0, newClocks[clockKey] - penaltyMs);
+          newClocks = { ...newClocks, [clockKey]: remaining };
+          newTimeReductions = [...newTimeReductions, { moveIndex: triggerMoveIndex, seconds: cfg.penaltyConfig.timeReductionSeconds }];
+
+          if (remaining <= 0) {
+            result = {
+              winner: penaltyOpponent,
+              reason: 'timeout_penalty',
+              detail: `${violatorSide === 'w' ? 'White' : 'Black'} violated during piece removal and lost ${cfg.penaltyConfig.timeReductionSeconds}s. Clock reached 0.`,
+            };
+            newPendingPieceRemoval = null;
+          }
+        }
+      }
+      // else: report_incorrectness → keep reportable: true (default)
+
+      newPendingViolation = removalViolation;
+      newMissedChecks = [...state.missedChecks, { moveIndex: triggerMoveIndex, violationType: removalViolation.violationType }];
+    }
   }
 
   return {
     ...state,
     fen: newFen,
     pendingPieceRemoval: newPendingPieceRemoval,
-    pendingViolation: newPendingViolation,
+    pendingViolation: result ? null : newPendingViolation,
     result,
+    extraTurns: newExtraTurns,
+    clocks: newClocks,
     positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null }],
     pieceRemovals: [...state.pieceRemovals, { moveIndex: triggerMoveIndex, pieceType: piece.type, pieceColor: piece.color }],
+    missedChecks: newMissedChecks,
+    timeReductions: newTimeReductions,
   };
 }
 
