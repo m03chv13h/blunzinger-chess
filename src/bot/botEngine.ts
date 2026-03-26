@@ -422,6 +422,8 @@ export function selectBotDropMove(
   if (candidateDrops.length === 0) return null;
 
   if (level === 'easy') {
+    // Easy bot skips drops 50% of the time to simulate not always noticing
+    // the drop option — mirrors easy bot behavior for regular moves.
     if (Math.random() < 0.5) return null;
     return candidateDrops[Math.floor(Math.random() * candidateDrops.length)];
   }

@@ -69,8 +69,9 @@ export function Chessboard({
       if (dropSquares && dropSquares.length > 0 && onDropSquareClick) {
         if (dropSquares.includes(square)) {
           onDropSquareClick(square);
+          return;
         }
-        return;
+        // Click on non-drop square: fall through to allow normal piece selection
       }
 
       if (selectedSquare) {

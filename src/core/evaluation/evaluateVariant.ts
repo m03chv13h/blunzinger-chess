@@ -13,7 +13,7 @@
  */
 
 import { Chess } from 'chess.js';
-import type { GameState, Color } from '../blunziger/types';
+import type { GameState, Color, CrazyhousePieceType } from '../blunziger/types';
 import {
   isClassicForcedCheck,
   isReverseForcedCheckMode,
@@ -453,8 +453,9 @@ export function evaluateCrazyhouse(state: GameState): Adjustment {
   let blackValue = 0;
 
   for (const pt of Object.keys(RESERVE_PIECE_CP)) {
-    whiteValue += (whiteReserve[pt as keyof typeof whiteReserve] ?? 0) * RESERVE_PIECE_CP[pt];
-    blackValue += (blackReserve[pt as keyof typeof blackReserve] ?? 0) * RESERVE_PIECE_CP[pt];
+    const key = pt as CrazyhousePieceType;
+    whiteValue += (whiteReserve[key] ?? 0) * RESERVE_PIECE_CP[pt];
+    blackValue += (blackReserve[key] ?? 0) * RESERVE_PIECE_CP[pt];
   }
 
   const diff = whiteValue - blackValue;

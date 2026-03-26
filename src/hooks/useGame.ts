@@ -232,7 +232,7 @@ export function useGame(
       if (current.pendingPieceRemoval) return false;
       if (!current.crazyhouse) return false;
 
-      const drop: DropMove = { type: 'drop', piece, to, color: current.sideToMove };
+      const dropMove: DropMove = { type: 'drop', piece, to, color: current.sideToMove };
 
       // Apply clock time before drop
       let stateBeforeDrop = current;
@@ -261,7 +261,7 @@ export function useGame(
         };
       }
 
-      const newState = applyDropMoveWithRules(stateBeforeDrop, drop);
+      const newState = applyDropMoveWithRules(stateBeforeDrop, dropMove);
       if (newState === stateBeforeDrop) return false;
 
       if (newState.clocks) {
