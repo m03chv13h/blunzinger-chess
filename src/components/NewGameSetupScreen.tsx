@@ -397,6 +397,17 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               Double Check Pressure
             </label>
           </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableCrazyhouse}
+                onChange={(e) => update({ enableCrazyhouse: e.target.checked })}
+              />
+              Crazyhouse
+            </label>
+          </div>
         </fieldset>
 
         <button className="start-game-btn" onClick={handleStart}>

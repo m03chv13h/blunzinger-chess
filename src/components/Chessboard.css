@@ -172,3 +172,12 @@
 .square.best-move-hint.dark {
   background-color: #6a9edf;
 }
+
+.square.drop-target {
+  background: rgba(76, 175, 80, 0.2) !important;
+  cursor: pointer !important;
+}
+
+.drop-dot {
+  background: rgba(76, 175, 80, 0.6) !important;
+}
