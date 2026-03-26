@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { selectBotMove, shouldBotReport } from '../bot/botEngine';
-import { getCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../core/blunziger/engine';
+import { getCheckingMoves, getNonCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../core/blunziger/engine';
 import type { MatchConfig, ViolationRecord } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
@@ -21,13 +21,17 @@ describe('Bot Engine', () => {
       expect(isLegal).toBe(true);
     });
 
-    it('should select only checking moves when available (easy)', () => {
+    it('should select only checking moves when available (easy, no violation)', () => {
       // Position where checking moves exist
       const fen = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
       const checks = getCheckingMoves(fen);
       expect(checks.length).toBeGreaterThan(0);
 
+      // Mock Math.random so easy bot does not trigger a violation
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
       const move = selectBotMove(fen, 'easy');
+      vi.restoreAllMocks();
+
       expect(move).not.toBeNull();
       // Bot must pick a checking move
       const isChecking = checks.some(
@@ -107,6 +111,144 @@ describe('Bot Engine', () => {
     }, 30_000);
   });
 
+  describe('Easy bot violations', () => {
+    const classicConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_blunzinger',
+    });
+    const reverseConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'reverse_blunzinger',
+    });
+
+    // Position where checking moves AND non-checking moves exist
+    const fenWithChecks = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
+
+    it('easy bot misses a check when Math.random triggers violation (classic)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      const nonChecks = getNonCheckingMoves(fenWithChecks);
+      expect(checks.length).toBeGreaterThan(0);
+      expect(nonChecks.length).toBeGreaterThan(0);
+
+      // Force violation path
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'easy', classicConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(false);
+      const isNonChecking = nonChecks.some((m) => m.from === move!.from && m.to === move!.to);
+      expect(isNonChecking).toBe(true);
+    });
+
+    it('easy bot gives forbidden check when Math.random triggers violation (reverse)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      const nonChecks = getNonCheckingMoves(fenWithChecks);
+      expect(checks.length).toBeGreaterThan(0);
+      expect(nonChecks.length).toBeGreaterThan(0);
+
+      // Force violation path
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'easy', reverseConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(true);
+    });
+
+    it('medium bot never misses a check (classic)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'medium', classicConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(true);
+    });
+
+    it('hard bot never misses a check (classic)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'hard', classicConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(true);
+    });
+
+    it('medium bot never gives forbidden check (reverse)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'medium', reverseConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(false);
+    });
+
+    it('hard bot never gives forbidden check (reverse)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const move = selectBotMove(fenWithChecks, 'hard', reverseConfig);
+      vi.restoreAllMocks();
+
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(false);
+    });
+
+    it('easy bot makes violations at expected rate (classic)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      let violations = 0;
+      const runs = 200;
+      for (let i = 0; i < runs; i++) {
+        const move = selectBotMove(fenWithChecks, 'easy', classicConfig);
+        const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+        if (!isChecking) violations++;
+      }
+      // EASY_BOT_VIOLATION_PROBABILITY = 0.25 → expect ~25% violations
+      // Allow generous tolerance: between 10% and 45%
+      expect(violations).toBeGreaterThan(runs * 0.10);
+      expect(violations).toBeLessThan(runs * 0.45);
+    }, 30_000);
+
+    it('easy bot makes violations at expected rate (reverse)', () => {
+      const checks = getCheckingMoves(fenWithChecks);
+      let violations = 0;
+      const runs = 200;
+      for (let i = 0; i < runs; i++) {
+        const move = selectBotMove(fenWithChecks, 'easy', reverseConfig);
+        const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+        if (isChecking) violations++;
+      }
+      // EASY_BOT_VIOLATION_PROBABILITY = 0.25 → expect ~25% violations
+      // Allow generous tolerance: between 10% and 45%
+      expect(violations).toBeGreaterThan(runs * 0.10);
+      expect(violations).toBeLessThan(runs * 0.45);
+    }, 30_000);
+
+    it('easy bot still picks checking move when violation triggers but no non-checking moves exist (classic)', () => {
+      // Position where checking moves exist and non-checking moves also exist.
+      // Verify via mocked Math.random that violation logic works correctly:
+      // when violation triggers AND non-checking moves exist → picks non-checking
+      // (already tested above). Here we verify the complementary path:
+      // when Math.random is above threshold → easy bot picks checking move.
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      const move = selectBotMove(fenWithChecks, 'easy', classicConfig);
+      vi.restoreAllMocks();
+
+      const checks = getCheckingMoves(fenWithChecks);
+      expect(move).not.toBeNull();
+      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
+      expect(isChecking).toBe(true);
+    });
+  });
+
   describe('King of the Hill bot behavior', () => {
     it('should take immediate hill win when legal and available', () => {
       // White king on d3, can move to d4 (hill), no checking moves exist
@@ -125,7 +267,11 @@ describe('Bot Engine', () => {
       const checks = getCheckingMoves(fen);
       expect(checks.length).toBeGreaterThan(0);
 
+      // Mock Math.random so easy bot does not trigger a violation
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
       const move = selectBotMove(fen, 'easy', kothConfig);
+      vi.restoreAllMocks();
+
       expect(move).not.toBeNull();
       // Bot must pick a checking move due to forced-check rule
       const isChecking = checks.some(

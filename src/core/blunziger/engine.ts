@@ -417,6 +417,10 @@ function didMoveGiveCheck(fenBefore: string, move: Move): boolean {
 function swapFenTurn(fen: string): string {
   const parts = fen.split(' ');
   parts[1] = parts[1] === 'w' ? 'b' : 'w';
+  // En-passant is only valid for the opponent of the side that double-pushed.
+  // After swapping the active color for extra turns, the en-passant target
+  // is for the wrong side, so clear it.
+  parts[3] = '-';
   return parts.join(' ');
 }
 
