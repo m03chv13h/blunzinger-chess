@@ -555,15 +555,12 @@ export function createInitialState(
  *    - DCP overlay + severe → immediate loss
  *    - else → create reportable miss state
  * 7. If violation and game type is Penalty on Miss:
- *    - If violation occurs during an extra (bonus) turn, make it reportable
- *      (opponent can report when their turn comes) — no auto-penalties.
- *    - Otherwise, apply penalties in deterministic order:
+ *    - Apply penalties in deterministic order (including during extra turns):
  *      a. Additional move (opponent gets extra consecutive turns)
  *      b. Piece removal (pending selection by opponent)
  *      c. Time reduction (violator's clock reduced; if ≤0 → immediate loss)
  * 8. If penalty effects create terminal condition: resolve and end
- * 9. Carry forward reportable violations during consecutive extra-turn moves
- * 10. Handle extra-turn state (only when no pending piece removal)
+ * 9. Handle extra-turn state (only when no pending piece removal)
  *
  * Clock interaction:
  * - This pure function does NOT manage wall-clock time; it only applies
@@ -716,12 +713,10 @@ export function applyMoveWithRules(
         // Normal reportable violation
         violationForState = { ...newViolation, reportable: true };
       }
-    } else if (state.inExtraTurn) {
-      // Penalty on Miss — violation during an extra (bonus) turn:
-      // make it reportable so the opponent can report when their turn comes.
-      violationForState = { ...newViolation, reportable: true };
     } else {
-      // Penalty on Miss — normal move
+      // Penalty on Miss — applies to both normal moves and extra turns.
+      // Variant rules must be followed during extra turns as well;
+      // violations are auto-penalised identically to normal moves.
       violationForState = { ...newViolation, reportable: false };
 
       // 1. Additional move penalty
@@ -773,13 +768,6 @@ export function applyMoveWithRules(
     }
   }
 
-  // Carry forward an existing reportable violation when the violating side
-  // is making consecutive moves (extra turns) and no new violation occurred.
-  if (!result && !violationForState && state.pendingViolation &&
-      state.pendingViolation.reportable && state.pendingViolation.violatingSide === movingSide) {
-    violationForState = state.pendingViolation;
-  }
-
   // Determine effective side to move (may stay same for extra turns)
   let effectiveSideToMove = chess.turn();
   let effectiveFen = newFen;
@@ -825,8 +813,8 @@ export function applyMoveWithRules(
  * Can the given side report a missed violation?
  * Available when a reportable violation exists and the reporting side is
  * the opponent whose turn it is. In Report Incorrectness mode, violations
- * on normal moves are reportable. In Penalty on Miss mode, violations that
- * occur during an opponent's extra (bonus) turn are reportable.
+ * on normal moves are reportable. In Penalty on Miss mode, violations are
+ * auto-penalised (including during extra turns), so reporting is not used.
  */
 export function canReport(state: GameState, reportingSide: Color): boolean {
   if (state.result) return false;
