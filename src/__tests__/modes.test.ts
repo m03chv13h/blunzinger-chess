@@ -1901,14 +1901,14 @@ describe('Piece removal check violation (classic blunziger)', () => {
     expect(checkCreating).toHaveLength(0);
   });
 
-  it('choosing non-check-creating removal in classic mode sets reportable violation', () => {
+  it('choosing non-check-creating removal in classic penalty mode auto-penalises', () => {
     const state = stateWithPendingRemoval(classicPenaltyCfg, testFen);
     // Black (chooser) removes a2 instead of e2 — misses check-creating removal
     const newState = applyPieceRemoval(state, 'a2' as Square);
 
     expect(newState.pendingViolation).not.toBeNull();
     expect(newState.pendingViolation!.violationType).toBe('missed_check_removal');
-    expect(newState.pendingViolation!.reportable).toBe(true);
+    expect(newState.pendingViolation!.reportable).toBe(false); // auto-penalised
     expect(newState.pendingViolation!.violatingSide).toBe('b'); // chooser violated
     expect(newState.pendingViolation!.requiredRemovalSquares).toContain('e2');
     expect(newState.pendingViolation!.chosenRemovalSquare).toBe('a2');
@@ -1923,18 +1923,16 @@ describe('Piece removal check violation (classic blunziger)', () => {
     expect(newState.pendingViolation).toBeNull();
   });
 
-  it('target side can report the piece removal violation after chooser moves', () => {
-    // Use a position where we can play actual moves after removal.
+  it('penalty mode auto-applies piece removal penalty on removal violation', () => {
     // FEN: Black rook e8, Black king h8, White pawns a2/e2/f2/g2/h2, White king e1,
     // plus Black pawns for legal moves (no pawn at e7 so rook has clear e-file).
-    // After removing a2, Black has Rxe2+ as a checking move. In classic mode,
-    // Black must play the checking move to avoid triggering a separate violation.
     const fen = '4r2k/pppp1ppp/8/8/8/8/P3PPPP/4K3 b - - 0 1';
     const cfg: MatchConfig = buildMatchConfig({
       ...DEFAULT_SETUP_CONFIG,
       variantMode: 'classic_blunzinger',
       gameType: 'penalty_on_miss',
       enablePieceRemovalPenalty: true,
+      pieceRemovalCount: 1,
     });
 
     let state = stateWithPendingRemoval(cfg, fen);
@@ -1942,28 +1940,73 @@ describe('Piece removal check violation (classic blunziger)', () => {
     state = applyPieceRemoval(state, 'a2' as Square);
     expect(state.pendingViolation).not.toBeNull();
     expect(state.pendingViolation!.violationType).toBe('missed_check_removal');
-    expect(state.pendingViolation!.reportable).toBe(true);
+    expect(state.pendingViolation!.reportable).toBe(false); // auto-penalised
 
-    // sideToMove is Black (chooser), White can't report yet
-    expect(state.sideToMove).toBe('b');
-    expect(canReport(state, 'w')).toBe(false);
+    // A new pending piece removal should target Black's pieces (the violator)
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.targetSide).toBe('b'); // violator's pieces
+    expect(state.pendingPieceRemoval!.chooserSide).toBe('w'); // opponent chooses
+  });
 
-    // Black plays Rxe2+ (the forced checking move — no new violation)
-    state = applyMoveWithRules(state, { from: 'e8', to: 'e2' });
-    // Piece removal violation should be carried forward
+  it('report mode keeps removal violation reportable (classic)', () => {
+    const fen = '4r2k/pppp1ppp/8/8/8/8/P3PPPP/4K3 b - - 0 1';
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_blunzinger',
+      gameType: 'report_incorrectness',
+    });
+
+    let state = stateWithPendingRemoval(cfg, fen);
+    state = applyPieceRemoval(state, 'a2' as Square);
     expect(state.pendingViolation).not.toBeNull();
-    expect(state.pendingViolation!.reportable).toBe(true);
     expect(state.pendingViolation!.violationType).toBe('missed_check_removal');
+    expect(state.pendingViolation!.reportable).toBe(true);
+  });
 
-    // Now it's White's turn — White can report
-    expect(state.sideToMove).toBe('w');
-    expect(canReport(state, 'w')).toBe(true);
+  it('penalty mode applies additional move penalty on removal violation', () => {
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_blunzinger',
+      gameType: 'penalty_on_miss',
+      enableAdditionalMovePenalty: true,
+      additionalMoveCount: 2,
+    });
 
-    // White reports successfully
-    state = reportViolation(state, 'w');
-    expect(state.result).not.toBeNull();
-    expect(state.result!.winner).toBe('w');
-    expect(state.result!.reason).toBe('valid-report');
+    const state = stateWithPendingRemoval(cfg, testFen);
+    const newState = applyPieceRemoval(state, 'a2' as Square);
+
+    // Additional moves awarded to target side (White = opponent of violator Black)
+    expect(newState.extraTurns.pendingExtraMovesWhite).toBe(2);
+  });
+
+  it('penalty mode applies time reduction on removal violation', () => {
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'classic_blunzinger',
+      gameType: 'penalty_on_miss',
+      enableTimeReductionPenalty: true,
+      timeReductionSeconds: 30,
+      enableClock: true,
+      initialTimeMs: 300_000,
+    });
+
+    let state = stateWithPendingRemoval(cfg, testFen);
+    // Give Black some clock time
+    state = { ...state, clocks: { whiteMs: 300_000, blackMs: 300_000, lastTimestamp: null } };
+    const newState = applyPieceRemoval(state, 'a2' as Square);
+
+    // Time deducted from violator (Black)
+    expect(newState.clocks!.blackMs).toBe(270_000);
+    expect(newState.timeReductions).toHaveLength(1);
+    expect(newState.timeReductions[0].seconds).toBe(30);
+  });
+
+  it('penalty mode records removal violation in missedChecks', () => {
+    const state = stateWithPendingRemoval(classicPenaltyCfg, testFen);
+    const newState = applyPieceRemoval(state, 'a2' as Square);
+
+    expect(newState.missedChecks).toHaveLength(1);
+    expect(newState.missedChecks[0].violationType).toBe('missed_check_removal');
   });
 
   it('no violation when no check-creating removal exists', () => {
@@ -2003,14 +2046,14 @@ describe('Piece removal check violation (reverse blunziger)', () => {
     };
   }
 
-  it('choosing check-creating removal in reverse mode sets reportable violation', () => {
+  it('choosing check-creating removal in reverse penalty mode auto-penalises', () => {
     const state = stateWithPendingRemoval(reversePenaltyCfg, testFen);
     // Black (chooser) removes e2 — creates check (forbidden in reverse mode)
     const newState = applyPieceRemoval(state, 'e2' as Square);
 
     expect(newState.pendingViolation).not.toBeNull();
     expect(newState.pendingViolation!.violationType).toBe('gave_forbidden_check_removal');
-    expect(newState.pendingViolation!.reportable).toBe(true);
+    expect(newState.pendingViolation!.reportable).toBe(false); // auto-penalised
     expect(newState.pendingViolation!.violatingSide).toBe('b'); // chooser violated
     expect(newState.pendingViolation!.requiredRemovalSquares).toContain('a2');
     expect(newState.pendingViolation!.chosenRemovalSquare).toBe('e2');
@@ -2033,13 +2076,14 @@ describe('Piece removal check violation (reverse blunziger)', () => {
     expect(newState.pendingViolation).toBeNull();
   });
 
-  it('target side can report reverse mode piece removal violation', () => {
+  it('penalty mode auto-applies piece removal penalty on reverse removal violation', () => {
     const fen = '4r2k/pppp1ppp/8/8/8/8/P3PPPP/4K3 b - - 0 1';
     const cfg: MatchConfig = buildMatchConfig({
       ...DEFAULT_SETUP_CONFIG,
       variantMode: 'reverse_blunzinger',
       gameType: 'penalty_on_miss',
       enablePieceRemovalPenalty: true,
+      pieceRemovalCount: 1,
     });
 
     let state = stateWithPendingRemoval(cfg, fen);
@@ -2047,19 +2091,27 @@ describe('Piece removal check violation (reverse blunziger)', () => {
     state = applyPieceRemoval(state, 'e2' as Square);
     expect(state.pendingViolation).not.toBeNull();
     expect(state.pendingViolation!.violationType).toBe('gave_forbidden_check_removal');
+    expect(state.pendingViolation!.reportable).toBe(false); // auto-penalised
 
-    // After e2 removal the rook on e8 permanently checks through the open
-    // e-file.  In reverse mode Black must play a non-checking move: move the
-    // rook off the e-file (Ra8) to avoid triggering a separate violation.
-    state = applyMoveWithRules(state, { from: 'e8', to: 'a8' });
+    // A new pending piece removal should target Black's pieces (the violator)
+    expect(state.pendingPieceRemoval).not.toBeNull();
+    expect(state.pendingPieceRemoval!.targetSide).toBe('b');
+    expect(state.pendingPieceRemoval!.chooserSide).toBe('w');
+  });
 
-    // White can now report the piece removal violation
-    expect(state.sideToMove).toBe('w');
-    expect(canReport(state, 'w')).toBe(true);
-    state = reportViolation(state, 'w');
-    expect(state.result).not.toBeNull();
-    expect(state.result!.winner).toBe('w');
-    expect(state.result!.reason).toBe('valid-report');
+  it('report mode keeps removal violation reportable (reverse)', () => {
+    const fen = '4r2k/pppp1ppp/8/8/8/8/P3PPPP/4K3 b - - 0 1';
+    const cfg: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      variantMode: 'reverse_blunzinger',
+      gameType: 'report_incorrectness',
+    });
+
+    let state = stateWithPendingRemoval(cfg, fen);
+    state = applyPieceRemoval(state, 'e2' as Square);
+    expect(state.pendingViolation).not.toBeNull();
+    expect(state.pendingViolation!.violationType).toBe('gave_forbidden_check_removal');
+    expect(state.pendingViolation!.reportable).toBe(true);
   });
 });
 
