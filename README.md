@@ -250,14 +250,15 @@ Review preserves the original match configuration. Evaluation during review uses
 | Mode | Description |
 |------|-------------|
 | **Human vs Human** | Two players on the same device |
-| **Human vs Bot** | Play against an AI (easy/medium/hard) |
+| **Human vs Bot** | Play against an AI (easy/medium/hard/expert) |
 | **Bot vs Bot** | Watch two bots play with animated moves |
 
 ### Bot Levels
 
-- **Easy**: Random legal move (respecting mode rules)
-- **Medium**: Heuristic evaluation (captures, checks, central control)
-- **Hard**: Minimax with alpha-beta pruning (depth 2)
+- **Easy**: Random legal move (respecting mode rules, occasional violations ~25%)
+- **Medium**: Negamax search (depth 2) with variant-aware evaluation
+- **Hard**: Deep negamax search (depth 3) with alpha-beta pruning, quiescence search, and tactical extensions
+- **Expert (Blunznforön)**: Deepest search (depth 4) with fully deterministic, variant-aware evaluation — no randomization
 
 ### Bot Mode Awareness
 
@@ -266,18 +267,38 @@ Bots obey all mode restrictions:
 - **Reverse Blunzinger**: Must play non-checking moves when checking alternatives exist
 - **King Hunt**: Prefers checking moves more strongly (higher scoring weight)
 - **Penalty modes**: Functions correctly with penalties (extra turns, piece removal, time reduction)
-- **Clock**: Consumes time normally
-- **Piece removal (chooser)**: Automatically selects highest-value removable piece
+- **Clock**: Consumes time normally; time pressure affects move evaluation
+- **Piece removal (chooser)**: Selects piece by tactical impact (discovered checks, material value, king safety)
+- **Crazyhouse**: Full support for drop moves as first-class candidates alongside regular moves
 
 ## Engines
 
-Bot move selection uses a built-in move picker (easy/medium/hard levels above). The **engine** system is a separate, pluggable layer that powers the optional **evaluation bar** and provides best-move hints.
+The bot system is powered by **Blunznforön**, the app's native custom tactical bot. The **engine** system is a separate, pluggable layer that powers the optional **evaluation bar** and provides best-move hints.
 
 | Engine | Status | Description |
 |--------|--------|-------------|
 | **Heuristic** | ✅ Available | Built-in lightweight evaluator using material balance and mobility. Powers the evaluation bar and 1-ply best-move hints. |
-| **Blunznforön** | ⏳ Coming soon | Fairy-Stockfish variant engine — will provide deep multi-PV search with native variant support. Currently awaiting WASM integration. |
+| **Blunznforön** | ✅ Available | Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunziger + Crazyhouse combinations. |
 | **Blunznfish** | ⏳ Coming soon | Custom engine built specifically for Blunziger Chess variants with native rule awareness. Not yet implemented. |
+
+### Blunznforön
+
+Blunznforön is the app's strong custom tactical bot for all Blunziger variants and Crazyhouse. It features:
+
+- **Negamax search** with alpha-beta pruning for efficient tree traversal
+- **Quiescence search** to avoid the horizon effect in tactical positions
+- **Tactical extensions** that deepen search in check positions
+- **MVV-LVA move ordering** for optimal pruning performance
+- **Variant-aware evaluation** covering all variant modes, game types, and overlays
+- **Crazyhouse specialization** including reserve evaluation, drop-check threats, mating-net detection, and king vulnerability to drops
+- **Piece-square tables** for positional awareness
+- **King safety** evaluation with pawn shield and castling bonuses
+
+Blunznforön is the recommended engine for all Human vs Bot and Bot vs Bot games.
+
+### Blunznforelle
+
+Blunznforelle refers to the Fairy-Stockfish-backed engine (external WASM integration planned for the future). When available, it will provide deep multi-PV search with native variant support.
 
 ### Engine Architecture
 
@@ -285,7 +306,7 @@ Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.t
 
 - **Position analysis** — evaluate who is better with a centipawn score
 - **Best-move hints** — suggest the best move in UCI notation
-- **Variant awareness** — factor variant rules into analysis (planned for Blunznforön / Blunznfish)
+- **Variant awareness** — factor variant rules into analysis (Blunznforön, planned for Blunznfish)
 
 Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunziger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
 
@@ -338,11 +359,25 @@ src/
 │   ├── engineRegistry.ts  # Factory registry for engine adapters
 │   ├── adapters/       # Engine adapter implementations
 │   │   ├── heuristicAdapter.ts    # Built-in heuristic engine
-│   │   ├── blunznforönAdapter.ts  # Fairy-Stockfish integration (coming soon)
+│   │   ├── blunznforönAdapter.ts  # Blunznforön engine adapter (available)
 │   │   └── shared.ts              # Shared utility functions
 │   └── index.ts        # Re-exports
+├── core/bots/blunznforon/  # Blunznforön tactical bot (variant-aware search engine)
+│   ├── types.ts        # Bot configuration types
+│   ├── config.ts       # Difficulty level configurations (easy/medium/hard/expert)
+│   ├── evaluate.ts     # Variant-aware position evaluation (material, PST, mobility, king safety)
+│   ├── search.ts       # Negamax with alpha-beta pruning, quiescence search
+│   ├── moveOrdering.ts # MVV-LVA move ordering for search efficiency
+│   ├── tactical.ts     # Tactical pattern detectors (mate, KOTH, checks)
+│   ├── crazyhouse.ts   # Reserve evaluation, drop scoring, king vulnerability
+│   ├── blunziger.ts    # Variant mode filtering (classic/reverse/King Hunt)
+│   ├── kingHunt.ts     # King Hunt scoring evaluation
+│   ├── clock.ts        # Time-aware evaluation adjustments
+│   ├── pieceRemoval.ts # Piece removal decision logic
+│   ├── reportLogic.ts  # Report action decision logic
+│   └── index.ts        # Public API
 ├── bot/
-│   └── botEngine.ts    # Bot move selection (variant-mode-aware, easy/medium/hard)
+│   └── botEngine.ts    # Bot move selection (delegates to Blunznforön when config available)
 ├── components/
 │   ├── Chessboard.tsx        # Custom board UI (click-to-move, piece removal)
 │   ├── EvaluationBar.tsx     # Optional evaluation bar (variant-aware)
