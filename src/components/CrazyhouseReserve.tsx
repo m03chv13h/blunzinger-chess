@@ -44,15 +44,15 @@ export function CrazyhouseReserve({
       <span className="crazyhouse-reserve-label">{label}:</span>
       {PIECE_TYPES.map((pt) => {
         const count = reserve[pt];
-        if (count <= 0) return null;
+        const isEmpty = count <= 0;
         const isSelected = selectedPiece === pt;
         const isClickable = interactive && count > 0;
         return (
           <span
             key={pt}
-            className={`reserve-piece${isClickable ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
+            className={`reserve-piece${isEmpty ? ' empty' : ''}${isClickable ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
             onClick={() => handleClick(pt)}
-            title={`${pt.toUpperCase()} (×${count})`}
+            title={isEmpty ? `${pt.toUpperCase()} (none)` : `${pt.toUpperCase()} (×${count})`}
           >
             {PIECE_UNICODE[side][pt]}
             {count > 1 && <span className="reserve-count">{count}</span>}

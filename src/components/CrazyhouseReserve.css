@@ -55,6 +55,11 @@
   position: relative;
 }
 
+.reserve-piece.empty {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
 .reserve-piece.clickable {
   cursor: pointer;
 }
