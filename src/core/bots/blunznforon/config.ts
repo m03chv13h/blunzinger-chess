@@ -29,13 +29,6 @@ const CONFIGS: Record<BlunznforonLevel, BlunznforonConfig> = {
     violationProbability: 0,
     useTacticalExtensions: true,
   },
-  expert: {
-    searchDepth: 4,
-    quiescenceDepth: 3,
-    randomMarginCp: 0,
-    violationProbability: 0,
-    useTacticalExtensions: true,
-  },
 };
 
 export function getBlunznforonConfig(level: BlunznforonLevel): BlunznforonConfig {

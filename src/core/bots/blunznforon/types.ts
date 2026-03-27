@@ -9,7 +9,7 @@ import type { Move, Square, Color, DropMove, MatchConfig, CrazyhouseState } from
 
 // ── Difficulty levels ────────────────────────────────────────────────
 
-export type BlunznforonLevel = 'easy' | 'medium' | 'hard' | 'expert';
+export type BlunznforonLevel = 'easy' | 'medium' | 'hard';
 
 // ── Search configuration per difficulty ──────────────────────────────
 

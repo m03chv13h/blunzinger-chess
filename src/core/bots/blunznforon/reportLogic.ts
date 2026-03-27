@@ -18,7 +18,7 @@ const EASY_MAX_REPORT_PROBABILITY = 0.9;
 /**
  * Determine whether the bot should report an opponent's violation.
  *
- * Expert, hard, and medium bots always report valid violations.
+ * Hard and medium bots always report valid violations.
  * Easy bot uses probabilistic reporting based on how obvious the violation is.
  */
 export function shouldReport(level: BotLevel, violation: ViolationRecord): boolean {

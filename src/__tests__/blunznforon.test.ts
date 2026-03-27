@@ -115,7 +115,7 @@ describe('Blunznforön Bot', () => {
     it('from starting position (all levels)', () => {
       const config = classicConfig();
       const legal = getLegalMoves(INITIAL_FEN);
-      for (const level of ['easy', 'medium', 'hard', 'expert'] as const) {
+      for (const level of ['easy', 'medium', 'hard'] as const) {
         const move = selectBlunznforonMove(INITIAL_FEN, level, config, 'w');
         expect(move).not.toBeNull();
         const isLegal = legal.some((m) => m.from === move!.from && m.to === move!.to);
@@ -145,14 +145,6 @@ describe('Blunznforön Bot', () => {
     it('hard bot plays a checking move when available', () => {
       const checks = getCheckingMoves(FEN_WITH_CHECKS);
       const move = selectBlunznforonMove(FEN_WITH_CHECKS, 'hard', classicConfig(), 'w');
-      expect(move).not.toBeNull();
-      const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
-      expect(isChecking).toBe(true);
-    });
-
-    it('expert bot plays a checking move when available', () => {
-      const checks = getCheckingMoves(FEN_WITH_CHECKS);
-      const move = selectBlunznforonMove(FEN_WITH_CHECKS, 'expert', classicConfig(), 'w');
       expect(move).not.toBeNull();
       const isChecking = checks.some((c) => c.from === move!.from && c.to === move!.to);
       expect(isChecking).toBe(true);
@@ -229,10 +221,6 @@ describe('Blunznforön Bot', () => {
 
     it('medium bot always reports missed_check', () => {
       expect(shouldBlunznforonReport('medium', makeViolation('missed_check'))).toBe(true);
-    });
-
-    it('expert bot always reports missed_check', () => {
-      expect(shouldBlunznforonReport('expert', makeViolation('missed_check'))).toBe(true);
     });
 
     it('easy bot always reports gave_forbidden_check', () => {
@@ -344,17 +332,10 @@ describe('Blunznforön Bot', () => {
       expect(cfg.violationProbability).toBe(0);
     });
 
-    it('hard config has deeper search and tactical extensions', () => {
+    it('hard config has deepest search and tactical extensions', () => {
       const cfg = getBlunznforonConfig('hard');
       expect(cfg.searchDepth).toBe(3);
-      expect(cfg.useTacticalExtensions).toBe(true);
-      expect(cfg.violationProbability).toBe(0);
-    });
-
-    it('expert config has deepest search and no randomization', () => {
-      const cfg = getBlunznforonConfig('expert');
-      expect(cfg.searchDepth).toBe(4);
-      expect(cfg.randomMarginCp).toBe(0);
+      expect(cfg.randomMarginCp).toBe(10);
       expect(cfg.useTacticalExtensions).toBe(true);
       expect(cfg.violationProbability).toBe(0);
     });
@@ -379,11 +360,9 @@ describe('Blunznforön Bot', () => {
       expect(mediumIsChecking).toBe(true); // Medium bot obeyed rules
     });
 
-    it('hard and expert produce moves from starting position', () => {
-      for (const level of ['hard', 'expert'] as const) {
-        const move = selectBlunznforonMove(INITIAL_FEN, level, classicConfig(), 'w');
-        expect(move).not.toBeNull();
-      }
+    it('hard produces moves from starting position', () => {
+      const move = selectBlunznforonMove(INITIAL_FEN, 'hard', classicConfig(), 'w');
+      expect(move).not.toBeNull();
     }, 30_000);
   });
 
