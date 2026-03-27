@@ -510,4 +510,41 @@ describe('Post-game review system', () => {
       expect(steps[steps.length - 1].fen).toBe(record.finalFen);
     });
   });
+
+  describe('Clock data in review', () => {
+    it('position history entries contain clock times when clocks were enabled', () => {
+      const config = {
+        ...DEFAULT_SETUP_CONFIG,
+        enableClock: true,
+        initialTimeMs: 5 * 60 * 1000,
+      };
+      const mc = buildMatchConfig(config);
+      let state = createInitialState('hvh', mc);
+
+      // Initial entry should have clock data
+      expect(state.positionHistory[0].clockWhiteMs).toBe(300_000);
+      expect(state.positionHistory[0].clockBlackMs).toBe(300_000);
+
+      // Play a move (scholar's mate first move)
+      state = applyMoveWithRules(state, 'e4');
+      const entry = state.positionHistory[1];
+      expect(entry.clockWhiteMs).toBeDefined();
+      expect(entry.clockBlackMs).toBeDefined();
+      expect(typeof entry.clockWhiteMs).toBe('number');
+      expect(typeof entry.clockBlackMs).toBe('number');
+    });
+
+    it('position history entries have no clock fields when clocks were disabled', () => {
+      const config = { ...DEFAULT_SETUP_CONFIG, enableClock: false };
+      const mc = buildMatchConfig(config);
+      let state = createInitialState('hvh', mc);
+
+      expect(state.positionHistory[0].clockWhiteMs).toBeUndefined();
+      expect(state.positionHistory[0].clockBlackMs).toBeUndefined();
+
+      state = applyMoveWithRules(state, 'e4');
+      expect(state.positionHistory[1].clockWhiteMs).toBeUndefined();
+      expect(state.positionHistory[1].clockBlackMs).toBeUndefined();
+    });
+  });
 });

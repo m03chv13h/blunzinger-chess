@@ -9,6 +9,8 @@ export interface ReviewStep {
   moveNotation: string | null;
   /** Index into moveHistory, or -1 for non-move events (initial position, piece removal). */
   moveIndex: number;
+  clockWhiteMs?: number;
+  clockBlackMs?: number;
 }
 
 export interface UseReviewReturn {
@@ -28,6 +30,10 @@ export interface UseReviewReturn {
   reviewedGameState: GameState | null;
   /** Current move index in moveHistory that is highlighted, or -1 if none. */
   highlightedMoveIndex: number;
+  /** White's clock time (ms) at the reviewed position, or undefined when not available. */
+  reviewedClockWhiteMs: number | undefined;
+  /** Black's clock time (ms) at the reviewed position, or undefined when not available. */
+  reviewedClockBlackMs: number | undefined;
   /** Start reviewing at the final position. */
   enterReview: () => void;
   /** Navigation controls. */
@@ -56,6 +62,8 @@ function buildReviewSteps(positionHistory: PositionHistoryEntry[]): ReviewStep[]
       sideToMove: fenSideToMove(entry.fen),
       moveNotation: entry.moveNotation,
       moveIndex: entry.moveNotation !== null ? moveCounter : -1,
+      clockWhiteMs: entry.clockWhiteMs,
+      clockBlackMs: entry.clockBlackMs,
     };
   });
 }
@@ -81,6 +89,8 @@ export function useReview(state: GameState): UseReviewReturn {
 
   const reviewedFen = currentStep?.fen ?? null;
   const reviewedScores = currentStep?.scores ?? null;
+  const reviewedClockWhiteMs = currentStep?.clockWhiteMs;
+  const reviewedClockBlackMs = currentStep?.clockBlackMs;
 
   const highlightedMoveIndex = currentStep?.moveIndex ?? -1;
 
@@ -143,6 +153,8 @@ export function useReview(state: GameState): UseReviewReturn {
     reviewedScores,
     reviewedGameState,
     highlightedMoveIndex,
+    reviewedClockWhiteMs,
+    reviewedClockBlackMs,
     enterReview,
     goToFirst,
     goToPrev,

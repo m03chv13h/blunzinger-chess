@@ -385,4 +385,35 @@ describe('Clock – core timing logic', () => {
     expect(cfg.penaltyConfig.enableTimeReductionPenalty).toBe(true);
     expect(cfg.penaltyConfig.timeReductionSeconds).toBe(30);
   });
+
+  // ── Clock data in position history ──────────────────────────────────
+
+  describe('Clock data stored in position history', () => {
+    it('initial state stores clock times in the first position history entry', () => {
+      const cfg = clockConfig({ initialTimeMs: 5 * 60 * 1000 });
+      const state = createInitialState('hvh', cfg);
+      expect(state.positionHistory[0].clockWhiteMs).toBe(300_000);
+      expect(state.positionHistory[0].clockBlackMs).toBe(300_000);
+    });
+
+    it('does not store clock times when clocks are disabled', () => {
+      const cfg = clockConfig({ enableClock: false });
+      const state = createInitialState('hvh', cfg);
+      expect(state.positionHistory[0].clockWhiteMs).toBeUndefined();
+      expect(state.positionHistory[0].clockBlackMs).toBeUndefined();
+    });
+
+    it('records updated clock times in position history after each move', () => {
+      const cfg = clockConfig({ initialTimeMs: 5 * 60 * 1000 });
+      let state = createInitialState('hvh', cfg);
+
+      // Simulate clock commit by adjusting state.clocks before applying a move
+      state = { ...state, clocks: { whiteMs: 295_000, blackMs: 300_000, lastTimestamp: Date.now() } };
+      state = applyMoveWithRules(state, 'e4');
+
+      const lastEntry = state.positionHistory[state.positionHistory.length - 1];
+      expect(lastEntry.clockWhiteMs).toBeDefined();
+      expect(lastEntry.clockBlackMs).toBeDefined();
+    });
+  });
 });
