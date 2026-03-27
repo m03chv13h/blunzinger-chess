@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import './FenDisplay.css';
 
 interface FenDisplayProps {
@@ -7,12 +7,25 @@ interface FenDisplayProps {
 
 export function FenDisplay({ fen }: FenDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(fen).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    navigator.clipboard.writeText(fen).then(
+      () => {
+        setCopied(true);
+        timerRef.current = setTimeout(() => setCopied(false), 1500);
+      },
+      () => {
+        /* clipboard access denied — silently ignore */
+      },
+    );
   }, [fen]);
 
   return (
