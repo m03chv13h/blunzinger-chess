@@ -63,6 +63,8 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
     simConfig.botSide,
     simConfig.engineIdWhite,
     simConfig.engineIdBlack,
+    simConfig.botDifficultyWhite,
+    simConfig.botDifficultyBlack,
   );
 
   while (!state.result && state.plyCount < MAX_PLIES) {
@@ -85,21 +87,23 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
     if (
       canReport(state, state.sideToMove) &&
       state.pendingViolation &&
-      shouldBotReport(state.botLevel, state.pendingViolation)
+      shouldBotReport(state.sideToMove === 'w' ? state.botLevelWhite : state.botLevelBlack, state.pendingViolation)
     ) {
       state = reportViolation(state, state.sideToMove);
       if (state.result) break;
       continue;
     }
 
-    const botMove = selectBotMove(state.fen, state.botLevel, state.config);
+    const activeBotLevel = state.sideToMove === 'w' ? state.botLevelWhite : state.botLevelBlack;
+
+    const botMove = selectBotMove(state.fen, activeBotLevel, state.config);
     if (!botMove) break;
 
     // Crazyhouse: try a drop move first
     if (state.crazyhouse) {
       const dropMove = selectBotDropMove(
         state.fen,
-        state.botLevel,
+        activeBotLevel,
         state.crazyhouse,
         state.sideToMove,
         state.config,

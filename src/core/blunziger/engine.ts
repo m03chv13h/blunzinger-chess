@@ -1163,6 +1163,8 @@ export function createInitialState(
   botColor: Color = 'b',
   engineIdWhite: EngineId = 'heuristic',
   engineIdBlack: EngineId = 'heuristic',
+  botLevelWhite?: BotLevel,
+  botLevelBlack?: BotLevel,
 ): GameState {
   return {
     fen: INITIAL_FEN,
@@ -1175,6 +1177,8 @@ export function createInitialState(
     lastReportFeedback: null,
     mode,
     botLevel,
+    botLevelWhite: botLevelWhite ?? botLevel,
+    botLevelBlack: botLevelBlack ?? botLevel,
     botColor,
     engineIdWhite,
     engineIdBlack,

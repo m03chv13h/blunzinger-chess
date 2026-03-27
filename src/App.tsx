@@ -56,6 +56,8 @@ function App() {
     activeConfig.botSide,
     activeConfig.engineIdWhite,
     activeConfig.engineIdBlack,
+    activeConfig.botDifficultyWhite,
+    activeConfig.botDifficultyBlack,
   );
 
   const review = useReview(game.state);
@@ -145,6 +147,8 @@ function App() {
       config.botSide,
       config.engineIdWhite,
       config.engineIdBlack,
+      config.botDifficultyWhite,
+      config.botDifficultyBlack,
     );
   };
 

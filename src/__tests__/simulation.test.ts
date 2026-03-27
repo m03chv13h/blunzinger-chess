@@ -132,4 +132,20 @@ describe('runSimulatedGame', () => {
     expect(record.result).toBeDefined();
     expect(record.result.winner).toMatch(/^(w|b|draw)$/);
   });
+
+  it('works with different bot difficulty per side', () => {
+    const config: GameSetupConfig = {
+      ...DEFAULT_SETUP_CONFIG,
+      mode: 'botvbot',
+      botDifficulty: 'easy',
+      botDifficultyWhite: 'medium',
+      botDifficultyBlack: 'easy',
+    };
+    const record = runSimulatedGame(config);
+    expect(record.result).toBeDefined();
+    expect(record.result.winner).toMatch(/^(w|b|draw)$/);
+    // Config should preserve per-side difficulty
+    expect(record.config.botDifficultyWhite).toBe('medium');
+    expect(record.config.botDifficultyBlack).toBe('easy');
+  }, 15000);
 });

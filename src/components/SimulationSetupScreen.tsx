@@ -57,11 +57,24 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
         </div>
 
         <div className="sim-setup-group">
-          <label htmlFor="sim-bot-level">Bot Difficulty</label>
+          <label htmlFor="sim-bot-level-white">Bot Difficulty (White)</label>
           <select
-            id="sim-bot-level"
-            value={config.botDifficulty}
-            onChange={(e) => update({ botDifficulty: e.target.value as BotLevel })}
+            id="sim-bot-level-white"
+            value={config.botDifficultyWhite}
+            onChange={(e) => update({ botDifficultyWhite: e.target.value as BotLevel })}
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div className="sim-setup-group">
+          <label htmlFor="sim-bot-level-black">Bot Difficulty (Black)</label>
+          <select
+            id="sim-bot-level-black"
+            value={config.botDifficultyBlack}
+            onChange={(e) => update({ botDifficultyBlack: e.target.value as BotLevel })}
           >
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>

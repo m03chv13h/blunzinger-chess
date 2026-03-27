@@ -42,7 +42,13 @@ export function SimulationView({
         <div className="sim-config-summary">
           <span className="sim-tag">{getVariantLabel(config.variantMode)}</span>
           <span className="sim-tag">{getGameTypeLabel(config.gameType)}</span>
-          <span className="sim-tag">{LEVEL_LABELS[config.botDifficulty] ?? config.botDifficulty}</span>
+          {config.botDifficultyWhite === config.botDifficultyBlack
+            ? <span className="sim-tag">{LEVEL_LABELS[config.botDifficultyWhite] ?? config.botDifficultyWhite}</span>
+            : <>
+                <span className="sim-tag">W: {LEVEL_LABELS[config.botDifficultyWhite] ?? config.botDifficultyWhite}</span>
+                <span className="sim-tag">B: {LEVEL_LABELS[config.botDifficultyBlack] ?? config.botDifficultyBlack}</span>
+              </>
+          }
           {config.enableKingOfTheHill && <span className="sim-tag">KOTH</span>}
           {config.enableDoubleCheckPressure && <span className="sim-tag">DCP</span>}
           {config.enableCrazyhouse && <span className="sim-tag">Crazyhouse</span>}
