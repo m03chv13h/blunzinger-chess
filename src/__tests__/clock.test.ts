@@ -416,4 +416,50 @@ describe('Clock – core timing logic', () => {
       expect(lastEntry.clockBlackMs).toBeDefined();
     });
   });
+
+  // ── Bot thinking: clock properly accounts for elapsed time ─────────
+
+  describe('Clock during bot thinking', () => {
+    it('display time decreases during bot thinking delay (timestamp model)', () => {
+      // After a human move, the bot's committed time is unchanged (300k)
+      // and the turn-start timestamp is recorded. The display formula
+      //   display = committed - (now - turnStart)
+      // should produce decreasing values as wall-clock time advances,
+      // even while the bot is "thinking".
+      const committed = 300_000;
+      const turnStart = 1_000_000;
+
+      // Simulate ticks at 100ms intervals during a 1.5-second bot turn
+      const samples: number[] = [];
+      for (let t = 0; t <= 1500; t += 100) {
+        samples.push(computeDisplayTime(committed, turnStart, turnStart + t));
+      }
+
+      // The display should decrease monotonically
+      for (let i = 1; i < samples.length; i++) {
+        expect(samples[i]).toBeLessThan(samples[i - 1]);
+      }
+
+      // After 1.5s the display should show 298500 ms
+      expect(samples[samples.length - 1]).toBe(298_500);
+    });
+
+    it('clock deduction after bot move includes full thinking time', () => {
+      // Simulate: bot has 300k committed time, thinks for 2 seconds, then moves.
+      // The elapsed time should be fully deducted on commit.
+      const initial: ClockState = { whiteMs: 300_000, blackMs: 300_000, lastTimestamp: null };
+      const thinkingMs = 2_000;
+      const afterCommit = commitClockOnMove(initial, 'b', thinkingMs);
+      expect(afterCommit.blackMs).toBe(298_000);
+      expect(afterCommit.whiteMs).toBe(300_000);
+    });
+
+    it('bot timeout is detected when thinking exceeds remaining time', () => {
+      // Bot has 1 second on clock but "thinks" for 2 seconds
+      const committed = 1_000;
+      const turnStart = 0;
+      const display = computeDisplayTime(committed, turnStart, 2_000);
+      expect(display).toBe(0); // Clamped to zero — timeout
+    });
+  });
 });

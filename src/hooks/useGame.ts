@@ -25,6 +25,7 @@ import {
   selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
+import type { BotActionRequest, BotActionResponse } from '../bot/botWorker';
 
 export interface UseGameReturn {
   state: GameState;
@@ -87,6 +88,26 @@ export function useGame(
   pausedRef.current = paused;
   const moveDelayRef = useRef(moveDelay);
   moveDelayRef.current = moveDelay;
+
+  // ── Bot Worker (offloads move computation to a background thread) ──
+  const workerRef = useRef<Worker | null>(null);
+  const workerRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    try {
+      const w = new Worker(
+        new URL('../bot/botWorker.ts', import.meta.url),
+        { type: 'module' },
+      );
+      workerRef.current = w;
+    } catch {
+      // Worker unavailable (e.g. test/SSR environment) — sync fallback used
+    }
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+    };
+  }, []);
 
   // ── Clock state (live display) ─────────────────────────────────────
   const [clockWhiteMs, setClockWhiteMs] = useState(
@@ -451,6 +472,60 @@ export function useGame(
 
     setBotThinking(true);
     const delay = state.mode === 'botvbot' ? moveDelayRef.current : 400;
+    let cancelled = false;
+
+    // Helper: apply a computed bot action (move or drop) to the game state,
+    // deducting clock time and committing the result.
+    const applyBotAction = (action: { kind: 'move'; move: { from: string; to: string; promotion?: string } } | { kind: 'drop'; dropMove: DropMove }) => {
+      if (cancelled) { setBotThinking(false); return; }
+      const current = stateRef.current;
+      if (current.result) { setBotThinking(false); return; }
+
+      let stateBeforeAction = current;
+      if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
+        const now = Date.now();
+        const elapsed = now - clockActiveRef.current;
+        const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
+        const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
+        if (remaining <= 0) {
+          setState(applyTimeout(
+            { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
+            current.sideToMove,
+          ));
+          setBotThinking(false);
+          return;
+        }
+        const increment = current.config.overlays.incrementMs || 0;
+        const decrement = current.config.overlays.decrementMs || 0;
+        stateBeforeAction = {
+          ...current,
+          clocks: { ...current.clocks, [key]: Math.max(0, remaining + increment - decrement), lastTimestamp: now },
+        };
+      }
+
+      let newState: GameState;
+      if (action.kind === 'drop') {
+        newState = applyDropMoveWithRules(stateBeforeAction, action.dropMove);
+        if (newState === stateBeforeAction) { setBotThinking(false); return; }
+      } else {
+        newState = applyMoveWithRules(stateBeforeAction, {
+          from: action.move.from as Square,
+          to: action.move.to as Square,
+          promotion: action.move.promotion,
+        });
+      }
+
+      if (newState.clocks) {
+        const ts = Date.now();
+        newState.clocks = { ...newState.clocks, lastTimestamp: ts };
+        clockActiveRef.current = ts;
+        clockCommittedRef.current = { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs };
+      }
+
+      setState(newState);
+      setBotThinking(false);
+    };
+
     const timer = setTimeout(() => {
       const current = stateRef.current;
       if (current.result) {
@@ -467,7 +542,37 @@ export function useGame(
         setBotThinking(false);
         return;
       }
-      // Crazyhouse: bot tries a drop move first
+
+      // ── Worker path: offload move computation to a background thread
+      //    so the clock interval and React renders are never blocked.
+      const worker = workerRef.current;
+      if (worker) {
+        const id = ++workerRequestIdRef.current;
+
+        const onMessage = (e: MessageEvent<BotActionResponse>) => {
+          if (cancelled || e.data.id !== id) return;
+          worker.removeEventListener('message', onMessage);
+
+          const { action } = e.data;
+          if (!action) { setBotThinking(false); return; }
+          applyBotAction(action);
+        };
+        worker.addEventListener('message', onMessage);
+
+        worker.postMessage({
+          type: 'selectBotAction',
+          id,
+          fen: current.fen,
+          level: activeBotLevel,
+          config: current.config,
+          crazyhouse: current.crazyhouse ?? undefined,
+          side: current.sideToMove,
+        } satisfies BotActionRequest);
+
+        return; // setBotThinking(false) handled in onMessage
+      }
+
+      // ── Sync fallback (no Worker available, e.g. tests / SSR) ──────
       if (current.crazyhouse) {
         const dropMove = selectBotDropMove(
           current.fen,
@@ -477,87 +582,23 @@ export function useGame(
           current.config,
         );
         if (dropMove) {
-          let stateBeforeDrop = current;
-          if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
-            const now = Date.now();
-            const elapsed = now - clockActiveRef.current;
-            const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
-            const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
-            if (remaining <= 0) {
-              setState(applyTimeout(
-                { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
-                current.sideToMove,
-              ));
-              setBotThinking(false);
-              return;
-            }
-            const increment = current.config.overlays.incrementMs || 0;
-            const decrement = current.config.overlays.decrementMs || 0;
-            stateBeforeDrop = {
-              ...current,
-              clocks: { ...current.clocks, [key]: Math.max(0, remaining + increment - decrement), lastTimestamp: now },
-            };
-          }
-
-          const dropState = applyDropMoveWithRules(stateBeforeDrop, dropMove);
-          if (dropState !== stateBeforeDrop) {
-            if (dropState.clocks) {
-              const ts = Date.now();
-              dropState.clocks = { ...dropState.clocks, lastTimestamp: ts };
-              clockActiveRef.current = ts;
-              clockCommittedRef.current = { whiteMs: dropState.clocks.whiteMs, blackMs: dropState.clocks.blackMs };
-            }
-            setState(dropState);
-            setBotThinking(false);
-            return;
-          }
+          applyBotAction({ kind: 'drop', dropMove });
+          return;
         }
       }
 
       const botMove = selectBotMove(current.fen, activeBotLevel, current.config);
       if (botMove) {
-        // Apply clock time for bot
-        let stateBeforeMove = current;
-        if (current.clocks && clockCommittedRef.current && clockActiveRef.current) {
-          const now = Date.now();
-          const elapsed = now - clockActiveRef.current;
-          const key = current.sideToMove === 'w' ? 'whiteMs' : 'blackMs';
-          const remaining = Math.max(0, clockCommittedRef.current[key] - elapsed);
-          if (remaining <= 0) {
-            setState(applyTimeout(
-              { ...current, clocks: { ...current.clocks, [key]: 0, lastTimestamp: now } },
-              current.sideToMove,
-            ));
-            setBotThinking(false);
-            return;
-          }
-          const increment = current.config.overlays.incrementMs || 0;
-          const decrement = current.config.overlays.decrementMs || 0;
-          stateBeforeMove = {
-            ...current,
-            clocks: { ...current.clocks, [key]: Math.max(0, remaining + increment - decrement), lastTimestamp: now },
-          };
-        }
-
-        const newState = applyMoveWithRules(stateBeforeMove, {
-          from: botMove.from as Square,
-          to: botMove.to as Square,
-          promotion: botMove.promotion,
-        });
-
-        if (newState.clocks) {
-          const ts = Date.now();
-          newState.clocks = { ...newState.clocks, lastTimestamp: ts };
-          clockActiveRef.current = ts;
-          clockCommittedRef.current = { whiteMs: newState.clocks.whiteMs, blackMs: newState.clocks.blackMs };
-        }
-
-        setState(newState);
+        applyBotAction({ kind: 'move', move: botMove });
+        return;
       }
       setBotThinking(false);
     }, delay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [state.fen, state.sideToMove, state.result, state.mode, state.botColor, state.botLevelWhite, state.botLevelBlack, paused, state.pendingPieceRemoval]);
 
   return {
