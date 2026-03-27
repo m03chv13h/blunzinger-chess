@@ -133,6 +133,7 @@ describe('runSimulatedGame', () => {
     expect(record.result.winner).toMatch(/^(w|b|draw)$/);
   });
 
+  // Medium difficulty uses heuristic scoring, which makes games run longer
   it('works with different bot difficulty per side', () => {
     const config: GameSetupConfig = {
       ...DEFAULT_SETUP_CONFIG,
