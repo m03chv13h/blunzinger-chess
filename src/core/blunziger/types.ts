@@ -309,6 +309,10 @@ export interface GameState {
   lastReportFeedback: ReportFeedback | null;
   mode: GameMode;
   botLevel: BotLevel;
+  /** Bot difficulty for the White side (botvbot mode). */
+  botLevelWhite: BotLevel;
+  /** Bot difficulty for the Black side (botvbot mode). */
+  botLevelBlack: BotLevel;
   botColor: Color;
   /** Engine used for the White bot side (advisory — app rules remain authoritative). */
   engineIdWhite: EngineId;
@@ -341,6 +345,10 @@ export interface GameSetupConfig {
   mode: GameMode;
   botSide: Color;
   botDifficulty: BotLevel;
+  /** Bot difficulty for the White side (botvbot only; falls back to botDifficulty). */
+  botDifficultyWhite: BotLevel;
+  /** Bot difficulty for the Black side (botvbot only; falls back to botDifficulty). */
+  botDifficultyBlack: BotLevel;
   variantMode: VariantMode;
   gameType: GameType;
   // Engine selection
@@ -375,6 +383,8 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   mode: 'hvh',
   botSide: 'b',
   botDifficulty: 'easy',
+  botDifficultyWhite: 'easy',
+  botDifficultyBlack: 'easy',
   variantMode: 'classic_blunzinger',
   gameType: 'report_incorrectness',
   engineId: 'heuristic',

@@ -40,7 +40,17 @@ describe('Core Blunziger Engine', () => {
       expect(state.config.reportConfig.invalidReportLossThreshold).toBe(5);
       expect(state.mode).toBe('hvbot');
       expect(state.botLevel).toBe('medium');
+      expect(state.botLevelWhite).toBe('medium');
+      expect(state.botLevelBlack).toBe('medium');
       expect(state.botColor).toBe('w');
+    });
+
+    it('should support per-side bot levels', () => {
+      const config: MatchConfig = buildMatchConfig(DEFAULT_SETUP_CONFIG);
+      const state = createInitialState('botvbot', config, 'easy', 'b', 'heuristic', 'heuristic', 'hard', 'medium');
+      expect(state.botLevelWhite).toBe('hard');
+      expect(state.botLevelBlack).toBe('medium');
+      expect(state.botLevel).toBe('easy');
     });
   });
 

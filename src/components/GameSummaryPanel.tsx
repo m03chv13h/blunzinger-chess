@@ -62,10 +62,22 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
           <dt>Player Mode</dt>
           <dd>{MODE_LABELS[config.mode]}</dd>
         </div>
-        {(config.mode === 'hvbot' || config.mode === 'botvbot') && (
+        {config.mode === 'hvbot' && (
           <div className="summary-item">
             <dt>Bot Difficulty</dt>
             <dd>{LEVEL_LABELS[config.botDifficulty]}</dd>
+          </div>
+        )}
+        {config.mode === 'botvbot' && (
+          <div className="summary-item">
+            <dt>Bot Difficulty (White)</dt>
+            <dd>{LEVEL_LABELS[config.botDifficultyWhite]}</dd>
+          </div>
+        )}
+        {config.mode === 'botvbot' && (
+          <div className="summary-item">
+            <dt>Bot Difficulty (Black)</dt>
+            <dd>{LEVEL_LABELS[config.botDifficultyBlack]}</dd>
           </div>
         )}
         {config.mode === 'hvbot' && (

@@ -22,9 +22,10 @@ describe('Simulation UI', () => {
     expect(screen.getByLabelText('Number of Games')).toBeInTheDocument();
   });
 
-  it('shows bot difficulty selector', () => {
+  it('shows per-side bot difficulty selectors', () => {
     fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
-    expect(screen.getByLabelText('Bot Difficulty')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bot Difficulty (White)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bot Difficulty (Black)')).toBeInTheDocument();
   });
 
   it('shows variant mode selector', () => {
@@ -98,5 +99,23 @@ describe('Simulation UI', () => {
     fireEvent.change(whiteSelect, { target: { value: 'blunznforön' } });
     expect(whiteSelect.value).toBe('blunznforön');
     expect(blackSelect.value).toBe('heuristic');
+  });
+
+  it('defaults per-side bot difficulty to Easy', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    const whiteSelect = screen.getByLabelText('Bot Difficulty (White)') as HTMLSelectElement;
+    const blackSelect = screen.getByLabelText('Bot Difficulty (Black)') as HTMLSelectElement;
+    expect(whiteSelect.value).toBe('easy');
+    expect(blackSelect.value).toBe('easy');
+  });
+
+  it('allows selecting different difficulties for each side', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    const whiteSelect = screen.getByLabelText('Bot Difficulty (White)') as HTMLSelectElement;
+    const blackSelect = screen.getByLabelText('Bot Difficulty (Black)') as HTMLSelectElement;
+    fireEvent.change(whiteSelect, { target: { value: 'hard' } });
+    fireEvent.change(blackSelect, { target: { value: 'medium' } });
+    expect(whiteSelect.value).toBe('hard');
+    expect(blackSelect.value).toBe('medium');
   });
 });

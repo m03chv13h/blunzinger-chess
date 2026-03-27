@@ -41,6 +41,8 @@ export interface UseGameReturn {
     botColor?: Color,
     engineIdWhite?: EngineId,
     engineIdBlack?: EngineId,
+    botLevelWhite?: BotLevel,
+    botLevelBlack?: BotLevel,
   ) => void;
   canReportNow: boolean;
   legalMovesFrom: (square: Square) => Square[];
@@ -70,9 +72,11 @@ export function useGame(
   initialBotColor: Color = 'b',
   initialEngineIdWhite: EngineId = 'heuristic',
   initialEngineIdBlack: EngineId = 'heuristic',
+  initialBotLevelWhite?: BotLevel,
+  initialBotLevelBlack?: BotLevel,
 ): UseGameReturn {
   const [state, setState] = useState<GameState>(() =>
-    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor, initialEngineIdWhite, initialEngineIdBlack),
+    createInitialState(initialMode, initialConfig, initialBotLevel, initialBotColor, initialEngineIdWhite, initialEngineIdBlack, initialBotLevelWhite, initialBotLevelBlack),
   );
   const [botThinking, setBotThinking] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -311,6 +315,8 @@ export function useGame(
       botColor?: Color,
       engineIdWhite?: EngineId,
       engineIdBlack?: EngineId,
+      botLevelWhite?: BotLevel,
+      botLevelBlack?: BotLevel,
     ) => {
       const newState = createInitialState(
         mode ?? stateRef.current.mode,
@@ -319,6 +325,8 @@ export function useGame(
         botColor ?? stateRef.current.botColor,
         engineIdWhite ?? stateRef.current.engineIdWhite,
         engineIdBlack ?? stateRef.current.engineIdBlack,
+        botLevelWhite ?? stateRef.current.botLevelWhite,
+        botLevelBlack ?? stateRef.current.botLevelBlack,
       );
       setState(newState);
       setBotThinking(false);
@@ -343,6 +351,8 @@ export function useGame(
       record.config.botSide,
       record.config.engineIdWhite,
       record.config.engineIdBlack,
+      record.config.botDifficultyWhite,
+      record.config.botDifficultyBlack,
     );
     const sideToMove = (() => {
       const parts = record.finalFen.split(' ');
@@ -447,10 +457,11 @@ export function useGame(
         setBotThinking(false);
         return;
       }
+      const activeBotLevel = current.sideToMove === 'w' ? current.botLevelWhite : current.botLevelBlack;
       // Bot reports the human's violation before making its own move
       if (
         canReport(current, current.sideToMove) &&
-        shouldBotReport(current.botLevel, current.pendingViolation!)
+        shouldBotReport(activeBotLevel, current.pendingViolation!)
       ) {
         setState(reportViolation(current, current.sideToMove));
         setBotThinking(false);
@@ -460,7 +471,7 @@ export function useGame(
       if (current.crazyhouse) {
         const dropMove = selectBotDropMove(
           current.fen,
-          current.botLevel,
+          activeBotLevel,
           current.crazyhouse,
           current.sideToMove,
           current.config,
@@ -503,7 +514,7 @@ export function useGame(
         }
       }
 
-      const botMove = selectBotMove(current.fen, current.botLevel, current.config);
+      const botMove = selectBotMove(current.fen, activeBotLevel, current.config);
       if (botMove) {
         // Apply clock time for bot
         let stateBeforeMove = current;
@@ -547,7 +558,7 @@ export function useGame(
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [state.fen, state.sideToMove, state.result, state.mode, state.botColor, state.botLevel, paused, state.pendingPieceRemoval]);
+  }, [state.fen, state.sideToMove, state.result, state.mode, state.botColor, state.botLevelWhite, state.botLevelBlack, paused, state.pendingPieceRemoval]);
 
   return {
     state,
