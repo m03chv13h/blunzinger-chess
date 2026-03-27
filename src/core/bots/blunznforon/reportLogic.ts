@@ -35,7 +35,7 @@ export function shouldReport(level: BotLevel, violation: ViolationRecord): boole
   // For missed checks: more available checking moves → easier to notice
   const checkCount = violation.violationType === 'missed_check_removal'
     ? (violation.requiredRemovalSquares?.length ?? 0)
-    : violation.checkingMoves.length;
+    : violation.checkingMoves.length + (violation.checkingDropMoves?.length ?? 0);
 
   const probability = Math.min(
     EASY_MAX_REPORT_PROBABILITY,
