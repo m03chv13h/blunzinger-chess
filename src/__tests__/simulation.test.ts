@@ -120,4 +120,16 @@ describe('runSimulatedGame', () => {
     const record2 = runSimulatedGame(config);
     expect(record1.id).not.toBe(record2.id);
   });
+
+  it('works with crazyhouse overlay', () => {
+    const config: GameSetupConfig = {
+      ...DEFAULT_SETUP_CONFIG,
+      mode: 'botvbot',
+      botDifficulty: 'easy',
+      enableCrazyhouse: true,
+    };
+    const record = runSimulatedGame(config);
+    expect(record.result).toBeDefined();
+    expect(record.result.winner).toMatch(/^(w|b|draw)$/);
+  });
 });
