@@ -290,6 +290,8 @@ export interface PositionHistoryEntry {
   scores: ScoreState;
   moveNotation: string | null;
   crazyhouse?: CrazyhouseState;
+  clockWhiteMs?: number;
+  clockBlackMs?: number;
 }
 
 // ── Game State ───────────────────────────────────────────────────────

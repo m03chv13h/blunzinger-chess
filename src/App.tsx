@@ -116,8 +116,8 @@ function App() {
 
   // The state used for evaluation: reviewed state when reviewing, otherwise live state.
   const stateForEval = review.reviewedGameState ?? game.state;
-  const clockWhiteForEval = review.isReviewing ? 0 : game.clockWhiteMs;
-  const clockBlackForEval = review.isReviewing ? 0 : game.clockBlackMs;
+  const clockWhiteForEval = review.isReviewing ? (review.reviewedClockWhiteMs ?? 0) : game.clockWhiteMs;
+  const clockBlackForEval = review.isReviewing ? (review.reviewedClockBlackMs ?? 0) : game.clockBlackMs;
 
   const evaluation = useEvaluation(stateForEval, showEvalBar, clockWhiteForEval, clockBlackForEval);
 
@@ -337,8 +337,8 @@ function App() {
               state={game.state}
               onReport={game.report}
               botThinking={game.botThinking}
-              clockWhiteMs={game.clockWhiteMs}
-              clockBlackMs={game.clockBlackMs}
+              clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
+              clockBlackMs={review.isReviewing ? review.reviewedClockBlackMs : game.clockBlackMs}
             />
             {review.isReviewing && review.reviewIndex !== null && (
               <ReviewControls

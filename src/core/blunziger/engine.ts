@@ -390,7 +390,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     result,
     extraTurns: newExtraTurns,
     clocks: newClocks,
-    positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null }],
+    positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
     pieceRemovals: [...state.pieceRemovals, { moveIndex: triggerMoveIndex, pieceType: piece.type, pieceColor: piece.color }],
     missedChecks: newMissedChecks,
     timeReductions: newTimeReductions,
@@ -904,7 +904,7 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
-    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh }],
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
       : state.missedChecks,
@@ -1185,7 +1185,12 @@ export function createInitialState(
     extraTurns: { pendingExtraMovesWhite: 0, pendingExtraMovesBlack: 0 },
     pendingPieceRemoval: null,
     plyCount: 0,
-    positionHistory: [{ fen: INITIAL_FEN, scores: { w: 0, b: 0 }, moveNotation: null }],
+    positionHistory: [{
+      fen: INITIAL_FEN,
+      scores: { w: 0, b: 0 },
+      moveNotation: null,
+      ...(config.overlays.enableClock ? { clockWhiteMs: config.overlays.initialTimeMs, clockBlackMs: config.overlays.initialTimeMs } : {}),
+    }],
     violationReports: [],
     missedChecks: [],
     pieceRemovals: [],
@@ -1476,7 +1481,7 @@ export function applyMoveWithRules(
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
-    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined }],
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType }]
       : state.missedChecks,
