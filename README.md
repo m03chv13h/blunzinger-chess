@@ -296,10 +296,6 @@ Blunznforön is the app's strong custom tactical bot for all Blunziger variants 
 
 Blunznforön is the recommended engine for all Human vs Bot and Bot vs Bot games.
 
-### Blunznforelle
-
-Blunznforelle refers to the Fairy-Stockfish-backed engine (external WASM integration planned for the future). When available, it will provide deep multi-PV search with native variant support.
-
 ### Engine Architecture
 
 Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.ts`) and are registered in a pluggable registry. Each engine can provide:

@@ -71,6 +71,14 @@ describe('Engine Abstraction Layer', () => {
     it('DEFAULT_ENGINE_ID should be heuristic', () => {
       expect(DEFAULT_ENGINE_ID).toBe('heuristic');
     });
+
+    it('should not contain Blunznforelle in the registry', () => {
+      const infos = getAllEngineInfos();
+      const ids = infos.map((i) => i.id);
+      const names = infos.map((i) => i.name.toLowerCase());
+      expect(ids).not.toContain('blunznforelle');
+      expect(names).not.toContain('blunznforelle');
+    });
   });
 
   // ── Heuristic Adapter ─────────────────────────────────────────────
