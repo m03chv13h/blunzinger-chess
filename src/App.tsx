@@ -276,7 +276,8 @@ function App() {
       <Sidebar
         activeSection={activeSection}
         onNavigate={handleNavigate}
-        gameCount={analyseCount}      />
+        gameCount={analyseCount}
+      />
       <div className="app-with-sidebar">
         <main className="app-main">
           <aside className="left-panel">
