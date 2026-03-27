@@ -116,10 +116,9 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               value={config.botDifficulty}
               onChange={(e) => update({ botDifficulty: e.target.value as BotLevel })}
             >
-              <option value="easy">Easy (Random)</option>
-              <option value="medium">Medium (Heuristic)</option>
-              <option value="hard">Hard (Search)</option>
-              <option value="expert">Expert (Blunznforön)</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
             </select>
           </div>
         )}

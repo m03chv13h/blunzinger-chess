@@ -44,7 +44,6 @@ function toBotLevel(level: BotLevel): BlunznforonLevel {
     case 'easy': return 'easy';
     case 'medium': return 'medium';
     case 'hard': return 'hard';
-    case 'expert': return 'expert';
     default: return 'medium';
   }
 }
@@ -133,7 +132,7 @@ export function selectBlunznforonMove(
     return regularMoves[Math.floor(Math.random() * regularMoves.length)];
   }
 
-  // Medium/Hard/Expert: search and score all candidate moves
+  // Medium/Hard: search and score all candidate moves
   const scored = searchMoves(fen, regularMoves, blConfig, ctx, whiteMs, blackMs);
   if (scored.length === 0) return regularMoves[0];
 
