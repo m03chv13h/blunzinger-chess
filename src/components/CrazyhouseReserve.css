@@ -61,7 +61,11 @@
 }
 
 .reserve-piece.clickable {
-  cursor: pointer;
+  cursor: grab;
+}
+
+.reserve-piece.clickable:active {
+  cursor: grabbing;
 }
 
 .reserve-piece.clickable:hover {

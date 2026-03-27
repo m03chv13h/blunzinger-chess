@@ -15,6 +15,8 @@ interface CrazyhouseReserveProps {
   interactive: boolean;
   selectedPiece: CrazyhousePieceType | null;
   onSelectPiece: (piece: CrazyhousePieceType | null) => void;
+  onDragStartPiece?: (piece: CrazyhousePieceType) => void;
+  onDragEndPiece?: () => void;
 }
 
 export function CrazyhouseReserve({
@@ -23,6 +25,8 @@ export function CrazyhouseReserve({
   interactive,
   selectedPiece,
   onSelectPiece,
+  onDragStartPiece,
+  onDragEndPiece,
 }: CrazyhouseReserveProps) {
   const handleClick = useCallback(
     (piece: CrazyhousePieceType) => {
@@ -52,6 +56,13 @@ export function CrazyhouseReserve({
             key={pt}
             className={`reserve-piece${isEmpty ? ' empty' : ''}${isClickable ? ' clickable' : ''}${isSelected ? ' selected' : ''}`}
             onClick={() => handleClick(pt)}
+            draggable={isClickable}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/x-crazyhouse-piece', pt);
+              e.dataTransfer.effectAllowed = 'move';
+              onDragStartPiece?.(pt);
+            }}
+            onDragEnd={() => onDragEndPiece?.()}
             title={isEmpty ? `${pt.toUpperCase()} (none)` : `${pt.toUpperCase()} (×${count})`}
           >
             {PIECE_UNICODE[side][pt]}
@@ -71,6 +82,8 @@ interface CrazyhouseReservesProps {
   selectedDropPiece: CrazyhousePieceType | null;
   onSelectDropPiece: (piece: CrazyhousePieceType | null) => void;
   flipped?: boolean;
+  onDragStartPiece?: (piece: CrazyhousePieceType) => void;
+  onDragEndPiece?: () => void;
 }
 
 export function CrazyhouseReserves({
@@ -81,6 +94,8 @@ export function CrazyhouseReserves({
   selectedDropPiece,
   onSelectDropPiece,
   flipped,
+  onDragStartPiece,
+  onDragEndPiece,
 }: CrazyhouseReservesProps) {
   const topSide = flipped ? 'w' : 'b';
   const bottomSide = flipped ? 'b' : 'w';
@@ -93,6 +108,8 @@ export function CrazyhouseReserves({
         interactive={interactive && activeSide === topSide}
         selectedPiece={activeSide === topSide ? selectedDropPiece : null}
         onSelectPiece={onSelectDropPiece}
+        onDragStartPiece={interactive && activeSide === topSide ? onDragStartPiece : undefined}
+        onDragEndPiece={interactive && activeSide === topSide ? onDragEndPiece : undefined}
       />
       <CrazyhouseReserve
         side={bottomSide}
@@ -100,6 +117,8 @@ export function CrazyhouseReserves({
         interactive={interactive && activeSide === bottomSide}
         selectedPiece={activeSide === bottomSide ? selectedDropPiece : null}
         onSelectPiece={onSelectDropPiece}
+        onDragStartPiece={interactive && activeSide === bottomSide ? onDragStartPiece : undefined}
+        onDragEndPiece={interactive && activeSide === bottomSide ? onDragEndPiece : undefined}
       />
     </div>
   );
