@@ -186,7 +186,10 @@ function App() {
   }, []);
 
   const handleReserveDragEnd = useCallback(() => {
-    setSelectedDropPiece(null);
+    // Selection is intentionally preserved after a cancelled drag, matching
+    // the click-to-select flow where the piece remains selected after an
+    // invalid placement attempt. Successful drops clear selection via
+    // handleReserveDrop.
   }, []);
 
   const dropSquares = selectedDropPiece

@@ -172,9 +172,9 @@ export function Chessboard({
                   }
                 }}
                 onDrop={(e) => {
-                  e.preventDefault();
                   const piece = e.dataTransfer.getData('application/x-crazyhouse-piece');
                   if (piece && onReserveDrop) {
+                    e.preventDefault();
                     onReserveDrop(piece as CrazyhousePieceType, square);
                   }
                 }}
