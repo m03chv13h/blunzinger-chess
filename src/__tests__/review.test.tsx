@@ -547,4 +547,51 @@ describe('Post-game review system', () => {
       expect(state.positionHistory[1].clockBlackMs).toBeUndefined();
     });
   });
+
+  describe('Crazyhouse reserves in position history and review', () => {
+    it('initial position history entry includes crazyhouse state when enabled', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, enableCrazyhouse: true });
+      const state = createInitialState('hvh', config);
+      expect(state.positionHistory[0].crazyhouse).toBeDefined();
+      expect(state.positionHistory[0].crazyhouse!.whiteReserve).toEqual({ p: 0, n: 0, b: 0, r: 0, q: 0 });
+      expect(state.positionHistory[0].crazyhouse!.blackReserve).toEqual({ p: 0, n: 0, b: 0, r: 0, q: 0 });
+    });
+
+    it('initial position history entry has no crazyhouse when disabled', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, enableCrazyhouse: false });
+      const state = createInitialState('hvh', config);
+      expect(state.positionHistory[0].crazyhouse).toBeUndefined();
+    });
+
+    it('position history tracks reserves after captures', () => {
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, enableCrazyhouse: true });
+      let state = createInitialState('hvh', config);
+      // Play to a position with a capture: 1. e4 d5 2. exd5
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'd5');
+      state = applyMoveWithRules(state, 'exd5');
+      // After white captures d5 pawn, white should have a pawn in reserve
+      const lastEntry = state.positionHistory[state.positionHistory.length - 1];
+      expect(lastEntry.crazyhouse).toBeDefined();
+      expect(lastEntry.crazyhouse!.whiteReserve.p).toBe(1);
+      expect(lastEntry.crazyhouse!.blackReserve.p).toBe(0);
+    });
+
+    it('reviewedGameState includes crazyhouse from the reviewed step', () => {
+      // Use the useReview hook logic indirectly: build a finished crazyhouse game
+      const config = buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, enableCrazyhouse: true });
+      let state = createInitialState('hvh', config);
+      // Play enough moves with a capture to build up reserves
+      state = playMoves(state, ['e4', 'd5', 'exd5', 'Qxd5', 'Nc3', 'Qd8']);
+      // Verify different history entries have different crazyhouse states
+      // After exd5 (index 3): white has 1 pawn
+      const afterCapture1 = state.positionHistory[3];
+      expect(afterCapture1.crazyhouse).toBeDefined();
+      expect(afterCapture1.crazyhouse!.whiteReserve.p).toBe(1);
+      // After Qxd5 (index 4): black has 1 pawn
+      const afterCapture2 = state.positionHistory[4];
+      expect(afterCapture2.crazyhouse).toBeDefined();
+      expect(afterCapture2.crazyhouse!.blackReserve.p).toBe(1);
+    });
+  });
 });

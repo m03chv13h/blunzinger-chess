@@ -362,6 +362,9 @@ export function useGame(
       missedChecks: record.missedChecks,
       pieceRemovals: record.pieceRemovals,
       timeReductions: record.timeReductions,
+      crazyhouse: record.positionHistory.length > 0
+        ? record.positionHistory[record.positionHistory.length - 1].crazyhouse ?? base.crazyhouse
+        : base.crazyhouse,
     };
     setState(reviewState);
     setBotThinking(false);
