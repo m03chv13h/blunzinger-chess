@@ -1,18 +1,17 @@
 import { Chess } from 'chess.js';
 import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color } from '../core/blunziger/types';
-import { isReverseForcedCheckMode, isKingHuntVariant } from '../core/blunziger/types';
 import {
   getLegalMoves,
   getCheckingMoves,
   getNonCheckingMoves,
-  isKingOfTheHillEnabled,
-  isHillSquare,
   getCrazyhouseDropMoves,
-  getCheckingDropMoves,
-  getNonCheckingDropMoves,
   doesDropGiveCheck,
-  applyDropToFen,
 } from '../core/blunziger/engine';
+import {
+  selectBlunznforonMove,
+  selectBlunznforonDrop,
+  shouldBlunznforonReport,
+} from '../core/bots/blunznforon';
 
 /**
  * Determine whether the bot should report an opponent's violation.
@@ -23,39 +22,11 @@ import {
  * obvious because the bot knows when it is in check.
  */
 
-/** Baseline probability that the easy bot reports a missed-check violation. */
-const EASY_BOT_BASE_REPORT_PROBABILITY = 0.15;
-/** Extra report probability per available checking move. */
-const EASY_BOT_PROBABILITY_PER_CHECK = 0.25;
-/** Upper cap on the easy bot's report probability. */
-const EASY_BOT_MAX_REPORT_PROBABILITY = 0.9;
-
 /** Probability that the easy bot makes a move violation (misses check or gives forbidden check). */
 const EASY_BOT_VIOLATION_PROBABILITY = 0.25;
 
 export function shouldBotReport(level: BotLevel, violation: ViolationRecord): boolean {
-  if (level !== 'easy') return true;
-
-  // In reverse mode the opponent gave check — the bot always notices that.
-  // This applies both to regular moves and piece removal violations.
-  if (
-    violation.violationType === 'gave_forbidden_check' ||
-    violation.violationType === 'gave_forbidden_check_removal'
-  ) {
-    return true;
-  }
-
-  // For missed checks: more available checking moves → easier to notice.
-  // For piece removal violations, use the number of required removal squares
-  // since checkingMoves is empty for removal violations.
-  const checkCount = violation.violationType === 'missed_check_removal'
-    ? (violation.requiredRemovalSquares?.length ?? 0)
-    : violation.checkingMoves.length;
-  const reportProbability = Math.min(
-    EASY_BOT_MAX_REPORT_PROBABILITY,
-    EASY_BOT_BASE_REPORT_PROBABILITY + checkCount * EASY_BOT_PROBABILITY_PER_CHECK,
-  );
-  return Math.random() < reportProbability;
+  return shouldBlunznforonReport(level, violation);
 }
 
 // Piece values for heuristic evaluation
@@ -87,55 +58,27 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
   const legalMoves = getLegalMoves(fen);
   if (legalMoves.length === 0) return null;
 
+  // When config is available, use Blunznforön's variant-aware search
+  if (config) {
+    const side = (fen.split(' ')[1] ?? 'w') as Color;
+    return selectBlunznforonMove(fen, level, config, side);
+  }
+
+  // Fallback: no config — use simple heuristic selection
   let candidateMoves: Move[];
 
-  if (config && isReverseForcedCheckMode(config.variantMode)) {
-    // Reverse Blunzinger: bot must avoid checking moves when non-checking exist
-    const checkingMoves = getCheckingMoves(fen);
-    if (checkingMoves.length > 0) {
-      const nonCheckingMoves = getNonCheckingMoves(fen);
-      if (nonCheckingMoves.length > 0) {
-        // Easy bot sometimes gives a forbidden check (violation)
-        if (level === 'easy' && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
-          candidateMoves = checkingMoves;
-        } else {
-          candidateMoves = nonCheckingMoves;
-        }
-      } else {
-        // All legal moves give check — no violation possible
-        candidateMoves = legalMoves;
-      }
+  // Classic default: prefer checking moves
+  const checkingMoves = getCheckingMoves(fen);
+  if (checkingMoves.length > 0) {
+    const nonCheckingMoves = level === 'easy' ? getNonCheckingMoves(fen) : [];
+    if (nonCheckingMoves.length > 0 && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
+      candidateMoves = nonCheckingMoves;
     } else {
-      candidateMoves = legalMoves;
+      candidateMoves = checkingMoves;
     }
   } else {
-    // Classic / King Hunt variants: bot must pick checking moves when available
-    const checkingMoves = getCheckingMoves(fen);
-    if (checkingMoves.length > 0) {
-      // Easy bot sometimes misses a check (picks a non-checking move)
-      const nonCheckingMoves = level === 'easy' ? getNonCheckingMoves(fen) : [];
-      if (nonCheckingMoves.length > 0 && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
-        candidateMoves = nonCheckingMoves;
-      } else {
-        candidateMoves = checkingMoves;
-      }
-    } else {
-      candidateMoves = legalMoves;
-    }
+    candidateMoves = legalMoves;
   }
-
-  // King of the Hill: prioritize immediate hill win among candidates
-  if (config && isKingOfTheHillEnabled(config)) {
-    const hillWinners = candidateMoves.filter((m) => {
-      if (m.piece !== 'k') return false;
-      return isHillSquare(m.to);
-    });
-    if (hillWinners.length > 0) {
-      return hillWinners[0];
-    }
-  }
-
-  const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
 
   switch (level) {
     case 'easy':
@@ -143,7 +86,8 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
     case 'medium':
       return selectMedium(candidateMoves, fen, config);
     case 'hard':
-      return selectHard(candidateMoves, fen, kingHunt, config);
+    case 'expert':
+      return selectHard(candidateMoves, fen, false, config);
     default:
       return selectRandom(candidateMoves);
   }
@@ -385,71 +329,34 @@ export function selectBotDropMove(
   side: Color,
   config?: MatchConfig,
 ): DropMove | null {
+  // When config is available, use Blunznforön's variant-aware drop selection
+  if (config) {
+    return selectBlunznforonDrop(fen, level, config, side, ch);
+  }
+
+  // Fallback: no config — use simple heuristic drop selection
   const allDrops = getCrazyhouseDropMoves(fen, ch, side);
   if (allDrops.length === 0) return null;
 
-  // Apply variant filtering to drops
-  let candidateDrops: DropMove[];
-
-  if (config && isReverseForcedCheckMode(config.variantMode)) {
-    const checkingDrops = getCheckingDropMoves(fen, ch, side);
-    if (checkingDrops.length > 0) {
-      const nonCheckingDrops = getNonCheckingDropMoves(fen, ch, side);
-      const regularNonChecking = getNonCheckingMoves(fen);
-      const totalNonChecking = nonCheckingDrops.length + regularNonChecking.length;
-      if (totalNonChecking > 0) {
-        candidateDrops = nonCheckingDrops;
-      } else {
-        candidateDrops = allDrops;
-      }
-    } else {
-      candidateDrops = allDrops;
-    }
-  } else {
-    // Classic / King Hunt: prefer checking drops
-    const checkingDrops = getCheckingDropMoves(fen, ch, side);
-    if (checkingDrops.length > 0) {
-      candidateDrops = checkingDrops;
-    } else {
-      const regularChecking = getCheckingMoves(fen);
-      if (regularChecking.length > 0) {
-        return null;
-      }
-      candidateDrops = allDrops;
-    }
-  }
-
-  if (candidateDrops.length === 0) return null;
-
   if (level === 'easy') {
-    // Easy bot skips drops 50% of the time to simulate not always noticing
-    // the drop option — mirrors easy bot behavior for regular moves.
     if (Math.random() < 0.5) return null;
-    return candidateDrops[Math.floor(Math.random() * candidateDrops.length)];
+    return allDrops[Math.floor(Math.random() * allDrops.length)];
   }
 
-  // Medium / Hard: score drops by resulting position
+  // Medium/Hard: score drops by piece value + check bonus
   let bestDrop: DropMove | null = null;
   let bestScore = -Infinity;
 
-  for (const drop of candidateDrops) {
+  for (const drop of allDrops) {
     let score = DROP_PIECE_VALUES[drop.piece] ?? 0;
 
     if (doesDropGiveCheck(fen, side, drop.piece, drop.to)) {
-      const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
-      score += kingHunt ? 20 : 5;
+      score += 5;
     }
 
     const centralSquares = ['d4', 'd5', 'e4', 'e5'];
     if (centralSquares.includes(drop.to)) {
       score += 2;
-    }
-
-    if (level === 'hard') {
-      const resultFen = applyDropToFen(fen, side, drop.piece, drop.to);
-      const chess = new Chess(resultFen);
-      const posScore = evaluatePosition(chess, config ? isKingOfTheHillEnabled(config) : false);
-      score += -posScore * 0.5;
     }
 
     if (score > bestScore) {

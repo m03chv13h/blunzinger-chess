@@ -18,6 +18,7 @@ const LEVEL_LABELS: Record<string, string> = {
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',
+  expert: 'Expert',
 };
 
 export function SimulationView({
