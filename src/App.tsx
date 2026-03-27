@@ -175,6 +175,23 @@ function App() {
     return success;
   }, [selectedDropPiece, game]);
 
+  const handleReserveDrop = useCallback((piece: CrazyhousePieceType, square: Square): boolean => {
+    const success = game.makeDropMove(piece, square);
+    if (success) setSelectedDropPiece(null);
+    return success;
+  }, [game]);
+
+  const handleReserveDragStart = useCallback((piece: CrazyhousePieceType) => {
+    setSelectedDropPiece(piece);
+  }, []);
+
+  const handleReserveDragEnd = useCallback(() => {
+    // Selection is intentionally preserved after a cancelled drag, matching
+    // the click-to-select flow where the piece remains selected after an
+    // invalid placement attempt. Successful drops clear selection via
+    // handleReserveDrop.
+  }, []);
+
   const dropSquares = selectedDropPiece
     ? game.getDropSquares(selectedDropPiece)
     : [];
@@ -316,6 +333,8 @@ function App() {
                   selectedDropPiece={selectedDropPiece}
                   onSelectDropPiece={setSelectedDropPiece}
                   flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
+                  onDragStartPiece={handleReserveDragStart}
+                  onDragEndPiece={handleReserveDragEnd}
                 />
               )}
               <Chessboard
@@ -331,6 +350,7 @@ function App() {
                 bestMoveHintTo={review.isReviewing ? (evaluation?.bestMoveTo ?? null) as Square | null : null}
                 dropSquares={!review.isReviewing ? dropSquares : undefined}
                 onDropSquareClick={!review.isReviewing ? handleDropSquareClick : undefined}
+                onReserveDrop={!review.isReviewing ? handleReserveDrop : undefined}
               />
             </div>
             <FenDisplay fen={displayFen} />

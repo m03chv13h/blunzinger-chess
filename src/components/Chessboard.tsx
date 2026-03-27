@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Chess } from 'chess.js';
-import type { Square } from '../core/blunziger/types';
+import type { Square, CrazyhousePieceType } from '../core/blunziger/types';
 import './Chessboard.css';
 
 const PIECE_UNICODE: Record<string, string> = {
@@ -26,6 +26,8 @@ interface ChessboardProps {
   dropSquares?: Square[];
   /** Crazyhouse: handler when a drop square is clicked. */
   onDropSquareClick?: (square: Square) => boolean;
+  /** Crazyhouse: handler when a reserve piece is dropped onto a square via drag-and-drop. */
+  onReserveDrop?: (piece: CrazyhousePieceType, square: Square) => boolean;
 }
 
 export function Chessboard({
@@ -41,6 +43,7 @@ export function Chessboard({
   bestMoveHintTo,
   dropSquares,
   onDropSquareClick,
+  onReserveDrop,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
@@ -162,6 +165,19 @@ export function Chessboard({
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}
+                onDragOver={(e) => {
+                  if (isDropTarget) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }
+                }}
+                onDrop={(e) => {
+                  const piece = e.dataTransfer.getData('application/x-crazyhouse-piece');
+                  if (piece && onReserveDrop) {
+                    e.preventDefault();
+                    onReserveDrop(piece as CrazyhousePieceType, square);
+                  }
+                }}
                 role="gridcell"
                 aria-label={square}
               >
