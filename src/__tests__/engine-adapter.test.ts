@@ -35,7 +35,7 @@ describe('Engine Abstraction Layer', () => {
       const blunznforön = getEngineInfo('blunznforön');
       expect(blunznforön).toBeDefined();
       expect(blunznforön!.name).toBe('Blunznforön');
-      expect(blunznforön!.availability).toBe('coming_soon');
+      expect(blunznforön!.availability).toBe('available');
       expect(blunznforön!.supportsVariantAwareness).toBe(true);
     });
 
@@ -50,7 +50,7 @@ describe('Engine Abstraction Layer', () => {
       const available = getAvailableEngineInfos();
       const ids = available.map((i) => i.id);
       expect(ids).toContain('heuristic');
-      expect(ids).not.toContain('blunznforön');
+      expect(ids).toContain('blunznforön');
       expect(ids).not.toContain('blunznfish');
     });
 
@@ -141,7 +141,7 @@ describe('Engine Abstraction Layer', () => {
       await expect(adapter.initialize()).resolves.toBeUndefined();
     });
 
-    it('should analyze the starting position (fallback mode)', async () => {
+    it('should analyze the starting position', async () => {
       await adapter.initialize();
       const lines = await adapter.analyzePosition({ fen: INITIAL_FEN });
       expect(lines.length).toBeGreaterThan(0);

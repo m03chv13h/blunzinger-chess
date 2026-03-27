@@ -44,6 +44,7 @@ function toBotLevel(level: BotLevel): BlunznforonLevel {
     case 'easy': return 'easy';
     case 'medium': return 'medium';
     case 'hard': return 'hard';
+    case 'expert': return 'expert';
     default: return 'medium';
   }
 }

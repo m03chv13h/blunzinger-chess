@@ -86,6 +86,7 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
     case 'medium':
       return selectMedium(candidateMoves, fen, config);
     case 'hard':
+    case 'expert':
       return selectHard(candidateMoves, fen, false, config);
     default:
       return selectRandom(candidateMoves);

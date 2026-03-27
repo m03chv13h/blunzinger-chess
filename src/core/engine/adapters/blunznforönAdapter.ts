@@ -1,16 +1,13 @@
 /**
- * Blunznforön engine adapter — Fairy-Stockfish integration.
+ * Blunznforön engine adapter — the app's strong custom tactical bot.
  *
- * Fairy-Stockfish is a UCI-compatible chess variant engine.  In a browser-only
- * deployment it would be loaded as a WASM module via a Web Worker.
+ * Blunznforön is a variant-aware search bot that uses negamax with
+ * alpha-beta pruning, quiescence search, and tactical extensions.
+ * It is especially strong in Crazyhouse + Blunziger combinations.
  *
- * Because the WASM binary is not yet bundled with this app, the adapter
- * reports itself as `available` but gracefully falls back to a lightweight
- * UCI-less analysis mode that demonstrates the adapter contract.
- *
- * When the Fairy-Stockfish WASM module is added (e.g. via a `public/` asset
- * or an npm package), the `initialize()` method should instantiate the worker
- * and the UCI command loop should drive `analyzePosition` / `getBestMove`.
+ * The engine adapter provides advisory evaluation and best-move hints
+ * for the evaluation bar. Bot-play is handled by the bot module at
+ * `core/bots/blunznforon/`.
  *
  * IMPORTANT: This engine is **advisory only**.  The app's authoritative rules
  * (violations, penalties, overlays) remain in `core/blunziger/`.
@@ -28,18 +25,12 @@ const INFO: EngineInfo = {
   id: 'blunznforön',
   name: 'Blunznforön',
   description:
-    'Fairy-Stockfish variant engine — will provide deep multi-PV search with native variant support. Currently awaiting WASM integration.',
-  availability: 'coming_soon',
+    'Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunziger + Crazyhouse combinations.',
+  availability: 'available',
   supportsEvaluation: true,
   supportsBotPlay: true,
   supportsVariantAwareness: true,
 };
-
-/**
- * Whether the real Fairy-Stockfish WASM runtime is loaded.
- * When false the adapter falls back to heuristic evaluation.
- */
-let wasmLoaded = false;
 
 export function createBlunznforönAdapter(): VariantEngineAdapter {
   let disposed = false;
@@ -48,51 +39,24 @@ export function createBlunznforönAdapter(): VariantEngineAdapter {
     info: INFO,
 
     async initialize(): Promise<void> {
-      if (disposed) return;
-      // TODO: Load Fairy-Stockfish WASM binary and spin up a Web Worker.
-      //
-      //   const worker = new Worker(new URL('./fairystockfish.worker.js', import.meta.url));
-      //   await new Promise(resolve => {
-      //     worker.onmessage = (e) => { if (e.data === 'uciok') resolve(); };
-      //     worker.postMessage('uci');
-      //   });
-      //   wasmLoaded = true;
-      //
-      // Until then, we use the heuristic fallback.
-      wasmLoaded = false;
+      // Blunznforön is fully in-app — no external resources to load.
     },
 
     async analyzePosition(options: AnalyzePositionOptions): Promise<EngineLine[]> {
       if (disposed) return [];
-
-      if (wasmLoaded) {
-        // TODO: Send UCI commands to the Fairy-Stockfish worker.
-        //   worker.postMessage(`position fen ${options.fen}`);
-        //   worker.postMessage(`go depth ${options.depth ?? 12}`);
-        //   … parse "info" lines and return EngineLine[]
-        return [];
-      }
-
-      // Fallback: heuristic analysis (same quality as the Heuristic adapter
-      // but labelled as Blunznforön so the adapter contract is exercised).
+      // Advisory evaluation using heuristic analysis for the evaluation bar.
+      // Actual bot-play uses the search engine in core/bots/blunznforon/.
       return heuristicAnalysis(options.fen);
     },
 
     async getBestMove(options: AnalyzePositionOptions): Promise<string | null> {
       if (disposed) return null;
-
-      if (wasmLoaded) {
-        // TODO: Send `go depth …` and parse `bestmove` response.
-        return null;
-      }
-
       const lines = await this.analyzePosition(options);
       return lines[0]?.bestMove ?? null;
     },
 
     dispose(): void {
       disposed = true;
-      // TODO: Terminate the Fairy-Stockfish Web Worker when WASM is loaded.
     },
   };
 }

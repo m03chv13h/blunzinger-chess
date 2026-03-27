@@ -65,7 +65,8 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
           >
             <option value="easy">Easy (Random)</option>
             <option value="medium">Medium (Heuristic)</option>
-            <option value="hard">Hard (Minimax)</option>
+            <option value="hard">Hard (Search)</option>
+            <option value="expert">Expert (Blunznforön)</option>
           </select>
         </div>
 

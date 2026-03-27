@@ -4,7 +4,7 @@ import type { EngineId } from '../engine/types';
 export type { Square, Move, Color };
 
 export type GameMode = 'hvh' | 'hvbot' | 'botvbot';
-export type BotLevel = 'easy' | 'medium' | 'hard';
+export type BotLevel = 'easy' | 'medium' | 'hard' | 'expert';
 
 // ── A) Variant Mode ──────────────────────────────────────────────────
 
