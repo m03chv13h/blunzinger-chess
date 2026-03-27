@@ -10,10 +10,8 @@ import {
   getCheckingMoves,
   getNonCheckingMoves,
   getLegalMoves,
-  getCrazyhouseDropMoves,
   createCrazyhouseState,
   getRemovablePieces,
-  createInitialState,
 } from '../core/blunziger/engine';
 import {
   getAllEngineInfos,
@@ -78,9 +76,6 @@ function reportConfig(): MatchConfig {
 
 // FEN where checking moves exist (Qh5+ is available)
 const FEN_WITH_CHECKS = 'rnbqkbnr/ppppp1pp/8/5p2/4P3/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 2';
-
-// FEN where king can reach a hill square
-const FEN_KOTH_WIN = '4k3/8/8/8/3K4/8/8/8 w - - 0 1'; // Kd4 already on hill
 
 describe('Blunznforön Bot', () => {
   // ── 1. Engine Registration ──────────────────────────────────────────
@@ -200,10 +195,6 @@ describe('Blunznforön Bot', () => {
     });
 
     it('considers drops when reserves have pieces', () => {
-      const ch: CrazyhouseState = {
-        whiteReserve: { p: 0, n: 1, b: 0, r: 0, q: 0 },
-        blackReserve: { p: 0, n: 0, b: 0, r: 0, q: 0 },
-      };
       // Use a position where white has a knight in reserve and it's white's turn
       const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1'; // Black to move
       const blackCh: CrazyhouseState = {

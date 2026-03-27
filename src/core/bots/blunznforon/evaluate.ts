@@ -17,7 +17,7 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Color } from '../../blunziger/types';
+import type { Color, MatchConfig } from '../../blunziger/types';
 import {
   isClassicForcedCheck,
   isReverseForcedCheckMode,

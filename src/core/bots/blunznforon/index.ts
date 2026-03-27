@@ -29,7 +29,7 @@ import {
   isReverseForcedCheckMode,
 } from '../../blunziger/types';
 import { isKingOfTheHillEnabled, isHillSquare } from '../../blunziger/engine';
-import type { BlunznforonLevel, SearchContext } from './types';
+import type { BlunznforonLevel, SearchContext, ScoredMove } from './types';
 import { getBlunznforonConfig } from './config';
 import { getFilteredCandidates, getViolationMoves } from './blunziger';
 import { searchMoves, searchDropMoves } from './search';
