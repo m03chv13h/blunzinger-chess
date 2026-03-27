@@ -100,7 +100,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should show blutwurst icon for a missed check once opponent has moved', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 0, violationType: 'missed_check' },
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
     ];
     // Two moves: white (index 0) missed check, black (index 1) has replied
     render(
@@ -114,7 +114,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should NOT show blutwurst icon before opponent has moved', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 0, violationType: 'missed_check' },
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
     ];
     // Only one move: white (index 0) just played, black has NOT replied
     render(
@@ -128,7 +128,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should show blutwurst icon before opponent moves if game is over', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 0, violationType: 'missed_check' },
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
     ];
     // Only one move, but game is over
     render(
@@ -143,7 +143,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should show gave_forbidden_check title for reverse mode violations', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 0, violationType: 'gave_forbidden_check' },
+      { moveIndex: 0, violationType: 'gave_forbidden_check', availableMoves: [] },
     ];
     render(
       <MoveList
@@ -156,8 +156,8 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should show multiple blutwurst icons for multiple missed checks', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 0, violationType: 'missed_check' },
-      { moveIndex: 2, violationType: 'missed_check' },
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
+      { moveIndex: 2, violationType: 'missed_check', availableMoves: [] },
     ];
     // 4 moves total: white0, black1, white2, black3
     render(
@@ -172,7 +172,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should not show blutwurst icon on black move when black is the last move', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 1, violationType: 'missed_check' },
+      { moveIndex: 1, violationType: 'missed_check', availableMoves: [] },
     ];
     // Two moves: white(0) then black(1) missed check, no move after
     render(
@@ -187,7 +187,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 
   it('should show blutwurst icon on black move after white replies', () => {
     const missedChecks: MissedCheckEntry[] = [
-      { moveIndex: 1, violationType: 'missed_check' },
+      { moveIndex: 1, violationType: 'missed_check', availableMoves: [] },
     ];
     // Three moves: white(0), black(1) missed check, white(2) replied
     render(
@@ -197,6 +197,58 @@ describe('MoveList – missed-check blutwurst icon', () => {
       />,
     );
     expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+
+  it('should include available moves in missed check tooltip', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
+  });
+
+  it('should include available moves in gave forbidden check tooltip', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'gave_forbidden_check', availableMoves: ['e4', 'd4'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('Qh5'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Gave a forbidden check (e4, d4)')).toBeInTheDocument();
+  });
+
+  it('should include available squares in missed check removal tooltip', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check_removal', availableMoves: ['e2', 'd2'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a check-creating removal (e2, d2)')).toBeInTheDocument();
+  });
+
+  it('should include available squares in gave forbidden check removal tooltip', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'gave_forbidden_check_removal', availableMoves: ['a2', 'b2'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Gave a forbidden check-creating removal (a2, b2)')).toBeInTheDocument();
   });
 });
 

@@ -206,6 +206,8 @@ export interface MissedCheckEntry {
   moveIndex: number;
   /** Type of violation committed. */
   violationType: ViolationType;
+  /** SAN notation of moves the player should have played, or squares for removal violations. */
+  availableMoves: string[];
 }
 
 /** Record of a piece removed as penalty, displayed as an icon next to the offending move. */

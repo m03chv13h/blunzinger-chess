@@ -106,9 +106,24 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     // Only reveal after the opponent has made their next move (moveIndex+1 exists) or game ended
     const isVisible = moves.length > moveIndex + 1 || gameOver;
     if (!isVisible) return null;
-    const title = mc.violationType === 'missed_check'
-      ? 'Missed a possible check'
-      : 'Gave a forbidden check';
+    const movesInfo = mc.availableMoves.length > 0
+      ? ` (${mc.availableMoves.join(', ')})`
+      : '';
+    let title: string;
+    switch (mc.violationType) {
+      case 'missed_check':
+        title = `Missed a possible check${movesInfo}`;
+        break;
+      case 'gave_forbidden_check':
+        title = `Gave a forbidden check${movesInfo}`;
+        break;
+      case 'missed_check_removal':
+        title = `Missed a check-creating removal${movesInfo}`;
+        break;
+      case 'gave_forbidden_check_removal':
+        title = `Gave a forbidden check-creating removal${movesInfo}`;
+        break;
+    }
     return <span className="report-icon missed-check" title={title}><BlutwurstIcon /></span>;
   };
 
