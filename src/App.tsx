@@ -21,6 +21,7 @@ import { SimulationView } from './components/SimulationView';
 import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
 import { CrazyhouseReserves } from './components/CrazyhouseReserve';
+import { FenDisplay } from './components/FenDisplay';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -296,36 +297,39 @@ function App() {
           </aside>
 
           <section className="board-section">
-            {showEvalBar && evaluation && <EvaluationBar evaluation={evaluation} />}
-            {crazyhouseEnabled && crazyhouse && (
-              <CrazyhouseReserves
-                whiteReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
-                  ? review.reviewedGameState.crazyhouse.whiteReserve
-                  : crazyhouse.whiteReserve}
-                blackReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
-                  ? review.reviewedGameState.crazyhouse.blackReserve
-                  : crazyhouse.blackReserve}
+            <div className="board-row">
+              {showEvalBar && evaluation && <EvaluationBar evaluation={evaluation} />}
+              {crazyhouseEnabled && crazyhouse && (
+                <CrazyhouseReserves
+                  whiteReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
+                    ? review.reviewedGameState.crazyhouse.whiteReserve
+                    : crazyhouse.whiteReserve}
+                  blackReserve={review.isReviewing && review.reviewedGameState?.crazyhouse
+                    ? review.reviewedGameState.crazyhouse.blackReserve
+                    : crazyhouse.blackReserve}
+                  interactive={game.isPlayerTurn && !review.isReviewing}
+                  activeSide={game.state.sideToMove}
+                  selectedDropPiece={selectedDropPiece}
+                  onSelectDropPiece={setSelectedDropPiece}
+                  flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
+                />
+              )}
+              <Chessboard
+                fen={displayFen}
+                onMove={handleMove}
+                legalMovesFrom={game.legalMovesFrom}
                 interactive={game.isPlayerTurn && !review.isReviewing}
-                activeSide={game.state.sideToMove}
-                selectedDropPiece={selectedDropPiece}
-                onSelectDropPiece={setSelectedDropPiece}
                 flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
+                pendingPieceRemoval={game.pendingPieceRemoval && !review.isReviewing}
+                removableSquares={review.isReviewing ? [] : game.removableSquares}
+                onPieceRemoval={game.selectPieceForRemoval}
+                bestMoveHintFrom={review.isReviewing ? (evaluation?.bestMoveFrom ?? null) as Square | null : null}
+                bestMoveHintTo={review.isReviewing ? (evaluation?.bestMoveTo ?? null) as Square | null : null}
+                dropSquares={!review.isReviewing ? dropSquares : undefined}
+                onDropSquareClick={!review.isReviewing ? handleDropSquareClick : undefined}
               />
-            )}
-            <Chessboard
-              fen={displayFen}
-              onMove={handleMove}
-              legalMovesFrom={game.legalMovesFrom}
-              interactive={game.isPlayerTurn && !review.isReviewing}
-              flipped={screen.config.mode === 'hvbot' && screen.config.botSide === 'w'}
-              pendingPieceRemoval={game.pendingPieceRemoval && !review.isReviewing}
-              removableSquares={review.isReviewing ? [] : game.removableSquares}
-              onPieceRemoval={game.selectPieceForRemoval}
-              bestMoveHintFrom={review.isReviewing ? (evaluation?.bestMoveFrom ?? null) as Square | null : null}
-              bestMoveHintTo={review.isReviewing ? (evaluation?.bestMoveTo ?? null) as Square | null : null}
-              dropSquares={!review.isReviewing ? dropSquares : undefined}
-              onDropSquareClick={!review.isReviewing ? handleDropSquareClick : undefined}
-            />
+            </div>
+            <FenDisplay fen={displayFen} />
           </section>
 
           <aside className="right-panel">

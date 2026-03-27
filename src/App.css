@@ -40,6 +40,13 @@ body {
 .board-section {
   flex: 0 0 auto;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.board-row {
+  display: flex;
   gap: 4px;
   align-items: stretch;
 }
