@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { GameState, ScoreState, PositionHistoryEntry } from '../core/blunziger/types';
+import type { GameState, ScoreState, PositionHistoryEntry, CrazyhouseState } from '../core/blunziger/types';
 
 export interface ReviewStep {
   index: number;
@@ -9,6 +9,7 @@ export interface ReviewStep {
   moveNotation: string | null;
   /** Index into moveHistory, or -1 for non-move events (initial position, piece removal). */
   moveIndex: number;
+  crazyhouse?: CrazyhouseState;
   clockWhiteMs?: number;
   clockBlackMs?: number;
 }
@@ -62,6 +63,7 @@ function buildReviewSteps(positionHistory: PositionHistoryEntry[]): ReviewStep[]
       sideToMove: fenSideToMove(entry.fen),
       moveNotation: entry.moveNotation,
       moveIndex: entry.moveNotation !== null ? moveCounter : -1,
+      crazyhouse: entry.crazyhouse,
       clockWhiteMs: entry.clockWhiteMs,
       clockBlackMs: entry.clockBlackMs,
     };
@@ -108,6 +110,7 @@ export function useReview(state: GameState): UseReviewReturn {
       scores: currentStep.scores,
       sideToMove: currentStep.sideToMove,
       plyCount,
+      crazyhouse: currentStep.crazyhouse ?? null,
       // Clear transient state for evaluation of historical position
       result: null,
       pendingViolation: null,

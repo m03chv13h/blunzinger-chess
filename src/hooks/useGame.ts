@@ -348,6 +348,8 @@ export function useGame(
       const parts = record.finalFen.split(' ');
       return (parts.length >= 2 && parts[1] === 'b') ? 'b' as const : 'w' as const;
     })();
+    const lastEntry = record.positionHistory[record.positionHistory.length - 1];
+    const finalCrazyhouse = lastEntry?.crazyhouse ?? base.crazyhouse;
     const reviewState: GameState = {
       ...base,
       fen: record.finalFen,
@@ -362,6 +364,7 @@ export function useGame(
       missedChecks: record.missedChecks,
       pieceRemovals: record.pieceRemovals,
       timeReductions: record.timeReductions,
+      crazyhouse: finalCrazyhouse,
     };
     setState(reviewState);
     setBotThinking(false);
