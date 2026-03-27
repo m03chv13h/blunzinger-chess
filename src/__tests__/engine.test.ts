@@ -432,6 +432,17 @@ describe('Core Blunziger Engine', () => {
       expect(s.missedChecks[0].violationType).toBe('missed_check');
     });
 
+    it('should include available checking moves in missed check entry', () => {
+      // 1.e4 f5 — now white has Qh5+ but we play d3 instead
+      const state = createInitialState();
+      let s = applyMoveWithRules(state, 'e4');
+      s = applyMoveWithRules(s, 'f5');
+      s = applyMoveWithRules(s, 'd3'); // white misses Qh5+
+      expect(s.missedChecks[0].availableMoves).toBeDefined();
+      expect(s.missedChecks[0].availableMoves.length).toBeGreaterThan(0);
+      expect(s.missedChecks[0].availableMoves).toContain('Qh5+');
+    });
+
     it('should not record when no violation occurs', () => {
       const state = createInitialState();
       let s = applyMoveWithRules(state, 'e4');
@@ -468,6 +479,21 @@ describe('Core Blunziger Engine', () => {
       state = applyMoveWithRules(state, 'Qh5'); // white gives forbidden check
       expect(state.missedChecks).toHaveLength(1);
       expect(state.missedChecks[0].violationType).toBe('gave_forbidden_check');
+    });
+
+    it('should include non-checking alternatives in gave_forbidden_check entry', () => {
+      const reverseConfig: MatchConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        variantMode: 'reverse_blunzinger',
+      });
+      let state = createInitialState('hvh', reverseConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'Qh5'); // white gives forbidden check
+      expect(state.missedChecks[0].availableMoves).toBeDefined();
+      expect(state.missedChecks[0].availableMoves.length).toBeGreaterThan(0);
+      // The non-checking alternatives should NOT include Qh5+
+      expect(state.missedChecks[0].availableMoves).not.toContain('Qh5+');
     });
   });
 
