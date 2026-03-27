@@ -35,10 +35,14 @@ export interface BotActionResponse {
   action: BotActionResult;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ctx = self as any;
+// Worker-scoped `self` typed for message passing (the main tsconfig includes
+// the DOM lib, not the WebWorker lib, so we provide a narrow interface).
+const workerSelf: {
+  onmessage: ((e: MessageEvent<BotActionRequest>) => void) | null;
+  postMessage: (msg: BotActionResponse) => void;
+} = self as never;
 
-ctx.onmessage = (e: MessageEvent<BotActionRequest>) => {
+workerSelf.onmessage = (e: MessageEvent<BotActionRequest>) => {
   const msg = e.data;
 
   // Try Crazyhouse drop first
@@ -51,20 +55,20 @@ ctx.onmessage = (e: MessageEvent<BotActionRequest>) => {
       msg.config,
     );
     if (dropMove) {
-      ctx.postMessage({
+      workerSelf.postMessage({
         type: 'botActionResult',
         id: msg.id,
         action: { kind: 'drop', dropMove },
-      } satisfies BotActionResponse);
+      });
       return;
     }
   }
 
   // Regular move
   const move = selectBotMove(msg.fen, msg.level, msg.config);
-  ctx.postMessage({
+  workerSelf.postMessage({
     type: 'botActionResult',
     id: msg.id,
     action: move ? { kind: 'move', move } : null,
-  } satisfies BotActionResponse);
+  });
 };

@@ -25,7 +25,7 @@ import {
   selectBestPieceForRemoval,
 } from '../core/blunziger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
-import type { BotActionRequest, BotActionResponse } from '../bot/botWorker';
+import type { BotActionRequest, BotActionResponse, BotActionResult } from '../bot/botWorker';
 
 export interface UseGameReturn {
   state: GameState;
@@ -476,7 +476,7 @@ export function useGame(
 
     // Helper: apply a computed bot action (move or drop) to the game state,
     // deducting clock time and committing the result.
-    const applyBotAction = (action: { kind: 'move'; move: { from: string; to: string; promotion?: string } } | { kind: 'drop'; dropMove: DropMove }) => {
+    const applyBotAction = (action: NonNullable<BotActionResult>) => {
       if (cancelled) { setBotThinking(false); return; }
       const current = stateRef.current;
       if (current.result) { setBotThinking(false); return; }
