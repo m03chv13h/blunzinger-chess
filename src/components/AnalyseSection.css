@@ -118,3 +118,90 @@
   font-size: 11px;
   color: #999;
 }
+
+/* ── Section headings ── */
+
+.analyse-section-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 20px 0 10px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.analyse-section-heading:first-of-type {
+  margin-top: 0;
+}
+
+/* ── Simulation items ── */
+
+.analyse-sim-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyse-sim-item:hover {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.analyse-sim-icon {
+  font-size: 28px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.analyse-sim-standing {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* ── Simulation drill-down header ── */
+
+.analyse-sim-summary-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.analyse-back-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #5b8def;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+  transition: color 0.15s;
+}
+
+.analyse-back-btn:hover {
+  color: #3a6bd4;
+}
+
+/* ── Reuse simulation tags ── */
+
+.sim-tag {
+  display: inline-block;
+  background: #e8f0fe;
+  color: #1a5cb0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}

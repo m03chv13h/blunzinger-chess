@@ -96,3 +96,39 @@ export function getResultLabel(result: GameResult): string {
   if (result.winner === 'draw') return 'Draw';
   return `${result.winner === 'w' ? 'White' : 'Black'} wins`;
 }
+
+/** A group of simulated games stored together for analysis. */
+export interface SimulationRecord {
+  id: string;
+  /** Timestamp when the simulation completed. */
+  completedAt: number;
+  /** The setup config used for the simulation. */
+  config: GameSetupConfig;
+  /** All completed game records from the simulation. */
+  games: GameRecord[];
+  /** Summary standing. */
+  standing: {
+    whiteWins: number;
+    blackWins: number;
+    draws: number;
+  };
+}
+
+let simCounter = 0;
+
+export function createSimulationRecord(
+  config: GameSetupConfig,
+  games: GameRecord[],
+): SimulationRecord {
+  simCounter += 1;
+  const whiteWins = games.filter((g) => g.result.winner === 'w').length;
+  const blackWins = games.filter((g) => g.result.winner === 'b').length;
+  const draws = games.filter((g) => g.result.winner === 'draw').length;
+  return {
+    id: `sim-${Date.now()}-${simCounter}`,
+    completedAt: Date.now(),
+    config,
+    games,
+    standing: { whiteWins, blackWins, draws },
+  };
+}
