@@ -16,15 +16,32 @@
   font-weight: bold;
   padding: 6px 12px;
   border-radius: 6px;
-  background: #1a1a2e;
-  color: #aaa;
   text-align: center;
   flex: 1;
 }
 
-.clock-active {
+.clock-white {
+  background: #e8e0d4;
+  color: #5a4a3a;
+  border: 1px solid #c8b89a;
+}
+
+.clock-black {
+  background: #1a1a2e;
+  color: #aaa;
+  border: 1px solid #333;
+}
+
+.clock-white.clock-active {
+  color: #7b5e00;
+  background: #f5efe7;
+  border-color: #c8a54e;
+}
+
+.clock-black.clock-active {
   color: #ffd700;
   background: #2a2a4e;
+  border-color: #555;
 }
 
 .scores-display {
