@@ -6,7 +6,10 @@ import {
   getNonCheckingMoves,
   getCrazyhouseDropMoves,
   doesDropGiveCheck,
+  isKingOfTheHillEnabled,
+  isHillSquare,
 } from '../core/blunziger/engine';
+import { isKingHuntVariant } from '../core/blunziger/types';
 import {
   selectBlunznforonMove,
   selectBlunznforonDrop,
