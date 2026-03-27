@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { GameSetupConfig, CrazyhousePieceType } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
-import type { GameRecord } from './core/gameRecord';
-import { createGameRecord } from './core/gameRecord';
+import type { GameRecord, SimulationRecord } from './core/gameRecord';
+import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { Sidebar } from './components/Sidebar';
 import type { NavSection } from './components/Sidebar';
 import { QuickStartScreen } from './components/QuickStartScreen';
@@ -41,6 +41,7 @@ function App() {
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
+  const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
 
   const simulation = useSimulation();
 
@@ -173,10 +174,17 @@ function App() {
     ? game.getDropSquares(selectedDropPiece)
     : [];
 
+  const flushSimulationRecords = useCallback(() => {
+    if (simulation.completedRecords.length > 0 && simulation.config) {
+      const simRecord = createSimulationRecord(simulation.config, simulation.completedRecords);
+      setSimulationHistory((prev) => [simRecord, ...prev]);
+    }
+  }, [simulation.completedRecords, simulation.config]);
+
   const handleSelectGameForReview = (record: GameRecord) => {
     // If reviewing a game from a running simulation, flush completed records first
-    if (screen.type === 'simulation-running' && simulation.completedRecords.length > 0) {
-      setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
+    if (screen.type === 'simulation-running') {
+      flushSimulationRecords();
     }
     setLastConfig(record.config);
     setScreen({ type: 'playing', config: record.config });
@@ -192,10 +200,8 @@ function App() {
   };
 
   const handleSimulationBackToSetup = () => {
-    // Flush completed simulation records into game history for analysis
-    if (simulation.completedRecords.length > 0) {
-      setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
-    }
+    // Flush completed simulation records into simulation history for analysis
+    flushSimulationRecords();
     setScreen({ type: 'simulate' });
   };
 
@@ -209,12 +215,12 @@ function App() {
     // If leaving a running simulation, stop it and flush records
     if (screen.type === 'simulation-running') {
       simulation.stop();
-      if (simulation.completedRecords.length > 0) {
-        setGameHistory((prev) => [...simulation.completedRecords, ...prev]);
-      }
+      flushSimulationRecords();
     }
     setScreen({ type: section });
   };
+
+  const analyseCount = gameHistory.length + simulationHistory.length;
 
   // Render setup screens (non-playing)
   if (screen.type !== 'playing') {
@@ -223,7 +229,7 @@ function App() {
         <Sidebar
           activeSection={activeSection}
           onNavigate={handleNavigate}
-          gameCount={gameHistory.length}
+          gameCount={analyseCount}
         />
         <div className="app-with-sidebar">
           <main className="app-main">
@@ -239,6 +245,7 @@ function App() {
             {screen.type === 'analyse' && (
               <AnalyseSection
                 games={gameHistory}
+                simulations={simulationHistory}
                 onSelectGame={handleSelectGameForReview}
               />
             )}
@@ -269,7 +276,7 @@ function App() {
       <Sidebar
         activeSection={activeSection}
         onNavigate={handleNavigate}
-        gameCount={gameHistory.length}
+        gameCount={analyseCount}
       />
       <div className="app-with-sidebar">
         <main className="app-main">
