@@ -194,7 +194,8 @@ function negamax(
   if (ctx.kothEnabled) {
     const lastMover = oppositeColor(sideToMove);
     if (isKingOnHill(chess, lastMover)) {
-      return lastMover === sideToMove ? KOTH_WIN_SCORE : -KOTH_WIN_SCORE;
+      // Last mover won — bad for current side to move
+      return -KOTH_WIN_SCORE;
     }
   }
 

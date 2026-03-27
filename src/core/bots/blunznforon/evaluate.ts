@@ -216,10 +216,12 @@ export function evaluatePositionFull(
   // King Hunt
   if (isKingHuntVariant(mode)) {
     if (mode === 'classic_king_hunt_move_limit') {
+      const plyLimit = config.variantSpecific.kingHuntPlyLimit;
+      const plyCount = Math.max(0, plyLimit - ctx.kingHuntPliesRemaining);
       score += evaluateKingHuntMoveLimit(
         ctx.scores,
-        0,
-        ctx.kingHuntPliesRemaining + 10,
+        plyCount,
+        plyLimit,
         turn,
         fen,
         perspective,

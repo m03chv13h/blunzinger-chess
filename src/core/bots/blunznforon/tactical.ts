@@ -17,6 +17,7 @@ import {
   isKingOfTheHillEnabled,
   isHillSquare,
   getCheckingMoves,
+  getCheckingDropMoves,
   doesDropGiveCheck,
 } from '../../blunziger/engine';
 
@@ -136,14 +137,6 @@ export function countCheckingDrops(
   crazyhouse: CrazyhouseState,
   side: Color,
 ): number {
-  let count = 0;
-  const reserve = side === 'w' ? crazyhouse.whiteReserve : crazyhouse.blackReserve;
-  const pieces: Array<'p' | 'n' | 'b' | 'r' | 'q'> = ['p', 'n', 'b', 'r', 'q'];
-  for (const piece of pieces) {
-    if (reserve[piece] > 0) {
-      // Check each empty square (simplified — full enumeration via engine)
-      if (doesDropGiveCheck(fen, side, piece, 'a1')) count++; // Will be properly enumerated by engine
-    }
-  }
-  return count;
+  const checkingDrops = getCheckingDropMoves(fen, crazyhouse, side);
+  return checkingDrops.length;
 }
