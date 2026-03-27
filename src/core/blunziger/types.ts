@@ -175,6 +175,10 @@ export interface ViolationRecord {
   requiredRemovalSquares?: Square[];
   /** The square that was actually chosen for removal (piece removal violations only). */
   chosenRemovalSquare?: Square;
+  /** Drop moves that give check (Crazyhouse overlay only). */
+  checkingDropMoves?: DropMove[];
+  /** Drop moves the player was required to choose from (Crazyhouse overlay only). */
+  requiredDropMoves?: DropMove[];
 }
 
 export interface InvalidReportCounts {

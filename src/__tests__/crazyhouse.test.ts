@@ -14,6 +14,8 @@ import {
   isCrazyhouseEnabled,
   applyDropToFen,
   getReserve,
+  reportViolation,
+  dropMoveToSan,
 } from '../core/blunziger/engine';
 import type { GameState, MatchConfig, DropMove, CrazyhouseState } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, EMPTY_RESERVE } from '../core/blunziger/types';
@@ -670,6 +672,107 @@ describe('Crazyhouse Overlay', () => {
       const lastEntry = result.positionHistory[result.positionHistory.length - 1];
       expect(lastEntry.crazyhouse).toBeDefined();
       expect(lastEntry.crazyhouse!.whiteReserve.n).toBe(0);
+    });
+  });
+
+  describe('Violation report includes drop moves', () => {
+    it('classic: violation record includes checkingDropMoves when only drops give check', () => {
+      // Position where no regular checking moves exist but dropping Q gives check
+      const state = makeStateWithReserves(
+        'rnbqk2r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 4 3',
+        { ...EMPTY_RESERVE, q: 1 },
+        EMPTY_RESERVE,
+      );
+      // Regular move: a3 (no regular checking moves exist)
+      const result = applyMoveWithRules(state, { from: 'a2' as any, to: 'a3' as any });
+      expect(result.pendingViolation).not.toBeNull();
+      expect(result.pendingViolation!.violationType).toBe('missed_check');
+      // Regular checking moves are empty
+      expect(result.pendingViolation!.checkingMoves.length).toBe(0);
+      // Drop checking moves should be populated
+      expect(result.pendingViolation!.checkingDropMoves).toBeDefined();
+      expect(result.pendingViolation!.checkingDropMoves!.length).toBeGreaterThan(0);
+      // requiredDropMoves should also include the checking drops
+      expect(result.pendingViolation!.requiredDropMoves).toBeDefined();
+      expect(result.pendingViolation!.requiredDropMoves!.length).toBeGreaterThan(0);
+    });
+
+    it('classic: report message includes drop move SAN when only drops give check', () => {
+      const state = makeStateWithReserves(
+        'rnbqk02r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 4 3'.replace('0', ''),
+        { ...EMPTY_RESERVE, q: 1 },
+        EMPTY_RESERVE,
+      );
+      // Play a non-checking regular move
+      const afterMove = applyMoveWithRules(state, { from: 'a2' as any, to: 'a3' as any });
+      expect(afterMove.pendingViolation).not.toBeNull();
+
+      // Report the violation as black
+      const reported = reportViolation(afterMove, 'b');
+      expect(reported.result).not.toBeNull();
+      expect(reported.result!.detail).toBeDefined();
+      // The detail message should include drop SAN like "Q@e7"
+      expect(reported.result!.detail).toContain('@');
+      // Verify specific drop notation format
+      const dropMoves = afterMove.pendingViolation!.requiredDropMoves!;
+      for (const dm of dropMoves) {
+        expect(reported.result!.detail).toContain(dropMoveToSan(dm));
+      }
+    });
+
+    it('classic: report message includes both regular and drop moves', () => {
+      // White knight on e4 can check via Nd6+/Nf6+; dropping Q also gives check
+      // Extra pawns prevent insufficient material draw
+      const fen = '4k3/7p/8/8/4N3/8/P7/K7 w - - 0 1';
+      const state = makeStateWithReserves(
+        fen,
+        { ...EMPTY_RESERVE, q: 1 },
+        EMPTY_RESERVE,
+      );
+
+      // White plays Kb1 (non-checking, no draw)
+      const afterMove = applyMoveWithRules(state, { from: 'a1' as any, to: 'b1' as any });
+      expect(afterMove.pendingViolation).not.toBeNull();
+      // Has both regular and drop checking moves
+      expect(afterMove.pendingViolation!.checkingMoves.length).toBeGreaterThan(0);
+      expect(afterMove.pendingViolation!.checkingDropMoves!.length).toBeGreaterThan(0);
+
+      // Report includes both types in the message
+      const reported = reportViolation(afterMove, 'b');
+      expect(reported.result!.detail).toBeDefined();
+      // Regular checking move should be listed
+      const regularSan = afterMove.pendingViolation!.checkingMoves[0].san;
+      expect(reported.result!.detail).toContain(regularSan);
+      // Drop move should also be listed
+      expect(reported.result!.detail).toContain('@');
+    });
+
+    it('reverse: violation record includes requiredDropMoves for non-checking drops', () => {
+      const state = makeStateWithReserves(
+        '4k3/8/8/8/8/8/8/4K3 w - - 0 1',
+        { ...EMPTY_RESERVE, q: 1 },
+        EMPTY_RESERVE,
+        'w',
+        { variantMode: 'reverse_blunzinger' },
+      );
+      const ch = state.crazyhouse!;
+      const checkingDrops = getCheckingDropMoves(state.fen, ch, 'w');
+      expect(checkingDrops.length).toBeGreaterThan(0);
+
+      // Play a checking drop (violation in reverse mode)
+      const drop: DropMove = { type: 'drop', piece: 'q', to: checkingDrops[0].to, color: 'w' };
+      const result = applyDropMoveWithRules(state, drop);
+      expect(result.pendingViolation).not.toBeNull();
+      expect(result.pendingViolation!.violationType).toBe('gave_forbidden_check');
+      // requiredDropMoves should contain non-checking drops
+      expect(result.pendingViolation!.requiredDropMoves).toBeDefined();
+      expect(result.pendingViolation!.requiredDropMoves!.length).toBeGreaterThan(0);
+    });
+
+    it('dropMoveToSan formats drop moves correctly', () => {
+      expect(dropMoveToSan({ type: 'drop', piece: 'q', to: 'e7', color: 'w' })).toBe('Q@e7');
+      expect(dropMoveToSan({ type: 'drop', piece: 'n', to: 'd4', color: 'b' })).toBe('N@d4');
+      expect(dropMoveToSan({ type: 'drop', piece: 'p', to: 'a3', color: 'w' })).toBe('P@a3');
     });
   });
 });

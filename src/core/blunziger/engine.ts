@@ -71,6 +71,11 @@ export function getLegalMoves(fen: string): Move[] {
   return chess.moves({ verbose: true });
 }
 
+/** Format a drop move as SAN notation (e.g. "N@d4"). */
+export function dropMoveToSan(drop: DropMove): string {
+  return `${drop.piece.toUpperCase()}@${drop.to}`;
+}
+
 /**
  * Get all legal moves that give check.
  */
@@ -804,7 +809,7 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
         result = {
           winner: opponentSide,
           reason: 'double_check_pressure_violation',
-          detail: `${sideLabel(sideToMove)} missed ${newViolation.requiredMoves.length} required moves. Immediate loss under Double Check Pressure!`,
+          detail: `${sideLabel(sideToMove)} missed ${newViolation.requiredMoves.length + (newViolation.requiredDropMoves?.length ?? 0)} required moves. Immediate loss under Double Check Pressure!`,
         };
         violationForState = null;
       } else {
@@ -948,7 +953,9 @@ function detectDropViolation(
       moveIndex,
       fenBeforeMove,
       checkingMoves: regularCheckingMoves,
+      checkingDropMoves: checkingDrops,
       requiredMoves,
+      requiredDropMoves: checkingDrops,
       reportable: true,
       violationType: 'missed_check',
       severe: dcpEnabled && totalCheckingCount >= 2,
@@ -969,7 +976,9 @@ function detectDropViolation(
       moveIndex,
       fenBeforeMove,
       checkingMoves: regularCheckingMoves,
+      checkingDropMoves: checkingDrops,
       requiredMoves: regularNonCheckingMoves,
+      requiredDropMoves: nonCheckingDrops,
       reportable: true,
       violationType: 'gave_forbidden_check',
       severe: dcpEnabled && totalNonCheckingCount >= 2,
@@ -1104,7 +1113,9 @@ function detectViolationWithDrops(
       moveIndex,
       fenBeforeMove,
       checkingMoves: regularCheckingMoves,
+      checkingDropMoves: checkingDrops,
       requiredMoves: regularCheckingMoves,
+      requiredDropMoves: checkingDrops,
       actualMove: move,
       reportable: true,
       violationType: 'missed_check',
@@ -1129,7 +1140,9 @@ function detectViolationWithDrops(
       moveIndex,
       fenBeforeMove,
       checkingMoves: regularCheckingMoves,
+      checkingDropMoves: checkingDrops,
       requiredMoves: regularNonCheckingMoves,
+      requiredDropMoves: nonCheckingDrops,
       actualMove: move,
       reportable: true,
       violationType: 'gave_forbidden_check',
@@ -1371,7 +1384,7 @@ export function applyMoveWithRules(
         result = {
           winner: opponentSide,
           reason: 'double_check_pressure_violation',
-          detail: `${sideLabel(movingSide)} missed ${newViolation.requiredMoves.length} required moves (${newViolation.requiredMoves.map((m) => m.san).join(', ')}). Immediate loss under Double Check Pressure!`,
+          detail: `${sideLabel(movingSide)} missed ${newViolation.requiredMoves.length + (newViolation.requiredDropMoves?.length ?? 0)} required moves (${[...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)].join(', ')}). Immediate loss under Double Check Pressure!`,
         };
         violationForState = null;
       } else {
@@ -1512,9 +1525,11 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
         ? 'Correct! The opponent removed a piece that created check when they should have avoided it.'
         : 'Correct! The opponent missed a piece removal that would create check.';
     } else {
+      const dropSans = (violation.requiredDropMoves ?? []).map(dropMoveToSan);
+      const allRequiredSans = [...violation.requiredMoves.map((m) => m.san), ...dropSans];
       detailMsg = isReverse
-        ? `${violatorLabel} gave check when non-checking moves were available. Required non-checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`
-        : `${violatorLabel} missed a forced check. Available checking move(s): ${violation.requiredMoves.map((m) => m.san).join(', ')}`;
+        ? `${violatorLabel} gave check when non-checking moves were available. Required non-checking move(s): ${allRequiredSans.join(', ')}`
+        : `${violatorLabel} missed a forced check. Available checking move(s): ${allRequiredSans.join(', ')}`;
       feedbackMsg = isReverse
         ? 'Correct! The opponent gave check when they should have avoided it.'
         : 'Correct! The opponent missed a forced check.';
