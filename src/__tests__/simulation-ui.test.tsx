@@ -74,6 +74,7 @@ describe('Simulation UI', () => {
     fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
     expect(screen.getByLabelText('King of the Hill')).toBeInTheDocument();
     expect(screen.getByLabelText('Double Check Pressure')).toBeInTheDocument();
+    expect(screen.getByLabelText('Crazyhouse')).toBeInTheDocument();
   });
 
   it('shows per-side engine selectors', () => {

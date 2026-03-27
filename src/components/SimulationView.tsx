@@ -45,6 +45,7 @@ export function SimulationView({
           <span className="sim-tag">{LEVEL_LABELS[config.botDifficulty] ?? config.botDifficulty}</span>
           {config.enableKingOfTheHill && <span className="sim-tag">KOTH</span>}
           {config.enableDoubleCheckPressure && <span className="sim-tag">DCP</span>}
+          {config.enableCrazyhouse && <span className="sim-tag">Crazyhouse</span>}
         </div>
 
         {/* ── Standing ── */}
