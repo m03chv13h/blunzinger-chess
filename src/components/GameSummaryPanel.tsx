@@ -120,15 +120,29 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
           <dt>King of the Hill</dt>
           <dd>{config.enableKingOfTheHill ? 'On' : 'Off'}</dd>
         </div>
-        {showClock && (
+        <div className="summary-item">
+          <dt>Clock</dt>
+          <dd>{showClock ? formatMsToTime(config.initialTimeMs) : 'Off'}</dd>
+        </div>
+        {showClock && config.incrementMs > 0 && (
           <div className="summary-item">
-            <dt>Clock</dt>
-            <dd>{formatMsToTime(config.initialTimeMs)}</dd>
+            <dt>Increment</dt>
+            <dd>{formatMsToTime(config.incrementMs)}</dd>
+          </div>
+        )}
+        {showClock && config.decrementMs > 0 && (
+          <div className="summary-item">
+            <dt>Decrement</dt>
+            <dd>{formatMsToTime(config.decrementMs)}</dd>
           </div>
         )}
         <div className="summary-item">
           <dt>Double Check Pressure</dt>
           <dd>{config.enableDoubleCheckPressure ? 'On' : 'Off'}</dd>
+        </div>
+        <div className="summary-item">
+          <dt>Crazyhouse</dt>
+          <dd>{config.enableCrazyhouse ? 'On' : 'Off'}</dd>
         </div>
       </dl>
     </div>
