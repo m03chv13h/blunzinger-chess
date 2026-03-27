@@ -37,10 +37,10 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
       {/* ── Clocks ── */}
       {showClocks && (
         <div className="clocks-display">
-          <div className={`clock ${sideToMove === 'b' && !result ? 'clock-active' : ''}`}>
+          <div className={`clock clock-black ${sideToMove === 'b' && !result ? 'clock-active' : ''}`}>
             ♚ {formatClock(clockBlackMs ?? 0)}
           </div>
-          <div className={`clock ${sideToMove === 'w' && !result ? 'clock-active' : ''}`}>
+          <div className={`clock clock-white ${sideToMove === 'w' && !result ? 'clock-active' : ''}`}>
             ♔ {formatClock(clockWhiteMs ?? 0)}
           </div>
         </div>

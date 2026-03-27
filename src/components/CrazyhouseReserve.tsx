@@ -40,7 +40,7 @@ export function CrazyhouseReserve({
   const label = side === 'w' ? 'W' : 'B';
 
   return (
-    <div className="crazyhouse-reserve">
+    <div className={`crazyhouse-reserve ${side === 'w' ? 'crazyhouse-reserve-white' : 'crazyhouse-reserve-black'}`}>
       <span className="crazyhouse-reserve-label">{label}:</span>
       {PIECE_TYPES.map((pt) => {
         const count = reserve[pt];
