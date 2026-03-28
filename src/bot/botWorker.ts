@@ -54,6 +54,7 @@ workerSelf.onmessage = (e: MessageEvent<BotActionRequest>) => {
       msg.crazyhouse,
       msg.side,
       msg.config,
+      msg.chess960,
     );
     if (dropMove) {
       workerSelf.postMessage({

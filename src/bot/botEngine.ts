@@ -64,7 +64,7 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
   // When config is available, use Blunznforön's variant-aware search
   if (config) {
     const side = (fen.split(' ')[1] ?? 'w') as Color;
-    return selectBlunznforonMove(fen, level, config, side);
+    return selectBlunznforonMove(fen, level, config, side, null, undefined, undefined, 0, 0, chess960);
   }
 
   // Fallback: no config — use simple heuristic selection
@@ -330,10 +330,11 @@ export function selectBotDropMove(
   ch: CrazyhouseState,
   side: Color,
   config?: MatchConfig,
+  chess960?: Chess960State | null,
 ): DropMove | null {
   // When config is available, use Blunznforön's variant-aware drop selection
   if (config) {
-    return selectBlunznforonDrop(fen, level, config, side, ch);
+    return selectBlunznforonDrop(fen, level, config, side, ch, undefined, undefined, 0, 0, chess960);
   }
 
   // Fallback: no config — use simple heuristic drop selection

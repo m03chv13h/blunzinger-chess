@@ -583,6 +583,7 @@ export function useGame(
           current.crazyhouse,
           current.sideToMove,
           current.config,
+          current.chess960,
         );
         if (dropMove) {
           applyBotAction({ kind: 'drop', dropMove });

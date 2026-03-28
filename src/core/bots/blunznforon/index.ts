@@ -23,6 +23,7 @@ import type {
   DropMove,
   ViolationRecord,
   Square,
+  Chess960State,
 } from '../../blunziger/types';
 import {
   isKingHuntVariant,
@@ -102,18 +103,19 @@ export function selectBlunznforonMove(
   plyCount?: number,
   whiteMs: number = 0,
   blackMs: number = 0,
+  chess960?: Chess960State | null,
 ): Move | null {
   const blLevel = toBotLevel(level);
   const blConfig = getBlunznforonConfig(blLevel);
   const ctx = buildSearchContext(config, side, crazyhouse, scores, plyCount);
 
   // Get variant-filtered candidates
-  const { regularMoves } = getFilteredCandidates(fen, config, crazyhouse, side);
+  const { regularMoves } = getFilteredCandidates(fen, config, crazyhouse, side, chess960);
   if (regularMoves.length === 0) return null;
 
   // Easy bot: occasionally make variant violations (checked before single-move return)
   if (blConfig.violationProbability > 0 && Math.random() < blConfig.violationProbability) {
-    const violationMoves = getViolationMoves(fen, config);
+    const violationMoves = getViolationMoves(fen, config, chess960);
     if (violationMoves.length > 0) {
       return violationMoves[Math.floor(Math.random() * violationMoves.length)];
     }
@@ -176,13 +178,14 @@ export function selectBlunznforonDrop(
   plyCount?: number,
   whiteMs: number = 0,
   blackMs: number = 0,
+  chess960?: Chess960State | null,
 ): DropMove | null {
   const blLevel = toBotLevel(level);
   const blConfig = getBlunznforonConfig(blLevel);
   const ctx = buildSearchContext(config, side, crazyhouse, scores, plyCount);
 
   // Get variant-filtered candidates
-  const { regularMoves, dropMoves } = getFilteredCandidates(fen, config, crazyhouse, side);
+  const { regularMoves, dropMoves } = getFilteredCandidates(fen, config, crazyhouse, side, chess960);
   if (dropMoves.length === 0) return null;
 
   // Easy bot: skip drops 50% of the time
