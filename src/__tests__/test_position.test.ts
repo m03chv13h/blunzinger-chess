@@ -1,142 +1,88 @@
 import { describe, it, expect } from 'vitest';
-import { Chess } from 'chess.js';
-import { evaluatePosition } from '../core/bots/blunznforon/evaluate';
+import { createChess960State, generateChess960BackRank } from '../core/blunziger/chess960';
+import { getFilteredCandidates } from '../core/bots/blunznforon/blunziger';
 import { searchMoves } from '../core/bots/blunznforon/search';
-import { orderMoves } from '../core/bots/blunznforon/moveOrdering';
-import type { MatchConfig, Color, Move } from '../core/blunziger/types';
-import type { SearchContext, BlunznforonConfig } from '../core/bots/blunznforon/types';
+import { getBlunznforonConfig } from '../core/bots/blunznforon/config';
+import { selectBotMove } from '../bot/botEngine';
+import type { MatchConfig } from '../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../core/blunziger/types';
+import type { SearchContext } from '../core/bots/blunznforon/types';
 
+/**
+ * Regression test for: "hard bot misses easy check in chess960"
+ *
+ * FEN: qnbrknr1/1p1p1p2/2p3pp/p3p3/2P2PP1/4N3/PP1PPb1P/QNBR1K1B w - - 0 9
+ *
+ * The black bishop on f2 threatens the white king on f1.  The obvious best
+ * move is Kxf2 (capturing the bishop).  Before the fix, the quiescence
+ * search's fail-hard behaviour caused every root move to score identically,
+ * making the hard bot pick randomly among all 26 legal moves.
+ */
 const FEN = 'qnbrknr1/1p1p1p2/2p3pp/p3p3/2P2PP1/4N3/PP1PPb1P/QNBR1K1B w - - 0 9';
 
-const config: MatchConfig = {
-  variantMode: 'classic_blunzinger',
-  gameType: 'report_based',
-  overlays: {
-    enableKingOfTheHill: false,
-    enableClock: false,
+function findIndex(): number {
+  for (let i = 0; i < 960; i++) {
+    const backRank = generateChess960BackRank(i);
+    if (backRank.join('') === 'qnbrknrb') return i;
+  }
+  return -1;
+}
+
+function makeConfig(idx: number): MatchConfig {
+  const base = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    variantMode: 'classic_blunzinger',
     enableChess960: true,
-    enableCrazyhouse: false,
-    enableDoubleCheckPressure: false,
-  },
-  penaltyConfig: {
-    enableAdditionalMovePenalty: false,
-    additionalMoveCount: 0,
-    enablePieceRemovalPenalty: false,
-    pieceRemovalCount: 0,
-    enableTimeReductionPenalty: false,
-    timeReductionSeconds: 0,
-  },
-  variantSpecific: {
-    kingHuntPlyLimit: 0,
-    kingHuntGivenCheckTarget: 0,
-  },
-  chess960Index: 199,
-};
+  });
+  return { ...base, chess960Index: idx };
+}
 
-const ctx: SearchContext = {
-  config,
-  side: 'w',
-  crazyhouse: null,
-  kothEnabled: false,
-  isKingHunt: false,
-  isReverse: false,
-  kingHuntPliesRemaining: 0,
-  scores: { w: 0, b: 0 },
-};
+describe('Hard bot finds best move in Chess960 position', () => {
+  it('searchMoves produces differentiated scores with quiescence', () => {
+    const idx = findIndex();
+    const state = createChess960State(idx);
+    const config = makeConfig(idx);
+    const blConfig = getBlunznforonConfig('hard');
 
-describe('Negamax debugging', () => {
-  it('depth 1 search (no quiescence)', () => {
-    const blConfig: BlunznforonConfig = {
-      searchDepth: 1,
-      quiescenceDepth: 0,
-      randomMarginCp: 0,
-      violationProbability: 0,
-      useTacticalExtensions: false,
+    const { regularMoves } = getFilteredCandidates(FEN, config, null, 'w', state);
+
+    const ctx: SearchContext = {
+      config,
+      side: 'w',
+      crazyhouse: null,
+      kothEnabled: false,
+      isKingHunt: false,
+      isReverse: false,
+      kingHuntPliesRemaining: 0,
+      scores: { w: 0, b: 0 },
     };
 
-    const chess = new Chess(FEN);
-    const moves = chess.moves({ verbose: true }) as Move[];
-    const scored = searchMoves(FEN, moves, blConfig, ctx, 0, 0);
-    
-    console.log('Depth 1, no quiescence:');
-    for (const s of scored.slice(0, 10)) {
-      console.log(`  ${s.move.san}: ${s.score}`);
-    }
+    const scored = searchMoves(FEN, regularMoves, blConfig, ctx, 0, 0);
+
+    // Kxf2 should be among the top moves
+    expect(scored[0].move.san).toBe('Kxf2');
+
+    // Scores should be differentiated — not all the same (the bug was that
+    // fail-hard quiescence caused all 26 moves to score identically)
+    const uniqueScores = new Set(scored.map(s => s.score));
+    expect(uniqueScores.size).toBeGreaterThan(scored.length / 2);
   });
 
-  it('depth 2 search (no quiescence)', () => {
-    const blConfig: BlunznforonConfig = {
-      searchDepth: 2,
-      quiescenceDepth: 0,
-      randomMarginCp: 0,
-      violationProbability: 0,
-      useTacticalExtensions: false,
-    };
+  it('selectBotMove picks a strong move with Chess960 config', () => {
+    const idx = findIndex();
+    const state = createChess960State(idx);
+    const config = makeConfig(idx);
 
-    const chess = new Chess(FEN);
-    const moves = chess.moves({ verbose: true }) as Move[];
-    const scored = searchMoves(FEN, moves, blConfig, ctx, 0, 0);
-    
-    console.log('Depth 2, no quiescence:');
-    for (const s of scored.slice(0, 10)) {
-      console.log(`  ${s.move.san}: ${s.score}`);
+    // Run bot 10 times — with differentiated scores, weak moves like Na3/b4/a3 should not appear
+    const moves: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const move = selectBotMove(FEN, 'hard', config, state);
+      if (move) moves.push(move.san);
     }
-  });
 
-  it('depth 3 search (no quiescence)', () => {
-    const blConfig: BlunznforonConfig = {
-      searchDepth: 3,
-      quiescenceDepth: 0,
-      randomMarginCp: 0,
-      violationProbability: 0,
-      useTacticalExtensions: false,
-    };
-
-    const chess = new Chess(FEN);
-    const moves = chess.moves({ verbose: true }) as Move[];
-    const scored = searchMoves(FEN, moves, blConfig, ctx, 0, 0);
-    
-    console.log('Depth 3, no quiescence:');
-    for (const s of scored.slice(0, 10)) {
-      console.log(`  ${s.move.san}: ${s.score}`);
-    }
-  });
-
-  it('depth 3 search with quiescence 2', () => {
-    const blConfig: BlunznforonConfig = {
-      searchDepth: 3,
-      quiescenceDepth: 2,
-      randomMarginCp: 0,
-      violationProbability: 0,
-      useTacticalExtensions: false,
-    };
-
-    const chess = new Chess(FEN);
-    const moves = chess.moves({ verbose: true }) as Move[];
-    const scored = searchMoves(FEN, moves, blConfig, ctx, 0, 0);
-    
-    console.log('Depth 3, quiescence 2:');
-    for (const s of scored.slice(0, 10)) {
-      console.log(`  ${s.move.san}: ${s.score}`);
-    }
-  });
-
-  it('depth 3 search with quiescence 2 and tactical ext', () => {
-    const blConfig: BlunznforonConfig = {
-      searchDepth: 3,
-      quiescenceDepth: 2,
-      randomMarginCp: 0,
-      violationProbability: 0,
-      useTacticalExtensions: true,
-    };
-
-    const chess = new Chess(FEN);
-    const moves = chess.moves({ verbose: true }) as Move[];
-    const scored = searchMoves(FEN, moves, blConfig, ctx, 0, 0);
-    
-    console.log('Depth 3, quiescence 2, tactical ext:');
-    for (const s of scored.slice(0, 10)) {
-      console.log(`  ${s.move.san}: ${s.score}`);
-    }
-  });
+    // The top moves (Kxf2, Nc2, Ng2) should dominate selections
+    const topMoves = new Set(['Kxf2', 'Nc2', 'Ng2']);
+    const topCount = moves.filter(m => topMoves.has(m)).length;
+    expect(topCount).toBeGreaterThanOrEqual(8);
+  }, 30000);
 });
