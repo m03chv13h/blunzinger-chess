@@ -21,7 +21,6 @@ import {
   identifyChess960Castling,
   updateChess960CastlingState,
   updateChess960StateAfterCastle,
-  doesCastlingGiveCheck,
 } from '../core/blunziger/chess960';
 import {
   createInitialState,
@@ -29,7 +28,6 @@ import {
   getLegalMoves,
   getCheckingMoves,
   getNonCheckingMoves,
-  detectViolation,
   isChess960Enabled,
 } from '../core/blunziger/engine';
 import {
@@ -38,7 +36,7 @@ import {
   buildMatchConfig,
   INITIAL_FEN,
 } from '../core/blunziger/types';
-import type { MatchConfig, GameSetupConfig, Square, Chess960State, Color } from '../core/blunziger/types';
+import type { MatchConfig, GameSetupConfig, Square } from '../core/blunziger/types';
 import { selectBotMove } from '../bot/botEngine';
 import { Chess } from 'chess.js';
 
@@ -333,7 +331,7 @@ describe('Chess960 Castling', () => {
     const { kingFile, queenSideRookFile, kingSideRookFile } = getChess960PieceFiles(rank);
 
     // Create a position where castling path is clear
-    const fen = chess960IndexToFen(0);
+    chess960IndexToFen(0);
     const state = createChess960State(0);
 
     // From starting position, pieces may block castling
