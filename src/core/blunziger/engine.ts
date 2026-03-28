@@ -16,6 +16,7 @@ import type {
   CrazyhousePieceType,
   PlayerReserve,
   DropMove,
+  Chess960State,
 } from './types';
 import type { EngineId } from '../engine/types';
 import {
@@ -25,6 +26,14 @@ import {
   isClassicForcedCheck,
   isKingHuntVariant,
 } from './types';
+import {
+  createChess960State,
+  getChess960CastlingMoves,
+  updateChess960CastlingState,
+  updateChess960StateAfterCastle,
+  identifyChess960Castling,
+  doesCastlingGiveCheck,
+} from './chess960';
 
 /** The four center squares for King of the Hill. */
 const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
@@ -65,10 +74,16 @@ export function didKingReachHill(fen: string, side: Color): boolean {
 
 /**
  * Get all legal moves from the current position.
+ * When chess960 state is provided, includes Chess960 castling moves.
  */
-export function getLegalMoves(fen: string): Move[] {
+export function getLegalMoves(fen: string, chess960?: Chess960State | null): Move[] {
   const chess = new Chess(fen);
-  return chess.moves({ verbose: true });
+  const moves = chess.moves({ verbose: true });
+  if (chess960) {
+    const castlingMoves = getChess960CastlingMoves(fen, chess960);
+    return [...moves, ...castlingMoves];
+  }
+  return moves;
 }
 
 /** Format a drop move as SAN notation (e.g. "N@d4"). */
@@ -78,28 +93,42 @@ export function dropMoveToSan(drop: DropMove): string {
 
 /**
  * Get all legal moves that give check.
+ * When chess960 state is provided, includes Chess960 castling moves that give check.
  */
-export function getCheckingMoves(fen: string): Move[] {
+export function getCheckingMoves(fen: string, chess960?: Chess960State | null): Move[] {
   const chess = new Chess(fen);
   const moves = chess.moves({ verbose: true });
-  return moves.filter((move) => {
+  const checking = moves.filter((move) => {
     const testChess = new Chess(fen);
     testChess.move(move.san);
     return testChess.inCheck();
   });
+  if (chess960) {
+    const castlingMoves = getChess960CastlingMoves(fen, chess960);
+    const checkingCastles = castlingMoves.filter((m) => doesCastlingGiveCheck(m.after));
+    return [...checking, ...checkingCastles];
+  }
+  return checking;
 }
 
 /**
  * Get all legal moves that do NOT give check.
+ * When chess960 state is provided, includes Chess960 castling moves that don't give check.
  */
-export function getNonCheckingMoves(fen: string): Move[] {
+export function getNonCheckingMoves(fen: string, chess960?: Chess960State | null): Move[] {
   const chess = new Chess(fen);
   const moves = chess.moves({ verbose: true });
-  return moves.filter((move) => {
+  const nonChecking = moves.filter((move) => {
     const testChess = new Chess(fen);
     testChess.move(move.san);
     return !testChess.inCheck();
   });
+  if (chess960) {
+    const castlingMoves = getChess960CastlingMoves(fen, chess960);
+    const nonCheckingCastles = castlingMoves.filter((m) => !doesCastlingGiveCheck(m.after));
+    return [...nonChecking, ...nonCheckingCastles];
+  }
+  return nonChecking;
 }
 
 /**
@@ -390,7 +419,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
     result,
     extraTurns: newExtraTurns,
     clocks: newClocks,
-    positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null, ...(state.crazyhouse ? { crazyhouse: state.crazyhouse } : {}), ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
+    positionHistory: [...state.positionHistory, { fen: newFen, scores: state.scores, moveNotation: null, ...(state.crazyhouse ? { crazyhouse: state.crazyhouse } : {}), ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}), ...(state.chess960 ? { chess960: state.chess960 } : {}) }],
     pieceRemovals: [...state.pieceRemovals, { moveIndex: triggerMoveIndex, pieceType: piece.type, pieceColor: piece.color }],
     missedChecks: newMissedChecks,
     timeReductions: newTimeReductions,
@@ -429,6 +458,13 @@ const ALL_SQUARES: Square[] = (() => {
  */
 export function isCrazyhouseEnabled(config: MatchConfig): boolean {
   return config.overlays.enableCrazyhouse;
+}
+
+/**
+ * Check whether Chess960 overlay is enabled in the config.
+ */
+export function isChess960Enabled(config: MatchConfig): boolean {
+  return config.overlays.enableChess960;
 }
 
 /**
@@ -904,7 +940,7 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
-    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}), ...(state.chess960 ? { chess960: state.chess960 } : {}) }],
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)] }]
       : state.missedChecks,
@@ -1027,8 +1063,9 @@ export function detectViolation(
   moveIndex: number,
   variantMode: VariantMode,
   dcpEnabled: boolean,
+  chess960?: Chess960State | null,
 ): ViolationRecord | null {
-  const checkingMoves = getCheckingMoves(fenBeforeMove);
+  const checkingMoves = getCheckingMoves(fenBeforeMove, chess960);
 
   if (isClassicForcedCheck(variantMode)) {
     // Classic / King Hunt: must play checking move if available
@@ -1057,7 +1094,7 @@ export function detectViolation(
     // Reverse Blunzinger: must avoid giving check if non-checking moves exist
     if (checkingMoves.length === 0) return null;
 
-    const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960);
     // If ALL legal moves give check, any move is allowed
     if (nonCheckingMoves.length === 0) return null;
 
@@ -1095,8 +1132,9 @@ function detectViolationWithDrops(
   dcpEnabled: boolean,
   ch: CrazyhouseState,
   side: Color,
+  chess960?: Chess960State | null,
 ): ViolationRecord | null {
-  const regularCheckingMoves = getCheckingMoves(fenBeforeMove);
+  const regularCheckingMoves = getCheckingMoves(fenBeforeMove, chess960);
   const checkingDrops = getCheckingDropMoves(fenBeforeMove, ch, side);
   const totalCheckingCount = regularCheckingMoves.length + checkingDrops.length;
 
@@ -1125,7 +1163,7 @@ function detectViolationWithDrops(
     // Reverse Blunzinger
     if (totalCheckingCount === 0) return null;
 
-    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960);
     const nonCheckingDrops = getNonCheckingDropMoves(fenBeforeMove, ch, side);
     const totalNonCheckingCount = regularNonCheckingMoves.length + nonCheckingDrops.length;
 
@@ -1166,8 +1204,13 @@ export function createInitialState(
   botLevelWhite?: BotLevel,
   botLevelBlack?: BotLevel,
 ): GameState {
+  const startFen = config.initialFen ?? INITIAL_FEN;
+  const chess960 = config.overlays.enableChess960 && config.chess960Index != null
+    ? createChess960State(config.chess960Index)
+    : null;
+
   return {
-    fen: INITIAL_FEN,
+    fen: startFen,
     moveHistory: [],
     sideToMove: 'w',
     pendingViolation: null,
@@ -1190,11 +1233,12 @@ export function createInitialState(
     pendingPieceRemoval: null,
     plyCount: 0,
     positionHistory: [{
-      fen: INITIAL_FEN,
+      fen: startFen,
       scores: { w: 0, b: 0 },
       moveNotation: null,
       ...(config.overlays.enableCrazyhouse ? { crazyhouse: createCrazyhouseState() } : {}),
       ...(config.overlays.enableClock ? { clockWhiteMs: config.overlays.initialTimeMs, clockBlackMs: config.overlays.initialTimeMs } : {}),
+      ...(chess960 ? { chess960 } : {}),
     }],
     violationReports: [],
     missedChecks: [],
@@ -1202,6 +1246,7 @@ export function createInitialState(
     timeReductions: [],
     inExtraTurn: false,
     crazyhouse: config.overlays.enableCrazyhouse ? createCrazyhouseState() : null,
+    chess960,
   };
 }
 
@@ -1249,24 +1294,60 @@ export function applyMoveWithRules(
     return state;
   }
 
-  const chess = new Chess(state.fen);
-  let move: Move;
-  try {
-    const result = chess.move(moveInput);
-    if (!result) {
-      return state;
-    }
-    move = result;
-  } catch {
-    return state;
-  }
-
   const fenBeforeMove = state.fen;
-  const newFen = chess.fen();
   const moveIndex = state.moveHistory.length;
   const movingSide = state.sideToMove;
   const opponentSide: Color = movingSide === 'w' ? 'b' : 'w';
   const cfg = state.config;
+
+  // ── Check for Chess960 castling ──
+  let move: Move;
+  let newFen: string;
+  let newChess960 = state.chess960;
+  let isCastlingMove = false;
+  let postMoveChess: InstanceType<typeof Chess> | null = null;
+
+  if (state.chess960 && typeof moveInput === 'object') {
+    const castlingType = identifyChess960Castling(state.chess960, movingSide, moveInput.from, moveInput.to);
+    if (castlingType) {
+      // Verify this castling is in the legal castling moves
+      const legalCastles = getChess960CastlingMoves(state.fen, state.chess960);
+      const matchingCastle = legalCastles.find((m) => m.from === moveInput.from && m.to === moveInput.to);
+      if (!matchingCastle) {
+        return state; // Illegal castling attempt
+      }
+      move = matchingCastle;
+      newFen = matchingCastle.after;
+      newChess960 = updateChess960StateAfterCastle(state.chess960, movingSide);
+      isCastlingMove = true;
+    }
+  }
+
+  if (!isCastlingMove) {
+    const chess = new Chess(state.fen);
+    try {
+      const result = chess.move(moveInput);
+      if (!result) {
+        return state;
+      }
+      move = result;
+    } catch {
+      return state;
+    }
+    newFen = chess.fen();
+    postMoveChess = chess;
+
+    // Update Chess960 castling rights after a regular move
+    if (newChess960) {
+      newChess960 = updateChess960CastlingState(
+        newChess960,
+        movingSide,
+        move.from as Square,
+        move.to as Square,
+        !!move.captured,
+      );
+    }
+  }
 
   // ── Expire previous pending violation ──
   let updatedPendingViolation = state.pendingViolation;
@@ -1286,6 +1367,7 @@ export function applyMoveWithRules(
         cfg.overlays.enableDoubleCheckPressure,
         state.crazyhouse,
         movingSide,
+        state.chess960,
       )
     : detectViolation(
         fenBeforeMove,
@@ -1293,6 +1375,7 @@ export function applyMoveWithRules(
         moveIndex,
         cfg.variantMode,
         cfg.overlays.enableDoubleCheckPressure,
+        state.chess960,
       );
 
   // ── Crazyhouse reserve update ──
@@ -1303,7 +1386,11 @@ export function applyMoveWithRules(
 
   // ── Score update (King Hunt) ──
   const newScores = { ...state.scores };
-  if (isKingHuntVariant(cfg.variantMode) && didMoveGiveCheck(fenBeforeMove, move)) {
+  // For Chess960 castling, check via the after-FEN; for normal moves, use didMoveGiveCheck
+  const moveGaveCheck = isCastlingMove
+    ? doesCastlingGiveCheck(newFen)
+    : didMoveGiveCheck(fenBeforeMove, move);
+  if (isKingHuntVariant(cfg.variantMode) && moveGaveCheck) {
     newScores[movingSide] = (newScores[movingSide] || 0) + 1;
   }
 
@@ -1311,9 +1398,12 @@ export function applyMoveWithRules(
   const sideLabel = (s: Color) => (s === 'w' ? 'White' : 'Black');
 
   // ── Termination conditions ──
+  // Reuse the chess.js instance from the normal move path when available;
+  // create a new instance only for Chess960 castling (which bypasses chess.js).
+  const postChess = postMoveChess ?? new Chess(newFen);
   let result: GameResult | null = null;
 
-  if (chess.isCheckmate()) {
+  if (postChess.isCheckmate()) {
     result = { winner: movingSide, reason: 'checkmate' };
   }
 
@@ -1328,12 +1418,12 @@ export function applyMoveWithRules(
   }
 
   if (!result) {
-    if (chess.isStalemate()) {
+    if (postChess.isStalemate()) {
       result = { winner: 'draw', reason: 'stalemate' };
-    } else if (chess.isDraw()) {
-      if (chess.isInsufficientMaterial()) {
+    } else if (postChess.isDraw()) {
+      if (postChess.isInsufficientMaterial()) {
         result = { winner: 'draw', reason: 'insufficient-material' };
-      } else if (chess.isThreefoldRepetition()) {
+      } else if (postChess.isThreefoldRepetition()) {
         result = { winner: 'draw', reason: 'threefold-repetition' };
       } else {
         result = { winner: 'draw', reason: 'fifty-move-rule' };
@@ -1456,8 +1546,10 @@ export function applyMoveWithRules(
     }
   }
 
-  // Determine effective side to move (may stay same for extra turns)
-  let effectiveSideToMove = chess.turn();
+  // Determine effective side to move (may stay same for extra turns).
+  // After applying a move the turn always flips to the opponent; extra-turn
+  // logic below may override this back to the moving side.
+  let effectiveSideToMove = opponentSide;
   let effectiveFen = newFen;
   let nextInExtraTurn = false;
   if (!result && !pendingPieceRemoval) {
@@ -1486,13 +1578,14 @@ export function applyMoveWithRules(
     extraTurns: newExtraTurns,
     clocks: newClocks,
     pendingPieceRemoval,
-    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}) }],
+    positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}), ...(newChess960 ? { chess960: newChess960 } : {}) }],
     missedChecks: newViolation
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)] }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
     inExtraTurn: nextInExtraTurn,
     crazyhouse: newCrazyhouse,
+    chess960: newChess960,
   };
 }
 

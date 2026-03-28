@@ -103,6 +103,18 @@ export function RulesPage() {
               <li><strong>Penalty mode:</strong> Penalties are applied normally.</li>
             </ul>
           </div>
+
+          <div className="rules-mode-block">
+            <h4>Chess960</h4>
+            <p>When enabled, the starting position is randomized according to Chess960 (Fischer Random Chess) rules.</p>
+            <ul>
+              <li>Bishops start on opposite-colored squares</li>
+              <li>The king starts between the two rooks</li>
+              <li>White and Black have mirrored back ranks</li>
+              <li>Castling ends on standard target squares (king on g/c-file, rook on f/d-file)</li>
+              <li>Combinable with all variant modes and game types</li>
+            </ul>
+          </div>
         </section>
 
         {/* Player Modes */}

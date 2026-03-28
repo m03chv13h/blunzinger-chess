@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color, Chess960State } from '../core/blunziger/types';
 import {
   getLegalMoves,
   getCheckingMoves,
@@ -57,8 +57,8 @@ const HILL_COORDINATES = [[3, 3], [3, 4], [4, 3], [4, 4]]; // d4, d5, e4, e5
  * 3. Apply mode-specific priorities (King Hunt → prefer checks)
  * 4. Use heuristic/engine selection among remaining candidates
  */
-export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig): Move | null {
-  const legalMoves = getLegalMoves(fen);
+export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig, chess960?: Chess960State | null): Move | null {
+  const legalMoves = getLegalMoves(fen, chess960);
   if (legalMoves.length === 0) return null;
 
   // When config is available, use Blunznforön's variant-aware search
@@ -71,9 +71,9 @@ export function selectBotMove(fen: string, level: BotLevel, config?: MatchConfig
   let candidateMoves: Move[];
 
   // Classic default: prefer checking moves
-  const checkingMoves = getCheckingMoves(fen);
+  const checkingMoves = getCheckingMoves(fen, chess960);
   if (checkingMoves.length > 0) {
-    const nonCheckingMoves = level === 'easy' ? getNonCheckingMoves(fen) : [];
+    const nonCheckingMoves = level === 'easy' ? getNonCheckingMoves(fen, chess960) : [];
     if (nonCheckingMoves.length > 0 && Math.random() < EASY_BOT_VIOLATION_PROBABILITY) {
       candidateMoves = nonCheckingMoves;
     } else {
