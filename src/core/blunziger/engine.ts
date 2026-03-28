@@ -1546,7 +1546,9 @@ export function applyMoveWithRules(
     }
   }
 
-  // Determine effective side to move (may stay same for extra turns)
+  // Determine effective side to move (may stay same for extra turns).
+  // After applying a move the turn always flips to the opponent; extra-turn
+  // logic below may override this back to the moving side.
   let effectiveSideToMove = opponentSide;
   let effectiveFen = newFen;
   let nextInExtraTurn = false;
