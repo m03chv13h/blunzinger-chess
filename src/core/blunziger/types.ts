@@ -216,6 +216,12 @@ export interface MissedCheckEntry {
   violationType: ViolationType;
   /** SAN notation of moves the player should have played, or squares for removal violations. */
   availableMoves: string[];
+  /** Regular (normal) checking moves available, in SAN notation. */
+  availableRegularMoves?: string[];
+  /** Drop (piece placement) checking moves available, in SAN notation (e.g. "N@d4"). */
+  availableDropMoves?: string[];
+  /** Squares whose piece removal would create a check. */
+  availableRemovalSquares?: string[];
 }
 
 /** Record of a piece removed as penalty, displayed as an icon next to the offending move. */
