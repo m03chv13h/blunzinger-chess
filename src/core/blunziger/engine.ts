@@ -1301,8 +1301,8 @@ export function applyMoveWithRules(
   const cfg = state.config;
 
   // ── Check for Chess960 castling ──
-  let move: Move;
-  let newFen: string;
+  let move!: Move;
+  let newFen!: string;
   let newChess960 = state.chess960;
   let isCastlingMove = false;
   let postMoveChess: InstanceType<typeof Chess> | null = null;
