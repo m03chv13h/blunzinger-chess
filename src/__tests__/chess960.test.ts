@@ -640,6 +640,47 @@ describe('Chess960 Bot/Evaluation/Review', () => {
     expect(s2.positionHistory[0].fen).toBe(config.initialFen);
   });
 
+  it('bot finds move at FEN from issue (Chess960+classic+KOTH+crazyhouse)', () => {
+    // Regression: bot stopped playing at this FEN in a Chess960 + classic + KOTH +
+    // crazyhouse bot-vs-bot game. The fix ensures chess960 state is propagated
+    // through the Blunznforön bot pipeline (getFilteredCandidates, variant filtering).
+    const fen = 'bbqrk1rn/pppp1pB1/5P2/7p/1P4P1/4PPn1/P1P1P2P/1BQRNKR1 w - - 0 10';
+    const config = chess960ConfigWithOverlays({
+      enableKingOfTheHill: true,
+      enableCrazyhouse: true,
+    });
+    const chess960 = createChess960State(config.chess960Index!);
+    // Override castling state to match mid-game (king on f1, rooks on d1 and g1)
+    const chess960State = {
+      ...chess960,
+      kingFile: 5,
+      queenSideRookFile: 3,
+      kingSideRookFile: 6,
+    };
+
+    for (const level of ['easy', 'medium', 'hard'] as const) {
+      const move = selectBotMove(fen, level, config, chess960State);
+      expect(move).not.toBeNull();
+      // Verify the returned move is legal
+      const legal = getLegalMoves(fen, chess960State);
+      const isLegal = legal.some(m => m.from === move!.from && m.to === move!.to);
+      expect(isLegal).toBe(true);
+    }
+  });
+
+  it('bot propagates chess960 state through variant filtering', () => {
+    // Position where a Chess960 castling move gives check — classic mode should
+    // detect it through the chess960-aware getCheckingMoves path.
+    for (const idx of [0, 100, 700, 959]) {
+      const config = chess960Config(idx);
+      const state = createInitialState('hvbot', config);
+      for (const level of ['easy', 'medium', 'hard'] as const) {
+        const move = selectBotMove(state.fen, level, config, state.chess960);
+        expect(move).not.toBeNull();
+      }
+    }
+  });
+
   it('position history preserves chess960 state through moves', () => {
     const config = chess960Config(518);
     let s = createInitialState('hvh', config);

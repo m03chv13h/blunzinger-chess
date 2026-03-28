@@ -9,7 +9,7 @@
  * This module ensures Blunznforön never bypasses authoritative rules.
  */
 
-import type { Move, MatchConfig, DropMove, CrazyhouseState, Color } from '../../blunziger/types';
+import type { Move, MatchConfig, DropMove, CrazyhouseState, Color, Chess960State } from '../../blunziger/types';
 import { isReverseForcedCheckMode } from '../../blunziger/types';
 import {
   getLegalMoves,
@@ -39,23 +39,24 @@ export function getFilteredCandidates(
   config: MatchConfig,
   crazyhouse: CrazyhouseState | null,
   side: Color,
+  chess960?: Chess960State | null,
 ): FilteredMoves {
   const isReverse = isReverseForcedCheckMode(config.variantMode);
 
   // Get regular moves
   let regularMoves: Move[];
   if (isReverse) {
-    const checking = getCheckingMoves(fen);
+    const checking = getCheckingMoves(fen, chess960);
     if (checking.length > 0) {
-      const nonChecking = getNonCheckingMoves(fen);
-      regularMoves = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen);
+      const nonChecking = getNonCheckingMoves(fen, chess960);
+      regularMoves = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen, chess960);
     } else {
-      regularMoves = getLegalMoves(fen);
+      regularMoves = getLegalMoves(fen, chess960);
     }
   } else {
     // Classic / King Hunt: prefer checking moves
-    const checking = getCheckingMoves(fen);
-    regularMoves = checking.length > 0 ? checking : getLegalMoves(fen);
+    const checking = getCheckingMoves(fen, chess960);
+    regularMoves = checking.length > 0 ? checking : getLegalMoves(fen, chess960);
   }
 
   // Get drop moves (Crazyhouse)
@@ -67,7 +68,7 @@ export function getFilteredCandidates(
         const checkingDrops = getCheckingDropMoves(fen, crazyhouse, side);
         if (checkingDrops.length > 0) {
           const nonCheckingDrops = getNonCheckingDropMoves(fen, crazyhouse, side);
-          const regularNonChecking = getNonCheckingMoves(fen);
+          const regularNonChecking = getNonCheckingMoves(fen, chess960);
           const totalNonChecking = nonCheckingDrops.length + regularNonChecking.length;
           dropMoves = totalNonChecking > 0 ? nonCheckingDrops : allDrops;
         } else {
@@ -80,7 +81,7 @@ export function getFilteredCandidates(
           dropMoves = checkingDrops;
         } else {
           // If regular checking moves exist, don't offer non-checking drops
-          const regularChecking = getCheckingMoves(fen);
+          const regularChecking = getCheckingMoves(fen, chess960);
           if (regularChecking.length > 0) {
             dropMoves = [];
           } else {
@@ -101,22 +102,23 @@ export function getFilteredCandidates(
 export function getViolationMoves(
   fen: string,
   config: MatchConfig,
+  chess960?: Chess960State | null,
 ): Move[] {
   const isReverse = isReverseForcedCheckMode(config.variantMode);
 
   if (isReverse) {
     // In reverse mode: violation = giving check when non-checking moves exist
-    const checking = getCheckingMoves(fen);
-    const nonChecking = getNonCheckingMoves(fen);
+    const checking = getCheckingMoves(fen, chess960);
+    const nonChecking = getNonCheckingMoves(fen, chess960);
     if (checking.length > 0 && nonChecking.length > 0) {
       return checking; // These would be violations
     }
     return [];
   } else {
     // Classic mode: violation = not giving check when checking moves exist
-    const checking = getCheckingMoves(fen);
+    const checking = getCheckingMoves(fen, chess960);
     if (checking.length > 0) {
-      const nonChecking = getNonCheckingMoves(fen);
+      const nonChecking = getNonCheckingMoves(fen, chess960);
       return nonChecking; // These would be violations
     }
     return [];
