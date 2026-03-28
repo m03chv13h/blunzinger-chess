@@ -252,6 +252,101 @@ describe('MoveList – missed-check blutwurst icon', () => {
   });
 });
 
+describe('MoveList – categorized missed-check tooltip', () => {
+  it('should show regular moves under "Moves" category', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'], availableRegularMoves: ['Qh5+', 'Bb5+'], availableDropMoves: [] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Moves: Qh5+, Bb5+)')).toBeInTheDocument();
+  });
+
+  it('should show drop moves under "Piece placement" category', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['N@d4'], availableRegularMoves: [], availableDropMoves: ['N@d4'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Piece placement: N@d4)')).toBeInTheDocument();
+  });
+
+  it('should show removal squares under "Piece removal" category', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check_removal', availableMoves: ['e2', 'd2'], availableRemovalSquares: ['e2', 'd2'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a check-creating removal (Piece removal: e2, d2)')).toBeInTheDocument();
+  });
+
+  it('should separate regular moves and drop moves with pipe', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Nf3+', 'N@d4'], availableRegularMoves: ['Nf3+'], availableDropMoves: ['N@d4'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Moves: Nf3+ | Piece placement: N@d4)')).toBeInTheDocument();
+  });
+
+  it('should omit empty categories', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+'], availableRegularMoves: ['Qh5+'], availableDropMoves: [] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    // Should not contain "Piece placement" since it's empty
+    const icon = screen.getByTitle(/Missed a possible check/);
+    expect(icon.getAttribute('title')).toBe('Missed a possible check (Moves: Qh5+)');
+  });
+
+  it('should fall back to flat list for entries without categorized fields', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'] },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
+  });
+
+  it('should show gave_forbidden_check with categorized moves', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'gave_forbidden_check', availableMoves: ['e4', 'd4'], availableRegularMoves: ['e4', 'd4'], availableDropMoves: [] },
+    ];
+    render(
+      <MoveList
+        moves={[w('Qh5'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Gave a forbidden check (Moves: e4, d4)')).toBeInTheDocument();
+  });
+});
+
 describe('MoveList – piece removal penalty icon', () => {
   it('should not show piece removal icon when there are no removals', () => {
     render(<MoveList moves={[w('e4'), b('e5')]} />);

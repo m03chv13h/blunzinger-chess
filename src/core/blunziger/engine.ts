@@ -407,7 +407,7 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
       // else: report_incorrectness → keep reportable: true (default)
 
       newPendingViolation = removalViolation;
-      newMissedChecks = [...state.missedChecks, { moveIndex: triggerMoveIndex, violationType: removalViolation.violationType, availableMoves: removalViolation.requiredRemovalSquares ?? [] }];
+      newMissedChecks = [...state.missedChecks, { moveIndex: triggerMoveIndex, violationType: removalViolation.violationType, availableMoves: removalViolation.requiredRemovalSquares ?? [], availableRemovalSquares: removalViolation.requiredRemovalSquares ?? [] }];
     }
   }
 
@@ -942,7 +942,7 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
     pendingPieceRemoval,
     positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: dropSanNotation, crazyhouse: newCh, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}), ...(state.chess960 ? { chess960: state.chess960 } : {}) }],
     missedChecks: newViolation
-      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)] }]
+      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)], availableRegularMoves: newViolation.requiredMoves.map((m) => m.san), availableDropMoves: (newViolation.requiredDropMoves ?? []).map(dropMoveToSan) }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
     inExtraTurn: nextInExtraTurn,
@@ -1580,7 +1580,7 @@ export function applyMoveWithRules(
     pendingPieceRemoval,
     positionHistory: [...state.positionHistory, { fen: effectiveFen, scores: newScores, moveNotation: move.san, crazyhouse: newCrazyhouse ?? undefined, ...(newClocks ? { clockWhiteMs: newClocks.whiteMs, clockBlackMs: newClocks.blackMs } : {}), ...(newChess960 ? { chess960: newChess960 } : {}) }],
     missedChecks: newViolation
-      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)] }]
+      ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)], availableRegularMoves: newViolation.requiredMoves.map((m) => m.san), availableDropMoves: (newViolation.requiredDropMoves ?? []).map(dropMoveToSan) }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
     inExtraTurn: nextInExtraTurn,
