@@ -3,12 +3,12 @@ import { BlutwurstIcon } from './BlutwurstIcon';
 import './MoveList.css';
 
 /** Format available checking moves grouped by category for the tooltip. */
-function formatCategorisedMoves(mc: MissedCheckEntry): string {
+function formatCategorizedMoves(mc: MissedCheckEntry): string {
   const regularMoves = mc.availableRegularMoves;
   const dropMoves = mc.availableDropMoves;
   const removalSquares = mc.availableRemovalSquares;
 
-  // When categorised fields are populated, group moves by type
+  // When categorized fields are populated, group moves by type
   if (regularMoves || dropMoves || removalSquares) {
     const parts: string[] = [];
     if (regularMoves && regularMoves.length > 0) {
@@ -23,7 +23,7 @@ function formatCategorisedMoves(mc: MissedCheckEntry): string {
     return parts.length > 0 ? ` (${parts.join(' | ')})` : '';
   }
 
-  // Fallback: flat list for legacy entries without categorised fields
+  // Fallback: flat list for legacy entries without categorized fields
   return mc.availableMoves.length > 0
     ? ` (${mc.availableMoves.join(', ')})`
     : '';
@@ -133,7 +133,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     // Only reveal after the opponent has made their next move (moveIndex+1 exists) or game ended
     const isVisible = moves.length > moveIndex + 1 || gameOver;
     if (!isVisible) return null;
-    const movesInfo = formatCategorisedMoves(mc);
+    const movesInfo = formatCategorizedMoves(mc);
     let title: string;
     switch (mc.violationType) {
       case 'missed_check':

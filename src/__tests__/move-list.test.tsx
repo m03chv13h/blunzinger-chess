@@ -252,7 +252,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
   });
 });
 
-describe('MoveList – categorised missed-check tooltip', () => {
+describe('MoveList – categorized missed-check tooltip', () => {
   it('should show regular moves under "Moves" category', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'], availableRegularMoves: ['Qh5+', 'Bb5+'], availableDropMoves: [] },
@@ -320,7 +320,7 @@ describe('MoveList – categorised missed-check tooltip', () => {
     expect(icon.getAttribute('title')).toBe('Missed a possible check (Moves: Qh5+)');
   });
 
-  it('should fall back to flat list for entries without categorised fields', () => {
+  it('should fall back to flat list for entries without categorized fields', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'] },
     ];
@@ -333,7 +333,7 @@ describe('MoveList – categorised missed-check tooltip', () => {
     expect(screen.getByTitle('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
   });
 
-  it('should show gave_forbidden_check with categorised moves', () => {
+  it('should show gave_forbidden_check with categorized moves', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'gave_forbidden_check', availableMoves: ['e4', 'd4'], availableRegularMoves: ['e4', 'd4'], availableDropMoves: [] },
     ];
