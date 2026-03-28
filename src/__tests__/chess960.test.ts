@@ -330,8 +330,7 @@ describe('Chess960 Castling', () => {
     const rank = generateChess960BackRank(0);
     const { kingFile, queenSideRookFile, kingSideRookFile } = getChess960PieceFiles(rank);
 
-    // Create a position where castling path is clear
-    chess960IndexToFen(0);
+    // Create the Chess960 state for position 0
     const state = createChess960State(0);
 
     // From starting position, pieces may block castling
