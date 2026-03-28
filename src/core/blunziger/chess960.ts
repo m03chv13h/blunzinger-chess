@@ -566,6 +566,9 @@ export function identifyChess960Castling(
   // The "from" square must be the king's original square on the correct rank
   if (fromFile !== chess960.kingFile || from[1] !== rankNum) return null;
 
+  // Both from and to must be on the same (back) rank for castling
+  if (to[1] !== rankNum) return null;
+
   // Kingside: king moves to g-file
   if (toFile === 6) return 'kingSide';
   // Queenside: king moves to c-file
