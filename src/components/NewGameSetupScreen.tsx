@@ -408,6 +408,17 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               Crazyhouse
             </label>
           </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableChess960}
+                onChange={(e) => update({ enableChess960: e.target.checked })}
+              />
+              Chess960
+            </label>
+          </div>
         </fieldset>
 
         <button className="start-game-btn" onClick={handleStart}>

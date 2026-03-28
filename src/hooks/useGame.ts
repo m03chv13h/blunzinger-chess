@@ -381,6 +381,7 @@ export function useGame(
     })();
     const lastEntry = record.positionHistory[record.positionHistory.length - 1];
     const finalCrazyhouse = lastEntry?.crazyhouse ?? base.crazyhouse;
+    const finalChess960 = lastEntry?.chess960 ?? base.chess960;
     const reviewState: GameState = {
       ...base,
       fen: record.finalFen,
@@ -396,6 +397,7 @@ export function useGame(
       pieceRemovals: record.pieceRemovals,
       timeReductions: record.timeReductions,
       crazyhouse: finalCrazyhouse,
+      chess960: finalChess960,
     };
     setState(reviewState);
     setBotThinking(false);
@@ -409,10 +411,10 @@ export function useGame(
 
   const legalMovesFrom = useCallback(
     (square: Square): Square[] => {
-      const moves = getLegalMoves(state.fen);
+      const moves = getLegalMoves(state.fen, state.chess960);
       return moves.filter((m) => m.from === square).map((m) => m.to as Square);
     },
-    [state.fen],
+    [state.fen, state.chess960],
   );
 
   // Determine if it's a human's turn
@@ -566,6 +568,7 @@ export function useGame(
           level: activeBotLevel,
           config: current.config,
           crazyhouse: current.crazyhouse ?? undefined,
+          chess960: current.chess960 ?? undefined,
           side: current.sideToMove,
         } satisfies BotActionRequest);
 
@@ -587,7 +590,7 @@ export function useGame(
         }
       }
 
-      const botMove = selectBotMove(current.fen, activeBotLevel, current.config);
+      const botMove = selectBotMove(current.fen, activeBotLevel, current.config, current.chess960);
       if (botMove) {
         applyBotAction({ kind: 'move', move: botMove });
         return;

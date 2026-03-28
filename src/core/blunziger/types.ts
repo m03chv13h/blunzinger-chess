@@ -1,7 +1,10 @@
 import type { Square, Move, Color } from 'chess.js';
 import type { EngineId } from '../engine/types';
+import type { Chess960State } from './chess960';
+import { getRandomChess960Index, chess960IndexToFen } from './chess960';
 
 export type { Square, Move, Color };
+export type { Chess960State };
 
 export type GameMode = 'hvh' | 'hvbot' | 'botvbot';
 export type BotLevel = 'easy' | 'medium' | 'hard';
@@ -30,6 +33,7 @@ export interface OverlayConfig {
   decrementMs: number;
   enableDoubleCheckPressure: boolean;
   enableCrazyhouse: boolean;
+  enableChess960: boolean;
 }
 
 // ── Game-Type-Specific Config ────────────────────────────────────────
@@ -65,6 +69,10 @@ export interface MatchConfig {
   reportConfig: ReportGameTypeConfig;
   penaltyConfig: PenaltyGameTypeConfig;
   variantSpecific: VariantSpecificConfig;
+  /** Initial FEN for the game. Defaults to standard chess. Set to a Chess960 FEN when that overlay is enabled. */
+  initialFen: string;
+  /** Chess960 position index (0-959). Present only when Chess960 is enabled. */
+  chess960Index?: number;
 }
 
 // ── Variant Mode Definitions ─────────────────────────────────────────
@@ -292,6 +300,7 @@ export interface PositionHistoryEntry {
   scores: ScoreState;
   moveNotation: string | null;
   crazyhouse?: CrazyhouseState;
+  chess960?: Chess960State;
   clockWhiteMs?: number;
   clockBlackMs?: number;
 }
@@ -337,6 +346,8 @@ export interface GameState {
   inExtraTurn: boolean;
   /** Crazyhouse reserve state (present only when overlay is enabled). */
   crazyhouse: CrazyhouseState | null;
+  /** Chess960 castling state (present only when Chess960 overlay is enabled). */
+  chess960: Chess960State | null;
 }
 
 // ── Setup Config ─────────────────────────────────────────────────────
@@ -365,6 +376,7 @@ export interface GameSetupConfig {
   decrementMs: number;
   enableDoubleCheckPressure: boolean;
   enableCrazyhouse: boolean;
+  enableChess960: boolean;
   // Report config
   invalidReportLossThreshold: number;
   // Penalty config
@@ -397,6 +409,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   decrementMs: 0,
   enableDoubleCheckPressure: false,
   enableCrazyhouse: false,
+  enableChess960: false,
   invalidReportLossThreshold: 2,
   enableAdditionalMovePenalty: false,
   additionalMoveCount: 1,
@@ -408,9 +421,20 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   kingHuntGivenCheckTarget: 5,
 };
 
+export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
 /** Build a frozen MatchConfig from the setup choices. */
 export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
   const clockEnabled = setup.enableClock;
+  const chess960Enabled = setup.enableChess960;
+  let initialFen = INITIAL_FEN;
+  let chess960Index: number | undefined;
+
+  if (chess960Enabled) {
+    chess960Index = getRandomChess960Index();
+    initialFen = chess960IndexToFen(chess960Index);
+  }
+
   return {
     variantMode: setup.variantMode,
     gameType: setup.gameType,
@@ -422,6 +446,7 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
       decrementMs: clockEnabled ? setup.decrementMs : 0,
       enableDoubleCheckPressure: setup.enableDoubleCheckPressure,
       enableCrazyhouse: setup.enableCrazyhouse,
+      enableChess960: chess960Enabled,
     },
     reportConfig: {
       invalidReportLossThreshold: setup.invalidReportLossThreshold,
@@ -438,9 +463,9 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
       kingHuntPlyLimit: setup.kingHuntPlyLimit,
       kingHuntGivenCheckTarget: setup.kingHuntGivenCheckTarget,
     },
+    initialFen,
+    chess960Index,
   };
 }
 
 export const DEFAULT_CONFIG: MatchConfig = buildMatchConfig(DEFAULT_SETUP_CONFIG);
-
-export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';

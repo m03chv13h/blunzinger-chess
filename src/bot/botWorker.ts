@@ -10,7 +10,7 @@
  */
 
 import { selectBotMove, selectBotDropMove } from './botEngine';
-import type { Move, BotLevel, MatchConfig, Color, CrazyhouseState, DropMove } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Color, CrazyhouseState, DropMove, Chess960State } from '../core/blunziger/types';
 
 // ── Message types ────────────────────────────────────────────────────
 
@@ -21,6 +21,7 @@ export interface BotActionRequest {
   level: BotLevel;
   config?: MatchConfig;
   crazyhouse?: CrazyhouseState;
+  chess960?: Chess960State;
   side: Color;
 }
 
@@ -65,7 +66,7 @@ workerSelf.onmessage = (e: MessageEvent<BotActionRequest>) => {
   }
 
   // Regular move
-  const move = selectBotMove(msg.fen, msg.level, msg.config);
+  const move = selectBotMove(msg.fen, msg.level, msg.config, msg.chess960);
   workerSelf.postMessage({
     type: 'botActionResult',
     id: msg.id,
