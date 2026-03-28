@@ -254,6 +254,11 @@ function negamax(
 /**
  * Quiescence search: continue searching captures and checks at leaf nodes
  * to avoid the horizon effect (evaluating unstable tactical positions).
+ *
+ * Uses fail-soft returns so that scores propagated back to the root search
+ * reflect actual position evaluations rather than alpha/beta bounds.  This
+ * prevents all root moves from collapsing to the same bounded value when
+ * the stand-pat evaluation exceeds the search window.
  */
 function quiescence(
   fen: string,
@@ -270,7 +275,7 @@ function quiescence(
 
   if (depth <= 0) return standPat;
 
-  if (standPat >= beta) return beta;
+  if (standPat >= beta) return standPat;
   if (standPat > alpha) alpha = standPat;
 
   const chess = new Chess(fen);
@@ -289,6 +294,8 @@ function quiescence(
 
   if (tacticalMoves.length === 0) return standPat;
 
+  let bestScore = standPat;
+
   for (const move of tacticalMoves) {
     chess.move(move.san);
     const score = -quiescence(
@@ -304,11 +311,12 @@ function quiescence(
     );
     chess.undo();
 
-    if (score >= beta) return beta;
+    if (score > bestScore) bestScore = score;
+    if (score >= beta) return bestScore;
     if (score > alpha) alpha = score;
   }
 
-  return alpha;
+  return bestScore;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
