@@ -1305,6 +1305,7 @@ export function applyMoveWithRules(
   let newFen: string;
   let newChess960 = state.chess960;
   let isCastlingMove = false;
+  let postMoveChess: InstanceType<typeof Chess> | null = null;
 
   if (state.chess960 && typeof moveInput === 'object') {
     const castlingType = identifyChess960Castling(state.chess960, movingSide, moveInput.from, moveInput.to);
@@ -1334,6 +1335,7 @@ export function applyMoveWithRules(
       return state;
     }
     newFen = chess.fen();
+    postMoveChess = chess;
 
     // Update Chess960 castling rights after a regular move
     if (newChess960) {
@@ -1396,8 +1398,9 @@ export function applyMoveWithRules(
   const sideLabel = (s: Color) => (s === 'w' ? 'White' : 'Black');
 
   // ── Termination conditions ──
-  // Use a fresh chess.js instance from the new FEN for terminal condition checks
-  const postChess = new Chess(newFen);
+  // Reuse the chess.js instance from the normal move path when available;
+  // create a new instance only for Chess960 castling (which bypasses chess.js).
+  const postChess = postMoveChess ?? new Chess(newFen);
   let result: GameResult | null = null;
 
   if (postChess.isCheckmate()) {

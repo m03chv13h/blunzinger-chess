@@ -154,6 +154,12 @@ function OverlayRules() {
         and the player misses the requirement, the miss is treated as severe.
         Under Report Incorrectness, a severe miss results in immediate loss (no report needed).
         Under Penalty on Miss, penalties are applied normally.</p>
+
+      <p><strong>Chess960:</strong> When enabled, the starting position is randomized according to
+        Chess960 (Fischer Random Chess) rules. Bishops start on opposite-colored squares, and the
+        king starts between the two rooks. Castling still ends on the standard target squares
+        (king on g-file/c-file, rook on f-file/d-file). Chess960 can be combined with all variant
+        modes and game types.</p>
     </>
   );
 }

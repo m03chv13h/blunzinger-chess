@@ -76,7 +76,7 @@ If a move produces an immediate terminal result (checkmate, King of the Hill, et
 - Only relevant when Clock overlay is enabled
 - Default: 60 seconds
 
-## C) Overlays / Options (4)
+## C) Overlays / Options (5)
 
 All variant modes and both game types can be extended with:
 
@@ -124,6 +124,29 @@ Reserve material is included in the evaluation. Values: pawn=100, knight=300, bi
 **Bot support:**
 Bots consider drop moves alongside regular moves, respecting variant rules.
 
+### Chess960 (Optional)
+
+When enabled, the starting position is randomized according to Chess960 (Fischer Random Chess) rules. Chess960 can be combined with all variant modes, both game types, and all other overlays.
+
+**Position rules:**
+- The back-rank pieces are shuffled into one of 960 valid configurations
+- Bishops must start on opposite-colored squares
+- The king must start on a square between the two rooks
+- White and Black have mirrored back ranks
+- Pawns start in their standard positions
+
+**Castling:**
+- Castling is still kingside or queenside conceptually
+- After kingside castling, the king ends on the g-file and the rook on the f-file
+- After queenside castling, the king ends on the c-file and the rook on the d-file
+- Standard castling rules apply: king and rook must not have moved, path must be clear, king cannot move through or into check
+
+**Implementation note:**
+Chess960 castling is handled at the application level because the underlying chess library (chess.js) does not natively support Chess960. All other move generation and validation works normally from Chess960 starting positions.
+
+**Bot support:**
+Bots play from Chess960 starting positions using the same variant-aware move selection. The Blunznforön engine does not explicitly consider Chess960 castling in its search, but all regular moves are handled correctly.
+
 ## Termination / Precedence
 
 Authoritative move resolution order:
@@ -157,6 +180,8 @@ Examples of valid setups:
 - Variant Mode: Classic Blunzinger – King Hunt – Move Limit / Game Type: Penalty on Miss / Penalties: Time reduction = 60s / Overlays: Double Check Pressure, Clock
 - Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Crazyhouse, Clock
 - Variant Mode: Reverse Blunzinger / Game Type: Penalty on Miss / Overlays: Crazyhouse, King of the Hill
+- Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Chess960, Clock
+- Variant Mode: Classic Blunzinger – King Hunt – Move Limit / Game Type: Penalty on Miss / Overlays: Chess960, Crazyhouse
 
 ## Default Values
 
@@ -180,7 +205,7 @@ The New Game setup screen presents:
 4. Bot settings (when applicable)
 5. Variant-specific fields (ply limit, check target — shown when relevant)
 6. Game-type-specific fields (report threshold / penalty checkboxes + values)
-7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure, Crazyhouse)
+7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure, Crazyhouse, Chess960)
 
 Fields are shown/hidden based on selections. Irrelevant fields are not exposed.
 
@@ -189,7 +214,7 @@ Fields are shown/hidden based on selections. Irrelevant fields are not exposed.
 During play, a read-only summary shows the selected configuration:
 - Variant Mode, Game Type, Player Mode
 - Penalties (if Penalty on Miss)
-- Overlays (King of the Hill, Clock, Double Check Pressure)
+- Overlays (King of the Hill, Clock, Double Check Pressure, Chess960)
 - Variant-specific config (ply limit, check target)
 
 ## Evaluation Bar (Optional)
