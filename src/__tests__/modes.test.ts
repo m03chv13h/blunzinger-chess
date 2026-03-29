@@ -360,6 +360,26 @@ describe('Extra Turn Violation Penalties', () => {
     expect(state.extraTurns.pendingExtraMovesWhite).toBe(1);
   });
 
+  it('missedChecks entry from extra turn has isAdditionalMove true', () => {
+    let state = createInitialState('hvh', penaltyConfig);
+    state = applyMoveWithRules(state, 'e4');
+    state = applyMoveWithRules(state, 'f5');
+    state = applyMoveWithRules(state, 'd3'); // White violates (normal turn)
+    // First missed check from normal turn
+    const normalMC = state.missedChecks.find(mc => mc.moveIndex === 2);
+    expect(normalMC).toBeDefined();
+    expect(normalMC!.isAdditionalMove).toBeUndefined();
+
+    state = applyMoveWithRules(state, 'e6'); // Black normal move, consumes extra
+    state = applyMoveWithRules(state, 'd6'); // Extra turn violation
+    // Second missed check from extra turn
+    const extraMC = state.missedChecks.find(mc => mc.moveIndex === 4);
+    expect(extraMC).toBeDefined();
+    expect(extraMC!.isAdditionalMove).toBe(true);
+    expect(extraMC!.availableRegularMoves).toBeDefined();
+    expect(extraMC!.availableRegularMoves!.length).toBeGreaterThan(0);
+  });
+
   it('auto-penalties applied for violation during extra turn', () => {
     let state = createInitialState('hvh', penaltyConfig);
     state = applyMoveWithRules(state, 'e4');

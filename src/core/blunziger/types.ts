@@ -222,6 +222,8 @@ export interface MissedCheckEntry {
   availableDropMoves?: string[];
   /** Squares whose piece removal would create a discovered check. */
   availableRemovalSquares?: string[];
+  /** Whether the violation occurred during an additional (extra) turn granted as a penalty. */
+  isAdditionalMove?: boolean;
 }
 
 /** Record of a piece removed as penalty, displayed as an icon next to the offending move. */
