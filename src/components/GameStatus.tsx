@@ -1,4 +1,4 @@
-import type { GameState } from '../core/blunziger/types';
+import type { GameState, MissedCheckEntry } from '../core/blunziger/types';
 import { isKingHuntVariant } from '../core/blunziger/types';
 import './GameStatus.css';
 
@@ -79,6 +79,11 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
               {lastReportFeedback.message}
             </div>
           )}
+          {result.reason === 'valid-report' && (() => {
+            const mc = findReportedMissedCheck(state.missedChecks, state.pendingViolation?.moveIndex);
+            if (!mc) return null;
+            return <ViolationDetails entry={mc} />;
+          })()}
         </div>
       ) : (
         <>
@@ -182,4 +187,55 @@ function formatReason(reason: string): string {
     default:
       return reason;
   }
+}
+
+/** Find the missed-check entry that corresponds to the reported violation. */
+function findReportedMissedCheck(
+  missedChecks: MissedCheckEntry[],
+  violationMoveIndex: number | undefined,
+): MissedCheckEntry | undefined {
+  if (violationMoveIndex !== undefined) {
+    const match = missedChecks.find((mc) => mc.moveIndex === violationMoveIndex);
+    if (match) return match;
+  }
+  // Fallback: use the last entry
+  return missedChecks.length > 0 ? missedChecks[missedChecks.length - 1] : undefined;
+}
+
+/** Inline display of categorized missed-check moves for the result panel. */
+function ViolationDetails({ entry }: { entry: MissedCheckEntry }) {
+  const regularMoves = entry.availableRegularMoves;
+  const dropMoves = entry.availableDropMoves;
+  const removalSquares = entry.availableRemovalSquares;
+
+  // Build categorized sections
+  const sections: { label: string; moves: string[] }[] = [];
+  if (regularMoves && regularMoves.length > 0) {
+    const label = entry.isAdditionalMove ? 'Additional move' : 'Normal moves';
+    sections.push({ label, moves: regularMoves });
+  }
+  if (removalSquares && removalSquares.length > 0) {
+    sections.push({ label: 'Piece removal', moves: removalSquares });
+  }
+  if (dropMoves && dropMoves.length > 0) {
+    sections.push({ label: 'Piece placement', moves: dropMoves });
+  }
+
+  // Fallback to flat list when categorized fields are not available
+  if (sections.length === 0 && entry.availableMoves.length > 0) {
+    sections.push({ label: 'Available moves', moves: entry.availableMoves });
+  }
+
+  if (sections.length === 0) return null;
+
+  return (
+    <div className="violation-details" data-testid="violation-details">
+      {sections.map((sec) => (
+        <div key={sec.label} className="violation-category">
+          <span className="violation-category-label">{sec.label}:</span>{' '}
+          <span className="violation-category-moves">{sec.moves.join(', ')}</span>
+        </div>
+      ))}
+    </div>
+  );
 }

@@ -199,3 +199,28 @@
   padding-top: 8px;
   border-top: 1px solid #eee;
 }
+
+/* ── Violation details (valid-report result panel) ───────────── */
+
+.violation-details {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.violation-category {
+  padding: 2px 0;
+}
+
+.violation-category-label {
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.violation-category-moves {
+  color: #ccc;
+  font-family: monospace;
+}
