@@ -909,7 +909,7 @@ describe('Bot mode-aware behavior', () => {
     const nonChecks = getNonCheckingMoves(fen);
     expect(nonChecks.length).toBeGreaterThan(0);
 
-    const move = selectBotMove(fen, 'easy', reverseConfig);
+    const move = selectBotMove(fen, 'medium', reverseConfig);
     expect(move).not.toBeNull();
     const isNonChecking = nonChecks.some(
       (nc) => nc.from === move!.from && nc.to === move!.to,
