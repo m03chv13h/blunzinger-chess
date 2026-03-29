@@ -103,3 +103,51 @@
   font-size: 11px;
   cursor: help;
 }
+
+/* ── Mobile-friendly CSS tooltips ────────────────────────────────── */
+
+.report-icon[data-tooltip],
+.extra-label[data-tooltip] {
+  position: relative;
+}
+
+.report-icon[data-tooltip]::after,
+.extra-label[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  text-align: left;
+  line-height: 1.4;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.report-icon[data-tooltip]:hover::after,
+.report-icon[data-tooltip]:focus::after,
+.extra-label[data-tooltip]:hover::after,
+.extra-label[data-tooltip]:focus::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.report-icon[data-tooltip]:focus,
+.extra-label[data-tooltip]:focus {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
+  border-radius: 3px;
+}

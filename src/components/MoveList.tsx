@@ -1,34 +1,7 @@
 import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
+import { formatCategorizedMoves } from './formatViolation';
 import './MoveList.css';
-
-/** Format available checking moves grouped by category for the tooltip. */
-function formatCategorizedMoves(mc: MissedCheckEntry): string {
-  const regularMoves = mc.availableRegularMoves;
-  const dropMoves = mc.availableDropMoves;
-  const removalSquares = mc.availableRemovalSquares;
-
-  // When categorized fields are populated, group moves by type
-  if (regularMoves || dropMoves || removalSquares) {
-    const parts: string[] = [];
-    if (regularMoves && regularMoves.length > 0) {
-      const label = mc.isAdditionalMove ? 'Additional move' : 'Normal moves';
-      parts.push(`${label}: ${regularMoves.join(', ')}`);
-    }
-    if (removalSquares && removalSquares.length > 0) {
-      parts.push(`Piece removal: ${removalSquares.join(', ')}`);
-    }
-    if (dropMoves && dropMoves.length > 0) {
-      parts.push(`Piece placement: ${dropMoves.join(', ')}`);
-    }
-    return parts.length > 0 ? ` (${parts.join(' | ')})` : '';
-  }
-
-  // Fallback: flat list for legacy entries without categorized fields
-  return mc.availableMoves.length > 0
-    ? ` (${mc.availableMoves.join(', ')})`
-    : '';
-}
 
 interface MoveListProps {
   moves: Move[];
@@ -119,8 +92,8 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     const report = reportByMove.get(moveIndex);
     if (!report) return null;
     return report.valid
-      ? <span className="report-icon report-valid" title="Correct violation report">✅</span>
-      : <span className="report-icon report-invalid" title="Incorrect violation report">❌</span>;
+      ? <span className="report-icon report-valid" title="Correct violation report" data-tooltip="Correct violation report" tabIndex={0}>✅</span>
+      : <span className="report-icon report-invalid" title="Incorrect violation report" data-tooltip="Incorrect violation report" tabIndex={0}>❌</span>;
   };
 
   /**
@@ -150,7 +123,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
         title = `Gave a forbidden check-creating removal${movesInfo}`;
         break;
     }
-    return <span className="report-icon missed-check" title={title}><BlutwurstIcon /></span>;
+    return <span className="report-icon missed-check" title={title} data-tooltip={title} tabIndex={0}><BlutwurstIcon /></span>;
   };
 
   /** Map piece type + color to a Unicode chess symbol. */
@@ -167,7 +140,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     const entries = removalsByMove.get(moveIndex);
     if (!entries || entries.length === 0) return null;
     return entries.map((entry, i) => (
-      <span key={`pr-${i}`} className="report-icon piece-removal" title={`Piece removed (penalty)`}>
+      <span key={`pr-${i}`} className="report-icon piece-removal" title={`Piece removed (penalty)`} data-tooltip="Piece removed (penalty)" tabIndex={0}>
         {pieceSymbol(entry.pieceType, entry.pieceColor)}
       </span>
     ));
@@ -178,7 +151,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     const tr = timeReductionByMove.get(moveIndex);
     if (!tr) return null;
     return (
-      <span className="report-icon time-reduction" title={`−${tr.seconds}s time penalty`}>⏱️</span>
+      <span className="report-icon time-reduction" title={`−${tr.seconds}s time penalty`} data-tooltip={`−${tr.seconds}s time penalty`} tabIndex={0}>⏱️</span>
     );
   };
 
@@ -200,7 +173,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
         tabIndex={onMoveClick ? 0 : undefined}
       >
         {move.san}
-        {isExtra && <span className="extra-label" title="Extra move (penalty)">&nbsp;⚡</span>}
+        {isExtra && <span className="extra-label" title="Extra move (penalty)" data-tooltip="Extra move (penalty)" tabIndex={0}>&nbsp;⚡</span>}
         {renderReportIcon(moveIndex)}
         {renderMissedCheckIcon(moveIndex)}
         {renderPieceRemovalIcons(moveIndex)}

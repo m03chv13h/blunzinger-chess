@@ -478,3 +478,62 @@ describe('MoveList – time reduction penalty icon', () => {
     expect(screen.getByTitle('−30s time penalty')).toBeInTheDocument();
   });
 });
+
+describe('MoveList – mobile-friendly tooltip attributes', () => {
+  it('should add data-tooltip and tabIndex to missed-check icons', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+'] },
+    ];
+    const { container } = render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    const icon = container.querySelector('.report-icon.missed-check');
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute('data-tooltip')).toBe('Missed a possible check (Qh5+)');
+    expect(icon!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('should add data-tooltip to piece removal icons', () => {
+    const pieceRemovals: PieceRemovalEntry[] = [
+      { moveIndex: 0, pieceType: 'p', pieceColor: 'w' },
+    ];
+    const { container } = render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        pieceRemovals={pieceRemovals}
+      />,
+    );
+    const icon = container.querySelector('.report-icon.piece-removal');
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute('data-tooltip')).toBe('Piece removed (penalty)');
+    expect(icon!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('should add data-tooltip to time reduction icons', () => {
+    const timeReductions: TimeReductionEntry[] = [
+      { moveIndex: 0, seconds: 60 },
+    ];
+    const { container } = render(
+      <MoveList
+        moves={[w('e4'), b('e5')]}
+        timeReductions={timeReductions}
+      />,
+    );
+    const icon = container.querySelector('.report-icon.time-reduction');
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute('data-tooltip')).toBe('−60s time penalty');
+    expect(icon!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('should add data-tooltip to extra move labels', () => {
+    const moves = [w('e4'), b('e5'), w('d4'), w('Nf3'), b('d5')];
+    const { container } = render(<MoveList moves={moves} />);
+    const label = container.querySelector('.extra-label');
+    expect(label).not.toBeNull();
+    expect(label!.getAttribute('data-tooltip')).toBe('Extra move (penalty)');
+    expect(label!.getAttribute('tabindex')).toBe('0');
+  });
+});
