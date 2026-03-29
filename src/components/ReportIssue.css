@@ -1,0 +1,94 @@
+.report-issue {
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.report-issue-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s;
+}
+
+.report-issue-btn:hover {
+  background: #5a6268;
+}
+
+.report-issue-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-issue-form label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+}
+
+.report-issue-form input,
+.report-issue-form textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.report-issue-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.report-issue-form input:focus,
+.report-issue-form textarea:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+.report-issue-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.report-issue-submit {
+  flex: 1;
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.report-issue-submit:hover {
+  background: #0b5ed7;
+}
+
+.report-issue-cancel {
+  background: #e9ecef;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.report-issue-cancel:hover {
+  background: #dee2e6;
+}
