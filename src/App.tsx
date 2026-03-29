@@ -22,6 +22,7 @@ import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
 import { CrazyhouseReserves } from './components/CrazyhouseReserve';
 import { FenDisplay } from './components/FenDisplay';
+import { ReportIssue } from './components/ReportIssue';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -315,6 +316,7 @@ function App() {
               onShowEvalBarChange={setShowEvalBar}
             />
             <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
+            <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
           </aside>
 
           <section className="board-section">
