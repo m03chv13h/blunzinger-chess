@@ -12,7 +12,8 @@ function formatCategorizedMoves(mc: MissedCheckEntry): string {
   if (regularMoves || dropMoves || removalSquares) {
     const parts: string[] = [];
     if (regularMoves && regularMoves.length > 0) {
-      parts.push(`Moves: ${regularMoves.join(', ')}`);
+      const label = mc.isAdditionalMove ? 'Additional move' : 'Normal moves';
+      parts.push(`${label}: ${regularMoves.join(', ')}`);
     }
     if (removalSquares && removalSquares.length > 0) {
       parts.push(`Piece removal: ${removalSquares.join(', ')}`);

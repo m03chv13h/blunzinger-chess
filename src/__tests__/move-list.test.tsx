@@ -253,7 +253,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
 });
 
 describe('MoveList – categorized missed-check tooltip', () => {
-  it('should show regular moves under "Moves" category', () => {
+  it('should show regular moves under "Normal moves" category', () => {
     const missedChecks: MissedCheckEntry[] = [
       { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Qh5+', 'Bb5+'], availableRegularMoves: ['Qh5+', 'Bb5+'], availableDropMoves: [] },
     ];
@@ -263,7 +263,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Moves: Qh5+, Bb5+)')).toBeInTheDocument();
+    expect(screen.getByTitle('Missed a possible check (Normal moves: Qh5+, Bb5+)')).toBeInTheDocument();
   });
 
   it('should show drop moves under "Piece placement" category', () => {
@@ -302,7 +302,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Moves: Nf3+ | Piece placement: N@d4)')).toBeInTheDocument();
+    expect(screen.getByTitle('Missed a possible check (Normal moves: Nf3+ | Piece placement: N@d4)')).toBeInTheDocument();
   });
 
   it('should omit empty categories', () => {
@@ -317,7 +317,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
     );
     // Should not contain "Piece placement" since it's empty
     const icon = screen.getByTitle(/Missed a possible check/);
-    expect(icon.getAttribute('title')).toBe('Missed a possible check (Moves: Qh5+)');
+    expect(icon.getAttribute('title')).toBe('Missed a possible check (Normal moves: Qh5+)');
   });
 
   it('should fall back to flat list for entries without categorized fields', () => {
@@ -343,7 +343,46 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Gave a forbidden check (Moves: e4, d4)')).toBeInTheDocument();
+    expect(screen.getByTitle('Gave a forbidden check (Normal moves: e4, d4)')).toBeInTheDocument();
+  });
+
+  it('should show "Additional move" label when isAdditionalMove is true', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Bb4+'], availableRegularMoves: ['Bb4+'], availableDropMoves: [], isAdditionalMove: true },
+    ];
+    render(
+      <MoveList
+        moves={[w('d6'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Additional move: Bb4+)')).toBeInTheDocument();
+  });
+
+  it('should show "Additional move" and "Piece placement" when both exist during extra turn', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Bb4+', 'N@d4'], availableRegularMoves: ['Bb4+'], availableDropMoves: ['N@d4'], isAdditionalMove: true },
+    ];
+    render(
+      <MoveList
+        moves={[w('d6'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Additional move: Bb4+ | Piece placement: N@d4)')).toBeInTheDocument();
+  });
+
+  it('should use "Normal moves" label when isAdditionalMove is false', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: ['Nf3+'], availableRegularMoves: ['Nf3+'], availableDropMoves: [], isAdditionalMove: false },
+    ];
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check (Normal moves: Nf3+)')).toBeInTheDocument();
   });
 });
 
