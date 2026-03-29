@@ -96,7 +96,7 @@ export function ReportIssue({ config, fen, moveHistory }: ReportIssueProps) {
   const handleSubmit = useCallback(() => {
     const body = buildIssueBody(config, fen, moveHistory, description);
     const params = new URLSearchParams({ title, body });
-    window.open(`${REPO_URL}/issues/new?${params.toString()}`, '_blank', 'noopener');
+    window.open(`${REPO_URL}/issues/new?${params.toString()}`, '_blank', 'noopener,noreferrer');
     setOpen(false);
   }, [config, fen, moveHistory, title, description]);
 
