@@ -270,6 +270,7 @@ function App() {
                 games={gameHistory}
                 simulations={simulationHistory}
                 onSelectGame={handleSelectGameForReview}
+                onStartAnalysis={handleStartGame}
               />
             )}
             {screen.type === 'simulate' && (

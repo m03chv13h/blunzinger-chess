@@ -1,0 +1,112 @@
+/* ── Analyse Position Form ── */
+
+.analyse-position-form {
+  margin-bottom: 20px;
+}
+
+.analyse-position-hint {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 14px 0;
+}
+
+.analyse-position-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.analyse-position-fields {
+  flex: 1;
+  min-width: 0;
+}
+
+.analyse-position-preview {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.analyse-field {
+  margin-bottom: 10px;
+}
+
+.analyse-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #444;
+}
+
+.analyse-field select,
+.analyse-fen-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.analyse-fen-input.fen-invalid {
+  border-color: #dc3545;
+}
+
+.analyse-fen-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #dc3545;
+}
+
+/* ── Overlays fieldset ── */
+
+.analyse-overlays {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 10px 0 0;
+}
+
+.analyse-overlays legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  padding: 0 4px;
+}
+
+.analyse-overlays label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 3px 0;
+}
+
+/* ── Start button ── */
+
+.analyse-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: #5b8def;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.analyse-start-btn:hover:not(:disabled) {
+  background: #3a6bd4;
+}
+
+.analyse-start-btn:disabled {
+  background: #b0c4de;
+  cursor: not-allowed;
+}

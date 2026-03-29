@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
 import type { SimulationRecord } from '../core/gameRecord';
+import type { GameSetupConfig } from '../core/blunziger/types';
 import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
+import { AnalysePositionForm } from './AnalysePositionForm';
 import './AnalyseSection.css';
 
 interface AnalyseSectionProps {
   games: GameRecord[];
   simulations: SimulationRecord[];
   onSelectGame: (game: GameRecord) => void;
+  onStartAnalysis: (config: GameSetupConfig) => void;
 }
 
-export function AnalyseSection({ games, simulations, onSelectGame }: AnalyseSectionProps) {
+export function AnalyseSection({ games, simulations, onSelectGame, onStartAnalysis }: AnalyseSectionProps) {
   const [expandedSimulation, setExpandedSimulation] = useState<string | null>(null);
 
   const isEmpty = games.length === 0 && simulations.length === 0;
@@ -21,6 +24,7 @@ export function AnalyseSection({ games, simulations, onSelectGame }: AnalyseSect
       <div className="analyse-section">
         <div className="analyse-card">
           <h2>📊 Analyse</h2>
+          <AnalysePositionForm onStartAnalysis={onStartAnalysis} />
           <p className="analyse-empty">
             No games played yet. Start a game from <strong>Quick Start</strong> or{' '}
             <strong>New Game</strong> and complete it to see it here.
@@ -89,8 +93,10 @@ export function AnalyseSection({ games, simulations, onSelectGame }: AnalyseSect
       <div className="analyse-card">
         <h2>📊 Analyse</h2>
         <p className="analyse-subtitle">
-          Select a completed game to review and analyse it move by move.
+          Analyse a specific position, or select a completed game to review move by move.
         </p>
+
+        <AnalysePositionForm onStartAnalysis={onStartAnalysis} />
 
         {/* ── Played Games ── */}
         {games.length > 0 && (
