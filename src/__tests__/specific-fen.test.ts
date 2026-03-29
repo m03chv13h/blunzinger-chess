@@ -1,11 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../bot/botEngine';
-import type { Chess960State, MatchConfig } from '../core/blunziger/types';
+import type { Chess960State, MatchConfig, Square } from '../core/blunziger/types';
 import { DEFAULT_CONFIG, buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
 import { applyMoveWithRules, createInitialState } from '../core/blunziger/engine';
 import { identifyChess960Castling } from '../core/blunziger/chess960';
 
 const CHESS960_FEN = 'nrbbqkrn/pp1p1p1p/B1p3p1/8/4pP2/2P4P/PP1PP1P1/NRB1QKRN b - - 1 7';
+
+/**
+ * Issue: Chess960 + Crazyhouse bot vs bot stopped playing at this FEN.
+ *
+ * White king on b1 is in check from bishop on c2. The legal escape Kc1
+ * (b1→c1) was misidentified as a queenside castling attempt (the king
+ * starts on file b=1 and c1 is file c=2, the queenside castling target).
+ * Since castling while in check is illegal, the move was rejected entirely
+ * instead of falling through to regular move handling.
+ */
+const ISSUE_FEN = '1knqnb1r/rpppppp1/4P2p/8/8/1N3P2/PPbPP1PP/RK1QNB1R w - - 0 5';
+
+/** Chess960 state matching the issue position (king on b-file). */
+const issueChess960State: Chess960State = {
+  positionIndex: 0,
+  kingFile: 1,          // b-file
+  queenSideRookFile: 0, // a-file
+  kingSideRookFile: 7,  // h-file
+  castling: {
+    whiteKingSide: true,
+    whiteQueenSide: true,
+    blackKingSide: true,
+    blackQueenSide: true,
+  },
+};
 
 // Chess960 state for NRBBQKRN arrangement (king on f-file, rooks on b and g)
 const chess960State: Chess960State = {
@@ -105,6 +130,85 @@ describe('Specific FEN position', () => {
         });
         expect(afterMove, `Move ${move.san} should be accepted at level ${level}`).not.toBe(testState);
       }
+    }
+  });
+});
+
+describe('Issue: Chess960+Crazyhouse bot vs bot stopped playing', () => {
+  const issueConfig: MatchConfig = buildMatchConfig({
+    ...DEFAULT_SETUP_CONFIG,
+    enableChess960: true,
+    enableCrazyhouse: true,
+  });
+
+  it('Kc1 should not be misidentified as castling when king is in check', () => {
+    // identifyChess960Castling sees b1→c1 as queenside castling,
+    // but applyMoveWithRules should still accept it as a regular king move
+    // when castling is not legal (king in check).
+    const result = identifyChess960Castling(issueChess960State, 'w', 'b1' as Square, 'c1' as Square);
+    // It IS identified as queenside castling by the function...
+    expect(result).toBe('queenSide');
+
+    // ...but applyMoveWithRules should fall through to regular move handling
+    const state = createInitialState('botvbot', issueConfig);
+    const testState = {
+      ...state,
+      fen: ISSUE_FEN,
+      sideToMove: 'w' as const,
+      chess960: issueChess960State,
+      config: issueConfig,
+    };
+
+    const afterMove = applyMoveWithRules(testState, { from: 'b1' as Square, to: 'c1' as Square });
+    expect(afterMove).not.toBe(testState); // Move should be accepted
+    expect(afterMove.fen).not.toBe(testState.fen); // FEN should change
+  });
+
+  it('bot finds a move that is accepted by applyMoveWithRules', () => {
+    const state = createInitialState('botvbot', issueConfig);
+    const testState = {
+      ...state,
+      fen: ISSUE_FEN,
+      sideToMove: 'w' as const,
+      chess960: issueChess960State,
+      config: issueConfig,
+    };
+
+    for (const level of ['easy', 'medium', 'hard'] as const) {
+      const move = selectBotMove(ISSUE_FEN, level, issueConfig, issueChess960State);
+      expect(move, `Bot should find a move at level ${level}`).not.toBeNull();
+      if (move) {
+        const afterMove = applyMoveWithRules(testState, {
+          from: move.from as Square,
+          to: move.to as Square,
+          promotion: move.promotion,
+        });
+        expect(afterMove, `Move ${move.san} should be accepted at level ${level}`).not.toBe(testState);
+      }
+    }
+  });
+
+  it('all legal moves are accepted (not just non-Kc1 moves)', () => {
+    const state = createInitialState('botvbot', issueConfig);
+    const testState = {
+      ...state,
+      fen: ISSUE_FEN,
+      sideToMove: 'w' as const,
+      chess960: issueChess960State,
+      config: issueConfig,
+    };
+
+    // All four legal moves should be accepted
+    const legalInputs: { from: Square; to: Square }[] = [
+      { from: 'b1', to: 'c1' },  // Kc1 (was rejected before fix)
+      { from: 'b1', to: 'c2' },  // Kxc2
+      { from: 'd1', to: 'c2' },  // Qxc2
+      { from: 'e1', to: 'c2' },  // Nxc2
+    ];
+
+    for (const input of legalInputs) {
+      const afterMove = applyMoveWithRules(testState, input);
+      expect(afterMove, `Move ${input.from}-${input.to} should be accepted`).not.toBe(testState);
     }
   });
 });

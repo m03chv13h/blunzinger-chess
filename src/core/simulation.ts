@@ -96,7 +96,7 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
 
     const activeBotLevel = state.sideToMove === 'w' ? state.botLevelWhite : state.botLevelBlack;
 
-    const botMove = selectBotMove(state.fen, activeBotLevel, state.config);
+    const botMove = selectBotMove(state.fen, activeBotLevel, state.config, state.chess960);
     if (!botMove) break;
 
     // Crazyhouse: try a drop move first
@@ -107,6 +107,7 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
         state.crazyhouse,
         state.sideToMove,
         state.config,
+        state.chess960,
       );
       if (dropMove) {
         const dropState = applyDropMoveWithRules(state, dropMove);

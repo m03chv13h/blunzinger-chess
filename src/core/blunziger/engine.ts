@@ -1310,16 +1310,18 @@ export function applyMoveWithRules(
   if (state.chess960 && typeof moveInput === 'object') {
     const castlingType = identifyChess960Castling(state.chess960, movingSide, moveInput.from, moveInput.to);
     if (castlingType) {
-      // Verify this castling is in the legal castling moves
+      // Verify this castling is in the legal castling moves.
+      // If no matching castling move exists, fall through to regular move
+      // handling — the king may simply be making a normal one-square move
+      // that happens to land on the castling target file (e.g. Kb1–c1).
       const legalCastles = getChess960CastlingMoves(state.fen, state.chess960);
       const matchingCastle = legalCastles.find((m) => m.from === moveInput.from && m.to === moveInput.to);
-      if (!matchingCastle) {
-        return state; // Illegal castling attempt
+      if (matchingCastle) {
+        move = matchingCastle;
+        newFen = matchingCastle.after;
+        newChess960 = updateChess960StateAfterCastle(state.chess960, movingSide);
+        isCastlingMove = true;
       }
-      move = matchingCastle;
-      newFen = matchingCastle.after;
-      newChess960 = updateChess960StateAfterCastle(state.chess960, movingSide);
-      isCastlingMove = true;
     }
   }
 
