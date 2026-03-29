@@ -397,6 +397,8 @@ export interface GameSetupConfig {
   // Variant specific
   kingHuntPlyLimit: number;
   kingHuntGivenCheckTarget: number;
+  /** Optional custom FEN to start the game from. When set, overrides the default starting position. */
+  initialFen?: string;
 }
 
 export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
@@ -435,10 +437,10 @@ export const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
   const clockEnabled = setup.enableClock;
   const chess960Enabled = setup.enableChess960;
-  let initialFen = INITIAL_FEN;
+  let initialFen = setup.initialFen ?? INITIAL_FEN;
   let chess960Index: number | undefined;
 
-  if (chess960Enabled) {
+  if (chess960Enabled && !setup.initialFen) {
     chess960Index = getRandomChess960Index();
     initialFen = chess960IndexToFen(chess960Index);
   }

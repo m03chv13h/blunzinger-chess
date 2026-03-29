@@ -51,7 +51,7 @@ describe('AnalyseSection', () => {
   describe('empty state', () => {
     it('shows empty message when no games or simulations', () => {
       render(
-        <AnalyseSection games={[]} simulations={[]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.getByText(/No games played yet/)).toBeInTheDocument();
     });
@@ -61,7 +61,7 @@ describe('AnalyseSection', () => {
     it('shows Played Games heading when games exist', () => {
       const games = [makeGameRecord()];
       render(
-        <AnalyseSection games={games} simulations={[]} onSelectGame={() => {}} />,
+        <AnalyseSection games={games} simulations={[]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
     });
@@ -69,7 +69,7 @@ describe('AnalyseSection', () => {
     it('does not show Simulations heading when no simulations', () => {
       const games = [makeGameRecord()];
       render(
-        <AnalyseSection games={games} simulations={[]} onSelectGame={() => {}} />,
+        <AnalyseSection games={games} simulations={[]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.queryByText('🔬 Simulations')).not.toBeInTheDocument();
     });
@@ -78,7 +78,7 @@ describe('AnalyseSection', () => {
       const game = makeGameRecord();
       const onSelect = vi.fn();
       render(
-        <AnalyseSection games={[game]} simulations={[]} onSelectGame={onSelect} />,
+        <AnalyseSection games={[game]} simulations={[]} onSelectGame={onSelect} onStartAnalysis={() => {}} />,
       );
       fireEvent.click(screen.getByText('White wins'));
       expect(onSelect).toHaveBeenCalledWith(game);
@@ -89,7 +89,7 @@ describe('AnalyseSection', () => {
     it('shows Simulations heading when simulations exist', () => {
       const sim = makeSimulationRecord();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.getByText('🔬 Simulations')).toBeInTheDocument();
     });
@@ -97,7 +97,7 @@ describe('AnalyseSection', () => {
     it('does not show Played Games heading when no played games', () => {
       const sim = makeSimulationRecord();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.queryByText('🎮 Played Games')).not.toBeInTheDocument();
     });
@@ -107,7 +107,7 @@ describe('AnalyseSection', () => {
         standing: { whiteWins: 5, blackWins: 3, draws: 2 },
       });
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.getByText('W 5')).toBeInTheDocument();
       expect(screen.getByText('B 3')).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe('AnalyseSection', () => {
     it('shows game count in simulation item', () => {
       const sim = makeSimulationRecord();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
       expect(screen.getByText(/3 games/)).toBeInTheDocument();
     });
@@ -127,7 +127,7 @@ describe('AnalyseSection', () => {
     it('clicking a simulation shows its individual games', () => {
       const sim = makeSimulationRecord();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
 
       // Click on the simulation
@@ -145,7 +145,7 @@ describe('AnalyseSection', () => {
     it('back button returns to overview', () => {
       const sim = makeSimulationRecord();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={() => {}} onStartAnalysis={() => {}} />,
       );
 
       fireEvent.click(screen.getByText(/3 games/));
@@ -160,7 +160,7 @@ describe('AnalyseSection', () => {
       const sim = makeSimulationRecord();
       const onSelect = vi.fn();
       render(
-        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={onSelect} />,
+        <AnalyseSection games={[]} simulations={[sim]} onSelectGame={onSelect} onStartAnalysis={() => {}} />,
       );
 
       fireEvent.click(screen.getByText(/3 games/));
@@ -177,7 +177,7 @@ describe('AnalyseSection', () => {
         <AnalyseSection
           games={[game]}
           simulations={[sim]}
-          onSelectGame={() => {}}
+          onSelectGame={() => {}} onStartAnalysis={() => {}}
         />,
       );
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
