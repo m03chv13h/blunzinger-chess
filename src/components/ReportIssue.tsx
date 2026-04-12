@@ -26,6 +26,7 @@ function buildIssueBody(
   if (config.enableDoubleCheckPressure) overlays.push('Double Check Pressure');
   if (config.enableCrazyhouse) overlays.push('Crazyhouse');
   if (config.enableChess960) overlays.push('Chess960');
+  if (config.enableAtomic) overlays.push('Atomic Chess');
 
   const moveSanList = moveHistory.map((m) => m.san);
   const moveLines: string[] = [];
