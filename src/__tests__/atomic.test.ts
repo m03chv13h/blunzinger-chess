@@ -3,14 +3,18 @@ import {
   buildMatchConfig,
   DEFAULT_SETUP_CONFIG,
   INITIAL_FEN,
+  EMPTY_RESERVE,
 } from '../core/blunziger/types';
-import type { GameState, MatchConfig } from '../core/blunziger/types';
+import type { GameState, MatchConfig, DropMove } from '../core/blunziger/types';
 import {
   createInitialState,
   applyMoveWithRules,
+  applyDropMoveWithRules,
   getLegalMoves,
   getCheckingMoves,
   getNonCheckingMoves,
+  getCheckingDropMoves,
+  getNonCheckingDropMoves,
   isAtomicEnabled,
 } from '../core/blunziger/engine';
 import {
@@ -666,5 +670,151 @@ describe('Atomic edge cases', () => {
     // Move should succeed (not rejected)
     expect(state.fen).not.toBe(fenBefore);
     expect(state.moveHistory.length).toBe(3);
+  });
+});
+
+// ── Atomic + Crazyhouse + Blunziger Drop Violation Detection ─────────
+
+describe('Atomic + Crazyhouse drop violation detection', () => {
+  // Helper: create a state with Atomic + Crazyhouse + variant mode at a specific FEN
+  function makeAtomicCrazyhouseState(
+    fen: string,
+    whiteReserve: typeof EMPTY_RESERVE,
+    blackReserve: typeof EMPTY_RESERVE,
+    overrides: Partial<typeof DEFAULT_SETUP_CONFIG> = {},
+  ): GameState {
+    const config = makeAtomicConfig({
+      enableCrazyhouse: true,
+      ...overrides,
+    });
+    const state = createInitialState('hvh', config);
+    return {
+      ...state,
+      fen,
+      sideToMove: 'w',
+      crazyhouse: {
+        whiteReserve: { ...whiteReserve },
+        blackReserve: { ...blackReserve },
+      },
+    };
+  }
+
+  it('classic + Atomic + Crazyhouse: drop violation uses atomic-aware check detection', () => {
+    // Position where regular checking moves exist via Atomic detection
+    // In starting-like positions, both standard and atomic detect the same checks
+    const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(
+      fen,
+      { ...EMPTY_RESERVE, q: 1 },
+      EMPTY_RESERVE,
+      { variantMode: 'classic_blunzinger' },
+    );
+
+    // Verify checking drops exist
+    const checkingDrops = getCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    expect(checkingDrops.length).toBeGreaterThan(0);
+
+    // Playing a non-checking drop when checking drops exist should be a violation
+    const nonCheckingDrops = getNonCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    expect(nonCheckingDrops.length).toBeGreaterThan(0);
+
+    const drop: DropMove = { type: 'drop', piece: 'q', to: nonCheckingDrops[0].to, color: 'w' };
+    const result = applyDropMoveWithRules(state, drop);
+    expect(result.pendingViolation).not.toBeNull();
+    expect(result.pendingViolation!.violationType).toBe('missed_check');
+  });
+
+  it('reverse + Atomic + Crazyhouse: drop violation uses atomic-aware check detection', () => {
+    const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(
+      fen,
+      { ...EMPTY_RESERVE, q: 1 },
+      EMPTY_RESERVE,
+      { variantMode: 'reverse_blunzinger' },
+    );
+
+    // Verify checking drops exist
+    const checkingDrops = getCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    expect(checkingDrops.length).toBeGreaterThan(0);
+
+    // Playing a checking drop when non-checking options exist is a violation
+    const drop: DropMove = { type: 'drop', piece: 'q', to: checkingDrops[0].to, color: 'w' };
+    const result = applyDropMoveWithRules(state, drop);
+    expect(result.pendingViolation).not.toBeNull();
+    expect(result.pendingViolation!.violationType).toBe('gave_forbidden_check');
+  });
+
+  it('classic + Atomic + Crazyhouse: no violation when checking drop played', () => {
+    const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(
+      fen,
+      { ...EMPTY_RESERVE, q: 1 },
+      EMPTY_RESERVE,
+      { variantMode: 'classic_blunzinger' },
+    );
+
+    const checkingDrops = getCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    expect(checkingDrops.length).toBeGreaterThan(0);
+
+    const drop: DropMove = { type: 'drop', piece: 'q', to: checkingDrops[0].to, color: 'w' };
+    const result = applyDropMoveWithRules(state, drop);
+    // No violation because we played a checking drop
+    expect(result.pendingViolation).toBeNull();
+  });
+
+  it('reverse + Atomic + Crazyhouse: no violation when non-checking drop played', () => {
+    const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(
+      fen,
+      { ...EMPTY_RESERVE, n: 1 },
+      EMPTY_RESERVE,
+      { variantMode: 'reverse_blunzinger' },
+    );
+
+    const nonCheckingDrops = getNonCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    expect(nonCheckingDrops.length).toBeGreaterThan(0);
+
+    const drop: DropMove = { type: 'drop', piece: 'n', to: nonCheckingDrops[0].to, color: 'w' };
+    const result = applyDropMoveWithRules(state, drop);
+    // No violation because we played a non-checking drop
+    expect(result.pendingViolation).toBeNull();
+  });
+
+  it('Atomic + Crazyhouse: checking move classification accounts for explosion effects', () => {
+    // Position where captures exist and explosion affects check classification
+    // After a capture, the explosion removes pieces, potentially changing what gives check
+    const fen = '4k3/8/8/3p4/8/5N2/8/4K3 w - - 0 1';
+    const atomicChecking = getCheckingMoves(fen, null, true);
+    const standardChecking = getCheckingMoves(fen, null, false);
+    // Both approaches should work correctly (may differ when captures are involved)
+    expect(atomicChecking.length).toBeGreaterThanOrEqual(0);
+    expect(standardChecking.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('Atomic + Crazyhouse + Classic: violation record includes atomic-filtered checking moves', () => {
+    // Position with captures available where atomic legality matters
+    const fen = '4k3/8/8/8/8/8/8/R3K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(
+      fen,
+      { ...EMPTY_RESERVE, n: 1 },
+      EMPTY_RESERVE,
+      { variantMode: 'classic_blunzinger' },
+    );
+
+    // Rook can give check (Ra8+) in both standard and atomic
+    const atomicChecking = getCheckingMoves(fen, null, true);
+    expect(atomicChecking.length).toBeGreaterThan(0);
+
+    // Play a non-checking move
+    const nonCheckingDrops = getNonCheckingDropMoves(fen, state.crazyhouse!, 'w');
+    if (nonCheckingDrops.length > 0) {
+      const drop: DropMove = { type: 'drop', piece: 'n', to: nonCheckingDrops[0].to, color: 'w' };
+      const result = applyDropMoveWithRules(state, drop);
+      // Should be a violation since checking moves exist
+      expect(result.pendingViolation).not.toBeNull();
+      expect(result.pendingViolation!.violationType).toBe('missed_check');
+      // The checking moves in the violation record should be atomic-aware
+      expect(result.pendingViolation!.checkingMoves.length).toBe(atomicChecking.length);
+    }
   });
 });

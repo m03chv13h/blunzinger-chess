@@ -124,8 +124,8 @@ export function tacticalBonusDrop(
 /**
  * Count checking moves available for a side (used for forced-check pressure).
  */
-export function countCheckingMoves(fen: string): number {
-  return getCheckingMoves(fen).length;
+export function countCheckingMoves(fen: string, atomic?: boolean): number {
+  return getCheckingMoves(fen, null, atomic).length;
 }
 
 /**
