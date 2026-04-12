@@ -158,6 +158,13 @@ function App() {
     setScreen({ type: 'new-game' });
   };
 
+  const handleRestartGame = () => {
+    if (screen.type !== 'playing') return;
+    if (!window.confirm('Are you sure you want to restart the game?')) return;
+    flushPendingRecord();
+    handleStartGame(screen.config);
+  };
+
   const handleMove = (from: Square, to: Square, promotion?: string): boolean => {
     // If a drop piece is selected but user clicks the board for a regular move, deselect
     if (selectedDropPiece) setSelectedDropPiece(null);
@@ -308,6 +315,7 @@ function App() {
             <GameSummaryPanel config={screen.config} />
             <GameControls
               onNewGame={handleNewGame}
+              onRestart={handleRestartGame}
               paused={game.paused}
               onPauseToggle={game.setPaused}
               moveDelay={game.moveDelay}
