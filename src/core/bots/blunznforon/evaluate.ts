@@ -217,6 +217,7 @@ export function evaluatePositionFull(
 
   // King Hunt
   if (isKingHuntVariant(mode)) {
+    const khAtomic = config.overlays.enableAtomic || undefined;
     if (mode === 'classic_king_hunt_move_limit') {
       const plyLimit = config.variantSpecific.kingHuntPlyLimit;
       const plyCount = Math.max(0, plyLimit - ctx.kingHuntPliesRemaining);
@@ -227,6 +228,7 @@ export function evaluatePositionFull(
         turn,
         fen,
         perspective,
+        khAtomic,
       );
     } else {
       score += evaluateKingHuntGivenCheckLimit(
@@ -235,6 +237,7 @@ export function evaluatePositionFull(
         turn,
         fen,
         perspective,
+        khAtomic,
       );
     }
   }
@@ -248,12 +251,13 @@ export function evaluatePositionFull(
   if (config.overlays.enableDoubleCheckPressure) {
     const isClassicMode = isClassicForcedCheck(mode);
     const isReverseMode = isReverseForcedCheckMode(mode);
+    const dcpAtomic = config.overlays.enableAtomic || undefined;
     let requiredCount = 0;
     if (isClassicMode && !isReverseMode) {
-      requiredCount = getCheckingMoves(fen).length;
+      requiredCount = getCheckingMoves(fen, null, dcpAtomic).length;
     } else if (isReverseMode) {
-      const cMoves = getCheckingMoves(fen);
-      requiredCount = cMoves.length > 0 ? getNonCheckingMoves(fen).length : 0;
+      const cMoves = getCheckingMoves(fen, null, dcpAtomic);
+      requiredCount = cMoves.length > 0 ? getNonCheckingMoves(fen, null, dcpAtomic).length : 0;
     }
     if (requiredCount >= 2) {
       score += turn === perspective ? -30 : 30;
@@ -378,15 +382,16 @@ function evaluatePenaltyRisk(
   // Check if the side to move is at risk of violating
   const isClassic = isClassicForcedCheck(config.variantMode);
   const isReverse = isReverseForcedCheckMode(config.variantMode);
-  const checkingMoves = getCheckingMoves(fen);
-  const legalMoves = getLegalMoves(fen);
+  const penaltyAtomic = config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(fen, null, penaltyAtomic);
+  const legalMoves = getLegalMoves(fen, null, penaltyAtomic);
 
   let atRisk = false;
   if (isClassic && !isReverse && checkingMoves.length === 0 && legalMoves.length > 0) {
     atRisk = true;
   }
   if (isReverse && checkingMoves.length > 0) {
-    const nonChecking = getNonCheckingMoves(fen);
+    const nonChecking = getNonCheckingMoves(fen, null, penaltyAtomic);
     if (nonChecking.length > 0 && nonChecking.length <= 2) atRisk = true;
   }
 

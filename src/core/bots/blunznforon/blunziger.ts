@@ -79,7 +79,7 @@ export function getFilteredCandidates(
         const checkingDrops = getCheckingDropMoves(fen, crazyhouse, side);
         if (checkingDrops.length > 0) {
           const nonCheckingDrops = getNonCheckingDropMoves(fen, crazyhouse, side);
-          const regularNonChecking = getNonCheckingMoves(fen, chess960);
+          const regularNonChecking = getNonCheckingMoves(fen, chess960, atomic);
           const totalNonChecking = nonCheckingDrops.length + regularNonChecking.length;
           dropMoves = totalNonChecking > 0 ? nonCheckingDrops : allDrops;
         } else {

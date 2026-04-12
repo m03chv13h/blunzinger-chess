@@ -23,6 +23,7 @@ function sideSign(side: Color): number {
  * @param sideToMove Current side to move
  * @param fen Current board position
  * @param perspective Evaluation perspective
+ * @param atomic Whether Atomic overlay is enabled
  */
 export function evaluateKingHuntMoveLimit(
   scores: { w: number; b: number },
@@ -31,6 +32,7 @@ export function evaluateKingHuntMoveLimit(
   sideToMove: Color,
   fen: string,
   perspective: Color,
+  atomic?: boolean,
 ): number {
   const scoreDiff = scores.w - scores.b; // positive = White leads
   const progressFraction = plyCount / plyLimit;
@@ -43,7 +45,7 @@ export function evaluateKingHuntMoveLimit(
   adj = Math.round(adj * lateGameMultiplier);
 
   // Bonus for having checking moves available (ability to extend lead)
-  const checkingMoves = getCheckingMoves(fen);
+  const checkingMoves = getCheckingMoves(fen, null, atomic);
   const checkBonus = Math.min(checkingMoves.length * 10, 40) * sideSign(sideToMove);
   adj += checkBonus;
 
@@ -58,6 +60,7 @@ export function evaluateKingHuntMoveLimit(
  * @param sideToMove Current side to move
  * @param fen Current board position
  * @param perspective Evaluation perspective
+ * @param atomic Whether Atomic overlay is enabled
  */
 export function evaluateKingHuntGivenCheckLimit(
   scores: { w: number; b: number },
@@ -65,6 +68,7 @@ export function evaluateKingHuntGivenCheckLimit(
   sideToMove: Color,
   fen: string,
   perspective: Color,
+  atomic?: boolean,
 ): number {
   const wDist = target - scores.w;
   const bDist = target - scores.b;
@@ -77,7 +81,7 @@ export function evaluateKingHuntGivenCheckLimit(
   if (bDist === 1) adj -= 400;
 
   // Checking move availability bonus
-  const checkingMoves = getCheckingMoves(fen);
+  const checkingMoves = getCheckingMoves(fen, null, atomic);
   if (checkingMoves.length > 0) {
     adj += sideSign(sideToMove) * 60;
   }

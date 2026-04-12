@@ -812,6 +812,7 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
   }
 
   // ── Detect violation for drop move ──
+  const atomicFlag = isAtomicEnabled(cfg) || undefined;
   const newViolation = detectDropViolation(
     fenBeforeMove,
     drop,
@@ -821,6 +822,8 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
     cfg.overlays.enableDoubleCheckPressure,
     ch,
     sideToMove,
+    state.chess960,
+    atomicFlag,
   );
 
   // ── Score update (King Hunt) ──
@@ -1032,9 +1035,11 @@ function detectDropViolation(
   dcpEnabled: boolean,
   ch: CrazyhouseState,
   side: Color,
+  chess960?: Chess960State | null,
+  atomic?: boolean,
 ): ViolationRecord | null {
   // Get ALL checking moves (regular + drop)
-  const regularCheckingMoves = getCheckingMoves(fenBeforeMove);
+  const regularCheckingMoves = getCheckingMoves(fenBeforeMove, chess960, atomic);
   const checkingDrops = getCheckingDropMoves(fenBeforeMove, ch, side);
   const totalCheckingCount = regularCheckingMoves.length + checkingDrops.length;
 
@@ -1061,7 +1066,7 @@ function detectDropViolation(
     // Reverse Blunzinger
     if (totalCheckingCount === 0) return null;
 
-    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove);
+    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960, atomic);
     const nonCheckingDrops = getNonCheckingDropMoves(fenBeforeMove, ch, side);
     const totalNonCheckingCount = regularNonCheckingMoves.length + nonCheckingDrops.length;
 

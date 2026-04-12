@@ -149,7 +149,8 @@ export function evaluateKingHuntMoveLimit(state: GameState): Adjustment {
   adj = Math.round(adj * lateGameMultiplier);
 
   // Bonus for having checking moves available (ability to extend lead).
-  const checkingMoves = getCheckingMoves(state.fen);
+  const atomic = state.config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(state.fen, null, atomic);
   const checkBonus = Math.min(checkingMoves.length * 8, 32) * sideSign(state.sideToMove);
   adj += checkBonus;
 
@@ -190,7 +191,8 @@ export function evaluateKingHuntGivenCheckLimit(state: GameState): Adjustment {
   if (bDist === 1) adj -= 300;
 
   // Checking move availability bonus for the side to move.
-  const checkingMoves = getCheckingMoves(state.fen);
+  const atomic = state.config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(state.fen, null, atomic);
   if (checkingMoves.length > 0) {
     adj += sideSign(sideToMove) * 50;
   }
@@ -258,18 +260,19 @@ export function evaluatePenaltyOnMiss(state: GameState): Adjustment {
   // they are about to commit a violation → penalty advantage for opponent.
   const isClassic = isClassicForcedCheck(config.variantMode);
   const isReverse = isReverseForcedCheckMode(config.variantMode);
-  const checkingMoves = getCheckingMoves(fen);
-  const legalMoves = getLegalMoves(fen);
+  const penaltyAtomic = config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(fen, null, penaltyAtomic);
+  const legalMoves = getLegalMoves(fen, null, penaltyAtomic);
 
   let atRisk = false;
   if (isClassic && checkingMoves.length === 0 && legalMoves.length > 0) {
     atRisk = true;
   }
-  if (isReverse && checkingMoves.length > 0 && getNonCheckingMoves(fen).length > 0) {
+  if (isReverse && checkingMoves.length > 0 && getNonCheckingMoves(fen, null, penaltyAtomic).length > 0) {
     // In reverse mode, having checking moves means they must be avoided;
     // but this isn't a violation risk per se (they just need to pick non-checking).
     // The risk is when they have very few non-checking options.
-    const nonChecking = getNonCheckingMoves(fen);
+    const nonChecking = getNonCheckingMoves(fen, null, penaltyAtomic);
     if (nonChecking.length <= 2) atRisk = true;
   }
 
@@ -401,13 +404,15 @@ export function evaluateDoubleCheckPressure(state: GameState): Adjustment {
   const isClassic = isClassicForcedCheck(config.variantMode);
   const isReverse = isReverseForcedCheckMode(config.variantMode);
 
+  const dcpAtomic = config.overlays.enableAtomic || undefined;
+
   let requiredMoves: number;
   if (isClassic) {
-    requiredMoves = getCheckingMoves(fen).length;
+    requiredMoves = getCheckingMoves(fen, null, dcpAtomic).length;
   } else if (isReverse) {
-    const checkingMoves = getCheckingMoves(fen);
+    const checkingMoves = getCheckingMoves(fen, null, dcpAtomic);
     if (checkingMoves.length > 0) {
-      requiredMoves = getNonCheckingMoves(fen).length;
+      requiredMoves = getNonCheckingMoves(fen, null, dcpAtomic).length;
     } else {
       requiredMoves = 0; // No checking moves → no constraint.
     }
