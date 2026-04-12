@@ -24,7 +24,7 @@ export interface FilteredMoves {
   regularMoves: Move[];
   dropMoves: DropMove[];
   /**
-   * True when checking drops are the only way to fulfil the forced-check
+   * True when checking drops are the only way to fulfill the forced-check
    * obligation (classic / King Hunt modes).  When set, the bot must prefer
    * a drop over any regular move to avoid missing a check.
    */
