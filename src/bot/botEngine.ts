@@ -129,18 +129,23 @@ function selectHard(moves: Move[], fen: string, kingHunt: boolean, config?: Matc
   let bestMoves: Move[] = [];
 
   for (const move of moves) {
-    const chess = new Chess(fen);
-    chess.move(move.san);
-    let score = -minimax(chess, 2, -Infinity, Infinity, false, kothEnabled);
-    // King Hunter bonus for checks
-    if (kingHunt && chess.inCheck()) {
-      score += 3;
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestMoves = [move];
-    } else if (score === bestScore) {
-      bestMoves.push(move);
+    try {
+      const chess = new Chess(fen);
+      chess.move(move.san);
+      let score = -minimax(chess, 2, -Infinity, Infinity, false, kothEnabled);
+      // King Hunter bonus for checks
+      if (kingHunt && chess.inCheck()) {
+        score += 3;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMoves = [move];
+      } else if (score === bestScore) {
+        bestMoves.push(move);
+      }
+    } catch {
+      // Skip moves that fail to apply (e.g. invalid FEN)
+      if (bestMoves.length === 0) bestMoves.push(move);
     }
   }
 
@@ -283,11 +288,15 @@ function scoreMove(move: Move, fen: string, config?: MatchConfig): number {
   }
 
   // Checks are good (especially in King Hunt)
-  const chess = new Chess(fen);
-  chess.move(move.san);
-  if (chess.inCheck()) {
-    const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
-    score += kingHunt ? 20 : 5;
+  try {
+    const chess = new Chess(fen);
+    chess.move(move.san);
+    if (chess.inCheck()) {
+      const kingHunt = config ? isKingHuntVariant(config.variantMode) : false;
+      score += kingHunt ? 20 : 5;
+    }
+  } catch {
+    // Skip check detection for invalid FENs
   }
 
   // Central control

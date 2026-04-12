@@ -11,6 +11,93 @@ const PIECE_UNICODE: Record<string, string> = {
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
+const FEN_PIECE_MAP: Record<string, { type: string; color: 'w' | 'b' }> = {
+  K: { type: 'k', color: 'w' }, Q: { type: 'q', color: 'w' },
+  R: { type: 'r', color: 'w' }, B: { type: 'b', color: 'w' },
+  N: { type: 'n', color: 'w' }, P: { type: 'p', color: 'w' },
+  k: { type: 'k', color: 'b' }, q: { type: 'q', color: 'b' },
+  r: { type: 'r', color: 'b' }, b: { type: 'b', color: 'b' },
+  n: { type: 'n', color: 'b' }, p: { type: 'p', color: 'b' },
+};
+
+interface BoardCell {
+  type: string;
+  color: 'w' | 'b';
+  square: string;
+}
+
+/**
+ * Minimal board interface that mirrors the subset of Chess we use for rendering.
+ * Used as a fallback when chess.js rejects a FEN (e.g. Atomic explosion removes a king).
+ */
+interface BoardView {
+  board: () => (BoardCell | null)[][];
+  get: (sq: string) => BoardCell | null;
+  turn: () => 'w' | 'b';
+  lastMove: { from: string; to: string } | null;
+}
+
+function parseFenToBoard(fen: string): BoardView {
+  const parts = fen.split(' ');
+  const rows = parts[0].split('/');
+  const activeColor = (parts[1] === 'b' ? 'b' : 'w') as 'w' | 'b';
+  const grid: (BoardCell | null)[][] = [];
+
+  for (let r = 0; r < 8; r++) {
+    const row: (BoardCell | null)[] = [];
+    const rowStr = rows[r] ?? '';
+    let col = 0;
+    for (const ch of rowStr) {
+      if (ch >= '1' && ch <= '8') {
+        const empty = parseInt(ch, 10);
+        for (let i = 0; i < empty; i++) { row.push(null); col++; }
+      } else {
+        const mapped = FEN_PIECE_MAP[ch];
+        if (mapped) {
+          const sq = `${FILES[col]}${8 - r}`;
+          row.push({ ...mapped, square: sq });
+        } else {
+          row.push(null);
+        }
+        col++;
+      }
+    }
+    while (row.length < 8) row.push(null);
+    grid.push(row);
+  }
+
+  return {
+    board: () => grid,
+    get: (sq: string) => {
+      const file = sq.charCodeAt(0) - 'a'.charCodeAt(0);
+      const rank = 8 - parseInt(sq[1]);
+      if (rank < 0 || rank >= 8 || file < 0 || file >= 8) return null;
+      return grid[rank][file];
+    },
+    turn: () => activeColor,
+    lastMove: null,
+  };
+}
+
+function createBoardView(fen: string): BoardView {
+  try {
+    const chess = new Chess(fen);
+    const hist = chess.history({ verbose: true });
+    const last = hist.length > 0 ? hist[hist.length - 1] : null;
+    return {
+      board: () => chess.board(),
+      get: (sq: string) => {
+        const p = chess.get(sq as Square);
+        return p ? { type: p.type, color: p.color, square: sq } : null;
+      },
+      turn: () => chess.turn(),
+      lastMove: last ? { from: last.from, to: last.to } : null,
+    };
+  } catch {
+    return parseFenToBoard(fen);
+  }
+}
+
 interface ChessboardProps {
   fen: string;
   onMove: (from: Square, to: Square, promotion?: string) => boolean;
@@ -49,7 +136,7 @@ export function Chessboard({
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
   const [promotionData, setPromotionData] = useState<{ from: Square; to: Square } | null>(null);
 
-  const chess = new Chess(fen);
+  const chess = createBoardView(fen);
   const board = chess.board();
 
   const displayRanks = flipped ? [...RANKS].reverse() : RANKS;
@@ -129,8 +216,7 @@ export function Chessboard({
     [promotionData, onMove],
   );
 
-  const lastMove = chess.history({ verbose: true });
-  const lastMoveObj = lastMove.length > 0 ? lastMove[lastMove.length - 1] : null;
+  const lastMoveObj = chess.lastMove;
 
   return (
     <div className="chessboard-wrapper">

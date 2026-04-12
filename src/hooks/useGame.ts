@@ -100,6 +100,10 @@ export function useGame(
         new URL('../bot/botWorker.ts', import.meta.url),
         { type: 'module' },
       );
+      w.onerror = () => {
+        // Worker crashed — reset bot thinking so the game doesn't freeze.
+        setBotThinking(false);
+      };
       workerRef.current = w;
     } catch {
       // Worker unavailable (e.g. test/SSR environment) — sync fallback used
@@ -578,25 +582,29 @@ export function useGame(
       }
 
       // ── Sync fallback (no Worker available, e.g. tests / SSR) ──────
-      if (current.crazyhouse) {
-        const dropMove = selectBotDropMove(
-          current.fen,
-          activeBotLevel,
-          current.crazyhouse,
-          current.sideToMove,
-          current.config,
-          current.chess960,
-        );
-        if (dropMove) {
-          applyBotAction({ kind: 'drop', dropMove });
+      try {
+        if (current.crazyhouse) {
+          const dropMove = selectBotDropMove(
+            current.fen,
+            activeBotLevel,
+            current.crazyhouse,
+            current.sideToMove,
+            current.config,
+            current.chess960,
+          );
+          if (dropMove) {
+            applyBotAction({ kind: 'drop', dropMove });
+            return;
+          }
+        }
+
+        const botMove = selectBotMove(current.fen, activeBotLevel, current.config, current.chess960);
+        if (botMove) {
+          applyBotAction({ kind: 'move', move: botMove });
           return;
         }
-      }
-
-      const botMove = selectBotMove(current.fen, activeBotLevel, current.config, current.chess960);
-      if (botMove) {
-        applyBotAction({ kind: 'move', move: botMove });
-        return;
+      } catch {
+        // Move selection failed (e.g. invalid FEN) — stop thinking gracefully.
       }
       setBotThinking(false);
     }, delay);
