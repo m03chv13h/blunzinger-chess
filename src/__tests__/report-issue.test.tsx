@@ -157,4 +157,238 @@ describe('ReportIssue', () => {
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Report Issue/i })).toBeInTheDocument();
   });
+
+  it('includes hvbot settings in the issue body', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({ mode: 'hvbot', botSide: 'b', botDifficulty: 'hard', engineId: 'heuristic' })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Human vs Bot');
+    expect(body).toContain('Playing As');
+    expect(body).toContain('White');
+    expect(body).toContain('Bot Difficulty');
+    expect(body).toContain('hard');
+    expect(body).toContain('Engine');
+    expect(body).toContain('heuristic');
+  });
+
+  it('includes botvbot settings in the issue body', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          mode: 'botvbot',
+          botDifficultyWhite: 'hard',
+          botDifficultyBlack: 'easy',
+          engineIdWhite: 'heuristic',
+          engineIdBlack: 'blunznforön',
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Bot vs Bot');
+    expect(body).toContain('Bot Difficulty (White)');
+    expect(body).toContain('hard');
+    expect(body).toContain('Bot Difficulty (Black)');
+    expect(body).toContain('easy');
+    expect(body).toContain('Engine (White)');
+    expect(body).toContain('heuristic');
+    expect(body).toContain('Engine (Black)');
+    expect(body).toContain('blunznforön');
+  });
+
+  it('includes clock settings when clock is enabled', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          enableClock: true,
+          initialTimeMs: 300_000,
+          incrementMs: 5000,
+          decrementMs: 2000,
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Clock');
+    expect(body).toContain('300s');
+    expect(body).toContain('5s inc');
+    expect(body).toContain('2s dec');
+  });
+
+  it('includes report threshold for report_incorrectness game type', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({ gameType: 'report_incorrectness', invalidReportLossThreshold: 3 })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Invalid Report Loss Threshold');
+    expect(body).toContain('3');
+  });
+
+  it('includes penalty settings for penalty_on_miss game type', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          gameType: 'penalty_on_miss',
+          enableAdditionalMovePenalty: true,
+          additionalMoveCount: 2,
+          enablePieceRemovalPenalty: true,
+          pieceRemovalCount: 1,
+          enableTimeReductionPenalty: true,
+          timeReductionSeconds: 30,
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Penalties');
+    expect(body).toContain('Additional Move (2)');
+    expect(body).toContain('Piece Removal (1)');
+    expect(body).toContain('Time Reduction (30s)');
+  });
+
+  it('includes ply limit for King Hunt Move Limit variant', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({ variantMode: 'classic_king_hunt_move_limit', kingHuntPlyLimit: 60 })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('King Hunt');
+    expect(body).toContain('Ply Limit');
+    expect(body).toContain('60');
+  });
+
+  it('includes given check target for King Hunt Given Check Limit variant', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({ variantMode: 'classic_king_hunt_given_check_limit', kingHuntGivenCheckTarget: 10 })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('King Hunt');
+    expect(body).toContain('Given Check Target');
+    expect(body).toContain('10');
+  });
+
+  it('includes custom initial FEN when set', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const customFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+
+    render(
+      <ReportIssue
+        config={makeConfig({ initialFen: customFen })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Initial FEN');
+    expect(body).toContain(customFen);
+  });
+
+  it('omits bot settings for hvh mode', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({ mode: 'hvh' })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain('Human vs Human');
+    expect(body).not.toContain('Playing As');
+    expect(body).not.toContain('Bot Difficulty');
+    expect(body).not.toContain('Engine');
+  });
+
+  it('omits penalties line when no penalties are enabled', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          gameType: 'penalty_on_miss',
+          enableAdditionalMovePenalty: false,
+          enablePieceRemovalPenalty: false,
+          enableTimeReductionPenalty: false,
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).not.toContain('Penalties');
+  });
 });

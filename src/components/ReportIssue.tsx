@@ -43,16 +43,64 @@ function buildIssueBody(
     sections.push(`## Description\n\n${description.trim()}`);
   }
 
-  sections.push(
-    [
-      '## Game Information',
-      '',
-      `- **Variant Mode:** ${variantDef.name}`,
-      `- **Game Type:** ${config.gameType === 'report_incorrectness' ? 'Report Incorrectness' : 'Penalty on Miss'}`,
-      `- **Player Mode:** ${config.mode === 'hvh' ? 'Human vs Human' : config.mode === 'hvbot' ? 'Human vs Bot' : 'Bot vs Bot'}`,
-      ...(overlays.length > 0 ? [`- **Overlays:** ${overlays.join(', ')}`] : []),
-    ].join('\n'),
-  );
+  const gameInfoLines: string[] = [
+    '## Game Information',
+    '',
+    `- **Variant Mode:** ${variantDef.name}`,
+    `- **Game Type:** ${config.gameType === 'report_incorrectness' ? 'Report Incorrectness' : 'Penalty on Miss'}`,
+    `- **Player Mode:** ${config.mode === 'hvh' ? 'Human vs Human' : config.mode === 'hvbot' ? 'Human vs Bot' : 'Bot vs Bot'}`,
+  ];
+
+  if (overlays.length > 0) {
+    gameInfoLines.push(`- **Overlays:** ${overlays.join(', ')}`);
+  }
+
+  // Bot settings
+  if (config.mode === 'hvbot') {
+    gameInfoLines.push(`- **Playing As:** ${config.botSide === 'b' ? 'White' : 'Black'}`);
+    gameInfoLines.push(`- **Bot Difficulty:** ${config.botDifficulty}`);
+    gameInfoLines.push(`- **Engine:** ${config.engineId}`);
+  } else if (config.mode === 'botvbot') {
+    gameInfoLines.push(`- **Bot Difficulty (White):** ${config.botDifficultyWhite}`);
+    gameInfoLines.push(`- **Bot Difficulty (Black):** ${config.botDifficultyBlack}`);
+    gameInfoLines.push(`- **Engine (White):** ${config.engineIdWhite}`);
+    gameInfoLines.push(`- **Engine (Black):** ${config.engineIdBlack}`);
+  }
+
+  // Clock settings
+  if (config.enableClock) {
+    const timeSec = Math.round(config.initialTimeMs / 1000);
+    const incSec = Math.round(config.incrementMs / 1000);
+    const decSec = Math.round(config.decrementMs / 1000);
+    gameInfoLines.push(`- **Clock:** ${timeSec}s + ${incSec}s inc / -${decSec}s dec`);
+  }
+
+  // Game-type-specific settings
+  if (config.gameType === 'report_incorrectness') {
+    gameInfoLines.push(`- **Invalid Report Loss Threshold:** ${config.invalidReportLossThreshold}`);
+  } else {
+    const penalties: string[] = [];
+    if (config.enableAdditionalMovePenalty) penalties.push(`Additional Move (${config.additionalMoveCount})`);
+    if (config.enablePieceRemovalPenalty) penalties.push(`Piece Removal (${config.pieceRemovalCount})`);
+    if (config.enableTimeReductionPenalty) penalties.push(`Time Reduction (${config.timeReductionSeconds}s)`);
+    if (penalties.length > 0) {
+      gameInfoLines.push(`- **Penalties:** ${penalties.join(', ')}`);
+    }
+  }
+
+  // Variant-specific settings
+  if (config.variantMode === 'classic_king_hunt_move_limit') {
+    gameInfoLines.push(`- **Ply Limit:** ${config.kingHuntPlyLimit}`);
+  } else if (config.variantMode === 'classic_king_hunt_given_check_limit') {
+    gameInfoLines.push(`- **Given Check Target:** ${config.kingHuntGivenCheckTarget}`);
+  }
+
+  // Custom initial FEN
+  if (config.initialFen) {
+    gameInfoLines.push(`- **Initial FEN:** ${config.initialFen}`);
+  }
+
+  sections.push(gameInfoLines.join('\n'));
 
   sections.push(
     [
