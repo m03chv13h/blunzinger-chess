@@ -48,9 +48,10 @@ function parseFenToBoard(fen: string): BoardView {
     const rowStr = rows[r] ?? '';
     let col = 0;
     for (const ch of rowStr) {
+      if (col >= 8) break;
       if (ch >= '1' && ch <= '8') {
         const empty = parseInt(ch, 10);
-        for (let i = 0; i < empty; i++) { row.push(null); col++; }
+        for (let i = 0; i < empty && col < 8; i++) { row.push(null); col++; }
       } else {
         const mapped = FEN_PIECE_MAP[ch];
         if (mapped) {
@@ -69,9 +70,10 @@ function parseFenToBoard(fen: string): BoardView {
   return {
     board: () => grid,
     get: (sq: string) => {
+      if (!sq || sq.length < 2) return null;
       const file = sq.charCodeAt(0) - 'a'.charCodeAt(0);
       const rank = 8 - parseInt(sq[1]);
-      if (rank < 0 || rank >= 8 || file < 0 || file >= 8) return null;
+      if (isNaN(rank) || rank < 0 || rank >= 8 || file < 0 || file >= 8) return null;
       return grid[rank][file];
     },
     turn: () => activeColor,

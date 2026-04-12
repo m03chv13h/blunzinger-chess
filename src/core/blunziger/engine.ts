@@ -267,7 +267,7 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color, varian
     }
     return bestSquare;
   } catch {
-    return candidates[0];
+    return candidates[0] ?? null;
   }
 }
 

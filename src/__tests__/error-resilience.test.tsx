@@ -1,4 +1,3 @@
-import type React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Chessboard } from '../components/Chessboard';
@@ -65,7 +64,7 @@ describe('Invalid FEN resilience', () => {
   });
 
   describe('ErrorBoundary component', () => {
-    function ThrowingChild(): React.ReactNode {
+    function ThrowingChild(): never {
       throw new Error('Test crash');
     }
 
