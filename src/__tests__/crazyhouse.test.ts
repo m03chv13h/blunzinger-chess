@@ -22,7 +22,7 @@ import type { GameState, MatchConfig, DropMove, CrazyhouseState } from '../core/
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, EMPTY_RESERVE } from '../core/blunziger/types';
 import { evaluateGameState } from '../core/evaluation/evaluate';
 import { evaluateCrazyhouse } from '../core/evaluation/evaluateVariant';
-import { selectBotDropMove, selectBotMove } from '../bot/botEngine';
+import { selectBotDropMove } from '../bot/botEngine';
 import { runSimulatedGame } from '../core/simulation';
 
 // Helper: create a config with Crazyhouse enabled
