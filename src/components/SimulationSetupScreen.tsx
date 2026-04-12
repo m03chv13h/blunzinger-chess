@@ -270,6 +270,16 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
               Crazyhouse
             </label>
           </div>
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableAtomic}
+                onChange={(e) => update({ enableAtomic: e.target.checked })}
+              />
+              Atomic Chess
+            </label>
+          </div>
         </fieldset>
 
         <button className="sim-start-btn" onClick={handleStart}>

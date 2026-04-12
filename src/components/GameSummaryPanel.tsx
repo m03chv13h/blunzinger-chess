@@ -160,6 +160,10 @@ export function GameSummaryPanel({ config }: GameSummaryPanelProps) {
           <dt>Chess960</dt>
           <dd>{config.enableChess960 ? 'On' : 'Off'}</dd>
         </div>
+        <div className="summary-item">
+          <dt>Atomic Chess</dt>
+          <dd>{config.enableAtomic ? 'On' : 'Off'}</dd>
+        </div>
       </dl>
     </div>
   );

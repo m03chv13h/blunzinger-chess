@@ -194,7 +194,8 @@ export function evaluatePositionFull(
 
   // Classic Blunziger: check pressure
   if (isClassicForcedCheck(mode) && !isReverseForcedCheckMode(mode)) {
-    const checkingMoves = getCheckingMoves(fen);
+    const atomic = config.overlays.enableAtomic || undefined;
+    const checkingMoves = getCheckingMoves(fen, null, atomic);
     if (checkingMoves.length === 0 && chess.moves().length > 0) {
       score += turn === perspective ? -40 : 40;
     } else if (checkingMoves.length > 0) {
@@ -205,8 +206,9 @@ export function evaluatePositionFull(
 
   // Reverse Blunziger: non-checking pressure
   if (isReverseForcedCheckMode(mode)) {
-    const checkingMoves = getCheckingMoves(fen);
-    const nonCheckingMoves = getNonCheckingMoves(fen);
+    const atomic = config.overlays.enableAtomic || undefined;
+    const checkingMoves = getCheckingMoves(fen, null, atomic);
+    const nonCheckingMoves = getNonCheckingMoves(fen, null, atomic);
     if (checkingMoves.length > 0 && nonCheckingMoves.length > 0) {
       const constraintPenalty = Math.max(0, 30 - nonCheckingMoves.length * 5);
       score += turn === perspective ? -constraintPenalty : constraintPenalty;
@@ -261,6 +263,11 @@ export function evaluatePositionFull(
   // Crazyhouse vulnerability
   if (ctx.crazyhouse && config.overlays.enableCrazyhouse) {
     score += evaluateKingVulnerabilityToDrops(fen, ctx.crazyhouse, perspective);
+  }
+
+  // Atomic: king proximity threat and clustered piece liability
+  if (config.overlays.enableAtomic) {
+    score += evaluateAtomicPressure(chess.board(), perspective);
   }
 
   return score;
@@ -389,4 +396,69 @@ function evaluatePenaltyRisk(
   }
 
   return 0;
+}
+
+// ── Atomic evaluation helper ─────────────────────────────────────────
+
+/**
+ * Evaluate Atomic-specific threats:
+ * - Pieces clustered near a king are liabilities (can chain-explode the king)
+ * - Pieces near the opponent's king are threats (can be used for explosions)
+ * - King isolation is rewarded (fewer adjacent pieces = safer)
+ */
+function evaluateAtomicPressure(
+  board: ReturnType<Chess['board']>,
+  perspective: Color,
+): number {
+  let score = 0;
+  const opponent: Color = perspective === 'w' ? 'b' : 'w';
+
+  // Find both kings
+  let ownKingR = -1, ownKingF = -1;
+  let oppKingR = -1, oppKingF = -1;
+
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      const cell = board[r][f];
+      if (cell && cell.type === 'k') {
+        if (cell.color === perspective) { ownKingR = r; ownKingF = f; }
+        else { oppKingR = r; oppKingF = f; }
+      }
+    }
+  }
+
+  if (ownKingR < 0 || oppKingR < 0) return 0;
+
+  // Count non-pawn pieces adjacent to each king
+  let ownKingAdjacentPieces = 0;
+  let oppKingAdjacentPieces = 0;
+
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let df = -1; df <= 1; df++) {
+      if (dr === 0 && df === 0) continue;
+
+      const oR = ownKingR + dr, oF = ownKingF + df;
+      if (oR >= 0 && oR < 8 && oF >= 0 && oF < 8) {
+        const cell = board[oR][oF];
+        if (cell && cell.type !== 'p' && cell.type !== 'k') {
+          ownKingAdjacentPieces++;
+        }
+      }
+
+      const eR = oppKingR + dr, eF = oppKingF + df;
+      if (eR >= 0 && eR < 8 && eF >= 0 && eF < 8) {
+        const cell = board[eR][eF];
+        if (cell && cell.type !== 'p' && cell.type !== 'k') {
+          oppKingAdjacentPieces++;
+        }
+      }
+    }
+  }
+
+  // Friendly pieces near our king = liability (opponent can explode them to hurt us)
+  score -= ownKingAdjacentPieces * 25;
+  // Opponent pieces near their king = opportunity (we can target them for explosions)
+  score += oppKingAdjacentPieces * 20;
+
+  return score;
 }

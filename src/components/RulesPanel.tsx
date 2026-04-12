@@ -160,6 +160,15 @@ function OverlayRules() {
         king starts between the two rooks. Castling still ends on the standard target squares
         (king on g-file/c-file, rook on f-file/d-file). Chess960 can be combined with all variant
         modes and game types.</p>
+
+      <p><strong>Atomic Chess:</strong> When enabled, every capture triggers an explosion on the
+        destination square. The capturing piece and captured piece are both destroyed, along
+        with all non-pawn pieces on the 8 surrounding squares. Pawns are immune to
+        adjacency explosions (but a pawn that is directly captured is still removed).
+        Kings may never capture (because that would explode the capturing king). Kings may
+        stand adjacent since kings cannot capture each other. A player wins immediately by
+        exploding the opponent&apos;s king without exploding their own. Atomic combines with
+        all variant modes and game types.</p>
     </>
   );
 }

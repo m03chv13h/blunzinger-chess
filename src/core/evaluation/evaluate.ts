@@ -24,7 +24,12 @@ import {
   getNonCheckingMoves,
   isKingOfTheHillEnabled,
   isHillSquare,
+  isAtomicEnabled,
 } from '../blunziger/engine';
+import {
+  doesAtomicMoveExplodeOpponentKing,
+  applyExplosionToFen,
+} from '../blunziger/atomic';
 
 /**
  * Evaluate the full game state including variant-aware adjustments.
@@ -168,21 +173,22 @@ function findBestMove(state: GameState): { san: string; from: string; to: string
   const { fen, sideToMove } = state;
   const { variantMode } = state.config;
   const isReverse = isReverseForcedCheckMode(variantMode);
+  const atomic = isAtomicEnabled(state.config) || undefined;
 
   // Determine candidate moves respecting variant rules.
   let candidates: Move[];
   if (isReverse) {
-    const checking = getCheckingMoves(fen);
+    const checking = getCheckingMoves(fen, null, atomic);
     if (checking.length > 0) {
-      const nonChecking = getNonCheckingMoves(fen);
-      candidates = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen);
+      const nonChecking = getNonCheckingMoves(fen, null, atomic);
+      candidates = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen, null, atomic);
     } else {
-      candidates = getLegalMoves(fen);
+      candidates = getLegalMoves(fen, null, atomic);
     }
   } else {
     // Classic / King Hunt: must play checking moves when available.
-    const checking = getCheckingMoves(fen);
-    candidates = checking.length > 0 ? checking : getLegalMoves(fen);
+    const checking = getCheckingMoves(fen, null, atomic);
+    candidates = checking.length > 0 ? checking : getLegalMoves(fen, null, atomic);
   }
 
   if (candidates.length === 0) return null;
@@ -194,6 +200,13 @@ function findBestMove(state: GameState): { san: string; from: string; to: string
 
   const chess = new Chess(fen);
   for (const move of candidates) {
+    // Atomic: check for immediate king explosion win
+    if (atomic && move.captured) {
+      if (doesAtomicMoveExplodeOpponentKing(fen, move)) {
+        return { san: move.san, from: move.from, to: move.to };
+      }
+    }
+
     chess.move(move.san);
 
     // Immediate checkmate — always best.
@@ -204,7 +217,19 @@ function findBestMove(state: GameState): { san: string; from: string; to: string
       return { san: move.san, from: move.from, to: move.to };
     }
 
-    const score = evaluateBasePosition(chess.fen()).scoreCp;
+    // For Atomic captures, evaluate the post-explosion position
+    let evalFen = chess.fen();
+    if (atomic && move.captured) {
+      evalFen = applyExplosionToFen(evalFen, move.to);
+    }
+
+    let score: number;
+    try {
+      score = evaluateBasePosition(evalFen).scoreCp;
+    } catch {
+      // Post-explosion FEN may be invalid for chess.js; use a simple heuristic
+      score = 0;
+    }
 
     if (sideToMove === 'w' ? score > bestScore : score < bestScore) {
       bestScore = score;

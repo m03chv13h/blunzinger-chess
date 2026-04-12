@@ -419,6 +419,17 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
               Chess960
             </label>
           </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableAtomic}
+                onChange={(e) => update({ enableAtomic: e.target.checked })}
+              />
+              Atomic Chess
+            </label>
+          </div>
         </fieldset>
 
         <button className="start-game-btn" onClick={handleStart}>
