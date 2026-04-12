@@ -121,6 +121,7 @@ describe('ReportIssue', () => {
           enableDoubleCheckPressure: true,
           enableCrazyhouse: true,
           enableChess960: true,
+          enableAtomic: true,
         })}
         fen="startpos"
         moveHistory={[]}
@@ -136,6 +137,7 @@ describe('ReportIssue', () => {
     expect(body).toContain('Double Check Pressure');
     expect(body).toContain('Crazyhouse');
     expect(body).toContain('Chess960');
+    expect(body).toContain('Atomic Chess');
   });
 
   it('closes the form after submitting', () => {
