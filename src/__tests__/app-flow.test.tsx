@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../App';
@@ -428,6 +428,55 @@ describe('App game flow', () => {
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText(/Additional move/)).toBeInTheDocument();
       expect(within(summary).getByText(/Piece removal/)).toBeInTheDocument();
+    });
+  });
+
+  describe('RESTART BUTTON', () => {
+    beforeEach(() => {
+      goToNewGame();
+    });
+
+    it('shows restart button during active play', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expect(screen.getByText('🔁 Restart')).toBeInTheDocument();
+    });
+
+    it('does not restart when user cancels the confirmation', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+      fireEvent.click(screen.getByText('🔁 Restart'));
+      // Still on the playing screen with the board visible
+      expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+    });
+
+    it('restarts the game when user confirms', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+      fireEvent.click(screen.getByText('🔁 Restart'));
+      // Still on the playing screen (not setup)
+      expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+      expect(screen.queryByText('♟ New Game Setup')).not.toBeInTheDocument();
+    });
+
+    it('preserves game settings after restart', () => {
+      fireEvent.click(screen.getByLabelText('King of the Hill'));
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      const summaryBefore = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summaryBefore).getByText('On')).toBeInTheDocument();
+
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+      fireEvent.click(screen.getByText('🔁 Restart'));
+
+      const summaryAfter = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
+      expect(within(summaryAfter).getByText('On')).toBeInTheDocument();
+    });
+
+    it('asks for confirmation with a dialog', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+      fireEvent.click(screen.getByText('🔁 Restart'));
+      expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to restart the game?');
     });
   });
 });

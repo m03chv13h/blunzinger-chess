@@ -2,6 +2,7 @@ import './GameControls.css';
 
 interface GameControlsProps {
   onNewGame: () => void;
+  onRestart: () => void;
   paused: boolean;
   onPauseToggle: (p: boolean) => void;
   moveDelay: number;
@@ -13,6 +14,7 @@ interface GameControlsProps {
 
 export function GameControls({
   onNewGame,
+  onRestart,
   paused,
   onPauseToggle,
   moveDelay,
@@ -25,6 +27,9 @@ export function GameControls({
     <div className="game-controls">
       <button className="new-game-btn" onClick={onNewGame}>
         🔄 New Game
+      </button>
+      <button className="restart-btn" onClick={onRestart}>
+        🔁 Restart
       </button>
 
       <div className="control-group eval-toggle">

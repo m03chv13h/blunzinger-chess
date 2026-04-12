@@ -56,6 +56,24 @@
   background: #218838;
 }
 
+.restart-btn {
+  background: #fd7e14;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 6px;
+  transition: background 0.15s;
+}
+
+.restart-btn:hover {
+  background: #e8690b;
+}
+
 .botvbot-controls {
   margin-top: 12px;
   padding-top: 12px;
