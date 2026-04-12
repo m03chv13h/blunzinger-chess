@@ -185,11 +185,11 @@ export function selectBlunznforonDrop(
   const ctx = buildSearchContext(config, side, crazyhouse, scores, plyCount);
 
   // Get variant-filtered candidates
-  const { regularMoves, dropMoves } = getFilteredCandidates(fen, config, crazyhouse, side, chess960);
+  const { regularMoves, dropMoves, dropRequired } = getFilteredCandidates(fen, config, crazyhouse, side, chess960);
   if (dropMoves.length === 0) return null;
 
-  // Easy bot: skip drops 50% of the time
-  if (blLevel === 'easy' && Math.random() < 0.5) return null;
+  // Easy bot: skip drops 50% of the time (but never skip mandatory checking drops)
+  if (!dropRequired && blLevel === 'easy' && Math.random() < 0.5) return null;
 
   // Score drop moves
   const scoredDrops = searchDropMoves(fen, dropMoves, blConfig, ctx, whiteMs, blackMs);
@@ -198,8 +198,9 @@ export function selectBlunznforonDrop(
   // Compare best drop against best regular move
   const bestDropScore = scoredDrops[0].score;
 
-  // If regular moves exist, also score them for comparison
-  if (regularMoves.length > 0) {
+  // If regular moves exist, also score them for comparison —
+  // but skip when drops are the only way to give check (classic / King Hunt).
+  if (!dropRequired && regularMoves.length > 0) {
     const scoredRegular = searchMoves(fen, regularMoves, blConfig, ctx, whiteMs, blackMs);
     if (scoredRegular.length > 0) {
       const bestRegularScore = scoredRegular[0].score;

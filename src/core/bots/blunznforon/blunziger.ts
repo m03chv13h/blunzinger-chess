@@ -23,6 +23,12 @@ import {
 export interface FilteredMoves {
   regularMoves: Move[];
   dropMoves: DropMove[];
+  /**
+   * True when checking drops are the only way to fulfil the forced-check
+   * obligation (classic / King Hunt modes).  When set, the bot must prefer
+   * a drop over any regular move to avoid missing a check.
+   */
+  dropRequired: boolean;
 }
 
 /**
@@ -45,8 +51,10 @@ export function getFilteredCandidates(
 
   // Get regular moves
   let regularMoves: Move[];
+  let hasCheckingRegularMoves = false;
   if (isReverse) {
     const checking = getCheckingMoves(fen, chess960);
+    hasCheckingRegularMoves = checking.length > 0;
     if (checking.length > 0) {
       const nonChecking = getNonCheckingMoves(fen, chess960);
       regularMoves = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen, chess960);
@@ -56,11 +64,13 @@ export function getFilteredCandidates(
   } else {
     // Classic / King Hunt: prefer checking moves
     const checking = getCheckingMoves(fen, chess960);
+    hasCheckingRegularMoves = checking.length > 0;
     regularMoves = checking.length > 0 ? checking : getLegalMoves(fen, chess960);
   }
 
   // Get drop moves (Crazyhouse)
   let dropMoves: DropMove[] = [];
+  let dropRequired = false;
   if (crazyhouse && config.overlays.enableCrazyhouse) {
     const allDrops = getCrazyhouseDropMoves(fen, crazyhouse, side);
     if (allDrops.length > 0) {
@@ -79,10 +89,13 @@ export function getFilteredCandidates(
         const checkingDrops = getCheckingDropMoves(fen, crazyhouse, side);
         if (checkingDrops.length > 0) {
           dropMoves = checkingDrops;
+          // Drops are the only way to give check — bot must drop
+          if (!hasCheckingRegularMoves) {
+            dropRequired = true;
+          }
         } else {
           // If regular checking moves exist, don't offer non-checking drops
-          const regularChecking = getCheckingMoves(fen, chess960);
-          if (regularChecking.length > 0) {
+          if (hasCheckingRegularMoves) {
             dropMoves = [];
           } else {
             dropMoves = allDrops;
@@ -92,7 +105,7 @@ export function getFilteredCandidates(
     }
   }
 
-  return { regularMoves, dropMoves };
+  return { regularMoves, dropMoves, dropRequired };
 }
 
 /**
