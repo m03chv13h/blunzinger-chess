@@ -97,13 +97,17 @@ export function getLegalMoves(fen: string, chess960?: Chess960State | null, atom
   if (atomic) {
     return getAtomicLegalMoves(fen, chess960);
   }
-  const chess = new Chess(fen);
-  const moves = chess.moves({ verbose: true });
-  if (chess960) {
-    const castlingMoves = getChess960CastlingMoves(fen, chess960);
-    return [...moves, ...castlingMoves];
+  try {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    if (chess960) {
+      const castlingMoves = getChess960CastlingMoves(fen, chess960);
+      return [...moves, ...castlingMoves];
+    }
+    return moves;
+  } catch {
+    return [];
   }
-  return moves;
 }
 
 /** Format a drop move as SAN notation (e.g. "N@d4"). */
@@ -120,19 +124,23 @@ export function getCheckingMoves(fen: string, chess960?: Chess960State | null, a
   if (atomic) {
     return getAtomicCheckingMoves(fen, chess960);
   }
-  const chess = new Chess(fen);
-  const moves = chess.moves({ verbose: true });
-  const checking = moves.filter((move) => {
-    const testChess = new Chess(fen);
-    testChess.move(move.san);
-    return testChess.inCheck();
-  });
-  if (chess960) {
-    const castlingMoves = getChess960CastlingMoves(fen, chess960);
-    const checkingCastles = castlingMoves.filter((m) => doesCastlingGiveCheck(m.after));
-    return [...checking, ...checkingCastles];
+  try {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    const checking = moves.filter((move) => {
+      const testChess = new Chess(fen);
+      testChess.move(move.san);
+      return testChess.inCheck();
+    });
+    if (chess960) {
+      const castlingMoves = getChess960CastlingMoves(fen, chess960);
+      const checkingCastles = castlingMoves.filter((m) => doesCastlingGiveCheck(m.after));
+      return [...checking, ...checkingCastles];
+    }
+    return checking;
+  } catch {
+    return [];
   }
-  return checking;
 }
 
 /**
@@ -144,36 +152,44 @@ export function getNonCheckingMoves(fen: string, chess960?: Chess960State | null
   if (atomic) {
     return getAtomicNonCheckingMoves(fen, chess960);
   }
-  const chess = new Chess(fen);
-  const moves = chess.moves({ verbose: true });
-  const nonChecking = moves.filter((move) => {
-    const testChess = new Chess(fen);
-    testChess.move(move.san);
-    return !testChess.inCheck();
-  });
-  if (chess960) {
-    const castlingMoves = getChess960CastlingMoves(fen, chess960);
-    const nonCheckingCastles = castlingMoves.filter((m) => !doesCastlingGiveCheck(m.after));
-    return [...nonChecking, ...nonCheckingCastles];
+  try {
+    const chess = new Chess(fen);
+    const moves = chess.moves({ verbose: true });
+    const nonChecking = moves.filter((move) => {
+      const testChess = new Chess(fen);
+      testChess.move(move.san);
+      return !testChess.inCheck();
+    });
+    if (chess960) {
+      const castlingMoves = getChess960CastlingMoves(fen, chess960);
+      const nonCheckingCastles = castlingMoves.filter((m) => !doesCastlingGiveCheck(m.after));
+      return [...nonChecking, ...nonCheckingCastles];
+    }
+    return nonChecking;
+  } catch {
+    return [];
   }
-  return nonChecking;
 }
 
 /**
  * Get squares containing pieces of the given side that can be removed (excludes king).
  */
 export function getRemovablePieces(fen: string, side: Color): Square[] {
-  const chess = new Chess(fen);
-  const board = chess.board();
-  const squares: Square[] = [];
-  for (const row of board) {
-    for (const cell of row) {
-      if (cell && cell.color === side && cell.type !== 'k') {
-        squares.push(cell.square as Square);
+  try {
+    const chess = new Chess(fen);
+    const board = chess.board();
+    const squares: Square[] = [];
+    for (const row of board) {
+      for (const cell of row) {
+        if (cell && cell.color === side && cell.type !== 'k') {
+          squares.push(cell.square as Square);
+        }
       }
     }
+    return squares;
+  } catch {
+    return [];
   }
-  return squares;
 }
 
 /** Piece values for removal heuristic (prefer removing highest-value pieces). */
@@ -189,20 +205,24 @@ export function getCheckCreatingRemovals(fen: string, targetSide: Color, removab
   const chooserSide: Color = targetSide === 'w' ? 'b' : 'w';
   const result: Square[] = [];
   for (const sq of removableSquares) {
-    const chess = new Chess(fen);
-    chess.remove(sq);
-    // Find target king square and check if it's attacked by the chooser's pieces
-    const board = chess.board();
-    let kingSquare: Square | null = null;
-    for (const row of board) {
-      for (const cell of row) {
-        if (cell && cell.color === targetSide && cell.type === 'k') {
-          kingSquare = cell.square as Square;
+    try {
+      const chess = new Chess(fen);
+      chess.remove(sq);
+      // Find target king square and check if it's attacked by the chooser's pieces
+      const board = chess.board();
+      let kingSquare: Square | null = null;
+      for (const row of board) {
+        for (const cell of row) {
+          if (cell && cell.color === targetSide && cell.type === 'k') {
+            kingSquare = cell.square as Square;
+          }
         }
       }
-    }
-    if (kingSquare && chess.isAttacked(kingSquare, chooserSide)) {
-      result.push(sq);
+      if (kingSquare && chess.isAttacked(kingSquare, chooserSide)) {
+        result.push(sq);
+      }
+    } catch {
+      // FEN invalid — skip this removal candidate
     }
   }
   return result;
@@ -231,20 +251,24 @@ export function selectBestPieceForRemoval(fen: string, targetSide: Color, varian
     }
   }
 
-  const chess = new Chess(fen);
-  let bestSquare = candidates[0];
-  let bestValue = 0;
-  for (const sq of candidates) {
-    const piece = chess.get(sq);
-    if (piece) {
-      const val = REMOVAL_PIECE_VALUES[piece.type] ?? 0;
-      if (val > bestValue || (val === bestValue && sq < bestSquare)) {
-        bestValue = val;
-        bestSquare = sq;
+  try {
+    const chess = new Chess(fen);
+    let bestSquare = candidates[0];
+    let bestValue = 0;
+    for (const sq of candidates) {
+      const piece = chess.get(sq);
+      if (piece) {
+        const val = REMOVAL_PIECE_VALUES[piece.type] ?? 0;
+        if (val > bestValue || (val === bestValue && sq < bestSquare)) {
+          bestValue = val;
+          bestSquare = sq;
+        }
       }
     }
+    return bestSquare;
+  } catch {
+    return candidates[0] ?? null;
   }
-  return bestSquare;
 }
 
 /**
@@ -274,7 +298,12 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
   // Validate the square is in the removable list
   if (!removableSquares.includes(square)) return state;
 
-  const chess = new Chess(state.fen);
+  let chess: InstanceType<typeof Chess>;
+  try {
+    chess = new Chess(state.fen);
+  } catch {
+    return state;
+  }
   const piece = chess.get(square);
   if (!piece || piece.color !== targetSide || piece.type === 'k') return state;
 
@@ -286,15 +315,19 @@ export function applyPieceRemoval(state: GameState, square: Square): GameState {
 
   // Check if the removal creates a terminal condition
   if (!result) {
-    const postChess = new Chess(newFen);
-    if (postChess.isCheckmate()) {
-      result = { winner: opponent(targetSide), reason: 'checkmate' };
-    } else if (postChess.isStalemate()) {
-      result = { winner: 'draw', reason: 'stalemate' };
-    } else if (postChess.isDraw()) {
-      if (postChess.isInsufficientMaterial()) {
-        result = { winner: 'draw', reason: 'insufficient-material' };
+    try {
+      const postChess = new Chess(newFen);
+      if (postChess.isCheckmate()) {
+        result = { winner: opponent(targetSide), reason: 'checkmate' };
+      } else if (postChess.isStalemate()) {
+        result = { winner: 'draw', reason: 'stalemate' };
+      } else if (postChess.isDraw()) {
+        if (postChess.isInsufficientMaterial()) {
+          result = { winner: 'draw', reason: 'insufficient-material' };
+        }
       }
+    } catch {
+      // FEN invalid for chess.js — skip terminal condition check
     }
   }
 

@@ -46,31 +46,41 @@ const workerSelf: {
 workerSelf.onmessage = (e: MessageEvent<BotActionRequest>) => {
   const msg = e.data;
 
-  // Try Crazyhouse drop first
-  if (msg.crazyhouse) {
-    const dropMove = selectBotDropMove(
-      msg.fen,
-      msg.level,
-      msg.crazyhouse,
-      msg.side,
-      msg.config,
-      msg.chess960,
-    );
-    if (dropMove) {
-      workerSelf.postMessage({
-        type: 'botActionResult',
-        id: msg.id,
-        action: { kind: 'drop', dropMove },
-      });
-      return;
+  try {
+    // Try Crazyhouse drop first
+    if (msg.crazyhouse) {
+      const dropMove = selectBotDropMove(
+        msg.fen,
+        msg.level,
+        msg.crazyhouse,
+        msg.side,
+        msg.config,
+        msg.chess960,
+      );
+      if (dropMove) {
+        workerSelf.postMessage({
+          type: 'botActionResult',
+          id: msg.id,
+          action: { kind: 'drop', dropMove },
+        });
+        return;
+      }
     }
-  }
 
-  // Regular move
-  const move = selectBotMove(msg.fen, msg.level, msg.config, msg.chess960);
-  workerSelf.postMessage({
-    type: 'botActionResult',
-    id: msg.id,
-    action: move ? { kind: 'move', move } : null,
-  });
+    // Regular move
+    const move = selectBotMove(msg.fen, msg.level, msg.config, msg.chess960);
+    workerSelf.postMessage({
+      type: 'botActionResult',
+      id: msg.id,
+      action: move ? { kind: 'move', move } : null,
+    });
+  } catch {
+    // If move selection throws (e.g. invalid FEN from Atomic explosion),
+    // send a null action so the main thread can reset botThinking state.
+    workerSelf.postMessage({
+      type: 'botActionResult',
+      id: msg.id,
+      action: null,
+    });
+  }
 };
