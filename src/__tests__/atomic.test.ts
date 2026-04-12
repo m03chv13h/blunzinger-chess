@@ -20,6 +20,7 @@ import {
 import {
   getExplosionSquares,
   applyExplosionToFen,
+  getExplosionVictims,
   wouldExplodeKing,
   isAtomicCaptureLegal,
   getAtomicLegalMoves,
@@ -816,5 +817,168 @@ describe('Atomic + Crazyhouse drop violation detection', () => {
       // The checking moves in the violation record should be atomic-aware
       expect(result.pendingViolation!.checkingMoves.length).toBe(atomicChecking.length);
     }
+  });
+});
+
+// ── Atomic + Crazyhouse Explosion Reserve Tracking ───────────────────
+
+describe('getExplosionVictims', () => {
+  it('returns the capturing piece at destination', () => {
+    // After chess.js processes exd5 (white pawn captures on d5),
+    // the FEN has white pawn on d5. The explosion will destroy it.
+    const fenAfterCapture = 'rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2';
+    const victims = getExplosionVictims(fenAfterCapture, 'd5');
+    // The white pawn at d5 (the capturing piece) should be a victim
+    expect(victims.some(v => v.type === 'p' && v.color === 'w')).toBe(true);
+  });
+
+  it('returns adjacent non-pawn pieces', () => {
+    // White knight on c4, white bishop on e4, explosion at d5 after capture
+    const fenAfterCapture = 'rnbqkbnr/ppp1pppp/8/3P4/2N1B3/8/PPPPPPPP/R1BQK1NR b KQkq - 0 2';
+    const victims = getExplosionVictims(fenAfterCapture, 'd5');
+    // Should include the knight on c4 and bishop on e4 (adjacent to d5)
+    expect(victims.some(v => v.type === 'n' && v.color === 'w')).toBe(true);
+    expect(victims.some(v => v.type === 'b' && v.color === 'w')).toBe(true);
+  });
+
+  it('excludes pawns from adjacent explosion', () => {
+    // White pawns on c4 and e4, explosion at d5
+    const fenAfterCapture = 'rnbqkbnr/ppp1pppp/8/3P4/2P1P3/8/PP1P1PPP/RNBQKBNR b KQkq - 0 2';
+    const victims = getExplosionVictims(fenAfterCapture, 'd5');
+    // Only the capturing pawn on d5, no adjacent pawns
+    expect(victims).toHaveLength(1);
+    expect(victims[0]).toEqual({ type: 'p', color: 'w' });
+  });
+
+  it('excludes kings from victims', () => {
+    // King adjacent to explosion square — should not be included
+    const fenAfterCapture = '4k3/8/8/3P4/3K4/8/8/8 b - - 0 1';
+    const victims = getExplosionVictims(fenAfterCapture, 'd5');
+    // Only the capturing pawn on d5, not the king on d4
+    expect(victims).toHaveLength(1);
+    expect(victims[0]).toEqual({ type: 'p', color: 'w' });
+  });
+
+  it('returns opponent pieces in blast radius', () => {
+    // Black rook on c5 adjacent to d5 explosion, white pawn capturing on d5
+    const fenAfterCapture = '4k3/8/8/2rP4/8/8/8/4K3 b - - 0 1';
+    const victims = getExplosionVictims(fenAfterCapture, 'd5');
+    expect(victims.some(v => v.type === 'r' && v.color === 'b')).toBe(true);
+    expect(victims.some(v => v.type === 'p' && v.color === 'w')).toBe(true);
+  });
+
+  it('handles corner explosions (fewer adjacent squares)', () => {
+    // White rook capturing on a8 (corner)
+    const fenAfterCapture = 'R3k3/8/8/8/8/8/8/4K3 b - - 0 1';
+    const victims = getExplosionVictims(fenAfterCapture, 'a8');
+    // Only the capturing rook at a8
+    expect(victims).toHaveLength(1);
+    expect(victims[0]).toEqual({ type: 'r', color: 'w' });
+  });
+});
+
+describe('Atomic + Crazyhouse explosion reserves', () => {
+  function makeAtomicCrazyhouseState(
+    fen: string,
+    overrides: Partial<typeof DEFAULT_SETUP_CONFIG> = {},
+  ): GameState {
+    const config = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableAtomic: true,
+      enableCrazyhouse: true,
+      ...overrides,
+    });
+    const state = createInitialState('hvh', config);
+    return { ...state, fen };
+  }
+
+  it('explosion adds opponent pieces in blast radius to capturer reserve', () => {
+    // Position: white knight on f6 can capture on d5 where black pawn is
+    // Black rook on c4 is adjacent to d5 — should go to white's reserve
+    const fen = '4k3/8/5N2/3p4/2r5/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(fen);
+
+    // White knight captures on d5 (Nxd5)
+    const newState = applyMoveWithRules(state, { from: 'f6', to: 'd5' });
+    expect(newState.crazyhouse).not.toBeNull();
+
+    // The directly captured pawn goes to white's reserve
+    expect(newState.crazyhouse!.whiteReserve.p).toBe(1);
+    // The black rook on c4 (adjacent, non-pawn) is destroyed by explosion
+    // → goes to white's reserve
+    expect(newState.crazyhouse!.whiteReserve.r).toBe(1);
+    // The white knight (capturing piece) is destroyed by explosion
+    // → goes to black's reserve
+    expect(newState.crazyhouse!.blackReserve.n).toBe(1);
+  });
+
+  it('pawns adjacent to explosion are immune and do not go to reserves', () => {
+    // Position: white pawn on e4 captures on d5 (black pawn)
+    // Black pawn on c4 is adjacent — should NOT be destroyed (pawns immune)
+    const fen = '4k3/8/8/3p4/2p1P3/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(fen);
+
+    const newState = applyMoveWithRules(state, { from: 'e4', to: 'd5' });
+    expect(newState.crazyhouse).not.toBeNull();
+
+    // Only the directly captured pawn goes to white's reserve
+    expect(newState.crazyhouse!.whiteReserve.p).toBe(1);
+    // The capturing pawn (white) is destroyed → goes to black's reserve
+    expect(newState.crazyhouse!.blackReserve.p).toBe(1);
+    // The adjacent black pawn on c4 survives — not in anyone's reserve
+    expect(newState.crazyhouse!.whiteReserve.n).toBe(0);
+    expect(newState.crazyhouse!.whiteReserve.b).toBe(0);
+    expect(newState.crazyhouse!.whiteReserve.r).toBe(0);
+    expect(newState.crazyhouse!.whiteReserve.q).toBe(0);
+  });
+
+  it('multiple pieces in blast radius all go to correct reserves', () => {
+    // Position where explosion destroys pieces from both sides
+    // White rook on c4, black bishop on e4, both adjacent to d5 explosion
+    const fen = '4k3/8/5N2/3p4/2R1b3/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(fen);
+
+    // Nxd5 — knight captures pawn on d5
+    const newState = applyMoveWithRules(state, { from: 'f6', to: 'd5' });
+    expect(newState.crazyhouse).not.toBeNull();
+
+    // Directly captured pawn → white's reserve
+    expect(newState.crazyhouse!.whiteReserve.p).toBe(1);
+    // Black bishop on e4 (adjacent, opponent) → white's reserve
+    expect(newState.crazyhouse!.whiteReserve.b).toBe(1);
+    // White knight (capturing piece) destroyed → black's reserve
+    expect(newState.crazyhouse!.blackReserve.n).toBe(1);
+    // White rook on c4 (adjacent, own piece) destroyed → black's reserve
+    expect(newState.crazyhouse!.blackReserve.r).toBe(1);
+  });
+
+  it('non-atomic capture with Crazyhouse only adds captured piece', () => {
+    // Verify regular (non-atomic) Crazyhouse capture is unchanged
+    const fen = '4k3/8/5N2/3p4/2r5/8/8/4K3 w - - 0 1';
+    const config = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableCrazyhouse: true,
+      enableAtomic: false,
+    });
+    const state = { ...createInitialState('hvh', config), fen };
+
+    const newState = applyMoveWithRules(state, { from: 'f6', to: 'd5' });
+    expect(newState.crazyhouse).not.toBeNull();
+
+    // Only the directly captured pawn goes to white's reserve
+    expect(newState.crazyhouse!.whiteReserve.p).toBe(1);
+    // No explosion — no additional pieces in reserves
+    expect(newState.crazyhouse!.whiteReserve.r).toBe(0);
+    expect(newState.crazyhouse!.blackReserve.n).toBe(0);
+  });
+
+  it('non-capture moves do not affect reserves', () => {
+    const fen = '4k3/8/5N2/8/8/8/8/4K3 w - - 0 1';
+    const state = makeAtomicCrazyhouseState(fen);
+
+    const newState = applyMoveWithRules(state, { from: 'f6', to: 'e4' });
+    expect(newState.crazyhouse).not.toBeNull();
+    expect(newState.crazyhouse!.whiteReserve).toEqual(EMPTY_RESERVE);
+    expect(newState.crazyhouse!.blackReserve).toEqual(EMPTY_RESERVE);
   });
 });

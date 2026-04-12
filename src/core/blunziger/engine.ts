@@ -41,6 +41,7 @@ import {
   doesAtomicMoveGiveCheck,
   doesAtomicMoveExplodeOpponentKing,
   applyExplosionToFen,
+  getExplosionVictims,
   fenHasKing,
 } from './atomic';
 
@@ -1426,9 +1427,12 @@ export function applyMoveWithRules(
   // ── Atomic explosion handling ──
   const atomicEnabled = isAtomicEnabled(cfg);
   let atomicKingExploded = false;
+  let fenBeforeExplosion: string | null = null;
   if (atomicEnabled && move.captured) {
     // Validate Atomic legality: kings can't capture, can't explode own king
     if (move.piece === 'k') return state; // kings never capture in Atomic
+    // Save pre-explosion FEN for Crazyhouse reserve tracking
+    fenBeforeExplosion = newFen;
     const postExplosionFen = applyExplosionToFen(newFen, move.to as Square);
     if (!fenHasKing(postExplosionFen, movingSide)) {
       return state; // would explode own king
@@ -1481,6 +1485,16 @@ export function applyMoveWithRules(
   let newCrazyhouse = state.crazyhouse;
   if (newCrazyhouse && move.captured) {
     newCrazyhouse = updateReserveAfterCapture(newCrazyhouse, movingSide, move.captured);
+
+    // When Atomic is enabled, pieces destroyed by the explosion also go to
+    // the opposing side's reserve (same rule as normal Crazyhouse captures).
+    if (fenBeforeExplosion) {
+      const victims = getExplosionVictims(fenBeforeExplosion, move.to as Square);
+      for (const victim of victims) {
+        const recipientSide: Color = victim.color === 'w' ? 'b' : 'w';
+        newCrazyhouse = updateReserveAfterCapture(newCrazyhouse, recipientSide, victim.type);
+      }
+    }
   }
 
   // ── Score update (King Hunt) ──

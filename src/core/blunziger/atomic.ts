@@ -91,6 +91,14 @@ function indicesToSquare(rankIdx: number, fileIdx: number): Square | null {
 
 // ── Explosion Mechanics ──────────────────────────────────────────────
 
+/** A piece destroyed by an Atomic explosion (for Crazyhouse reserve tracking). */
+export interface ExplosionVictim {
+  /** Lowercase piece type (p/n/b/r/q). Kings are never included. */
+  type: string;
+  /** Color of the destroyed piece. */
+  color: Color;
+}
+
 /**
  * Get the 8 adjacent squares surrounding a capture square.
  *
@@ -175,6 +183,65 @@ export function applyExplosionToFen(fen: string, captureSquare: Square): string 
   }
 
   return parts.join(' ');
+}
+
+/**
+ * Get all pieces that will be destroyed by an Atomic explosion.
+ *
+ * Given the FEN after chess.js has processed the capture (capturing piece
+ * occupies the destination square, captured piece is already gone), this
+ * returns every piece that the explosion will remove:
+ *   1. The capturing piece at the destination square
+ *   2. All non-pawn pieces on the 8 adjacent squares
+ *
+ * Kings are excluded (they cannot end up in a Crazyhouse reserve).
+ * The directly captured piece is NOT included (it was already removed by
+ * chess.js and should be handled separately via the standard Crazyhouse
+ * capture logic).
+ *
+ * @param fenAfterCapture - FEN after chess.js applied the capture move.
+ * @param captureSquare - The square where the capture happened.
+ * @returns Array of explosion victims with their piece type and color.
+ */
+export function getExplosionVictims(
+  fenAfterCapture: string,
+  captureSquare: Square,
+): ExplosionVictim[] {
+  const boardPart = fenAfterCapture.split(' ')[0];
+  const ranks = boardPart.split('/');
+  const victims: ExplosionVictim[] = [];
+
+  // 1. The capturing piece at the destination square
+  const [captRankIdx, captFileIdx] = squareToIndices(captureSquare);
+  const captChars = expandFenRank(ranks[captRankIdx]);
+  const captPiece = captChars[captFileIdx];
+  if (captPiece !== '1') {
+    const color: Color = captPiece === captPiece.toUpperCase() ? 'w' : 'b';
+    const type = captPiece.toLowerCase();
+    if (type !== 'k') {
+      victims.push({ type, color });
+    }
+  }
+
+  // 2. Non-pawn pieces on the 8 adjacent squares
+  for (const [dr, df] of ADJACENT_OFFSETS) {
+    const nr = captRankIdx + dr;
+    const nf = captFileIdx + df;
+    if (nr < 0 || nr > 7 || nf < 0 || nf > 7) continue;
+
+    const chars = expandFenRank(ranks[nr]);
+    const piece = chars[nf];
+    // Skip empty squares and pawns (immune to adjacency explosions)
+    if (piece === '1' || piece === 'p' || piece === 'P') continue;
+
+    const color: Color = piece === piece.toUpperCase() ? 'w' : 'b';
+    const type = piece.toLowerCase();
+    if (type !== 'k') {
+      victims.push({ type, color });
+    }
+  }
+
+  return victims;
 }
 
 /**
