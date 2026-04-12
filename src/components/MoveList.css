@@ -151,3 +151,12 @@
   outline-offset: 1px;
   border-radius: 3px;
 }
+
+/* Touch devices: show tooltip on tap via :active pseudo-class */
+@media (hover: none) {
+  .report-icon[data-tooltip]:active::after,
+  .extra-label[data-tooltip]:active::after {
+    opacity: 1;
+    visibility: visible;
+  }
+}

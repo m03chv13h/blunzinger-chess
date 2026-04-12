@@ -121,6 +121,10 @@
     display: flex;
   }
 
+  .sidebar-header {
+    padding-left: 56px;
+  }
+
   .sidebar-overlay {
     display: block;
     position: fixed;
