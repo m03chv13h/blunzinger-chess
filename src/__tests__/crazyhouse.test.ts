@@ -16,12 +16,13 @@ import {
   getReserve,
   reportViolation,
   dropMoveToSan,
+  getCheckingMoves,
 } from '../core/blunziger/engine';
 import type { GameState, MatchConfig, DropMove, CrazyhouseState } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, EMPTY_RESERVE } from '../core/blunziger/types';
 import { evaluateGameState } from '../core/evaluation/evaluate';
 import { evaluateCrazyhouse } from '../core/evaluation/evaluateVariant';
-import { selectBotDropMove } from '../bot/botEngine';
+import { selectBotDropMove, selectBotMove } from '../bot/botEngine';
 import { runSimulatedGame } from '../core/simulation';
 
 // Helper: create a config with Crazyhouse enabled
@@ -600,6 +601,70 @@ describe('Crazyhouse Overlay', () => {
         expect(drop.piece).toBe('n');
         expect(drop.color).toBe('w');
       }
+    });
+  });
+
+  describe('Bot must drop when checking drops are the only way to give check', () => {
+    // Position: only kings on the board — no regular move can give check.
+    // White has a rook in reserve that can be dropped to give check.
+    const fen = '4k3/8/8/8/8/8/4K3/8 w - - 0 1';
+    const classicConfig = makeCrazyhouseConfig({ variantMode: 'classic_blunzinger' });
+
+    it('no regular checking moves exist in this position', () => {
+      const checks = getCheckingMoves(fen);
+      expect(checks).toHaveLength(0);
+    });
+
+    it('checking drop moves exist with a rook in reserve', () => {
+      const ch: CrazyhouseState = {
+        whiteReserve: { ...EMPTY_RESERVE, r: 1 },
+        blackReserve: { ...EMPTY_RESERVE },
+      };
+      const checkingDrops = getCheckingDropMoves(fen, ch, 'w');
+      expect(checkingDrops.length).toBeGreaterThan(0);
+    });
+
+    it('hard bot always selects a checking drop when it is the only check (classic)', () => {
+      const ch: CrazyhouseState = {
+        whiteReserve: { ...EMPTY_RESERVE, r: 1 },
+        blackReserve: { ...EMPTY_RESERVE },
+      };
+      // Run multiple times because the bot has some randomization
+      for (let i = 0; i < 10; i++) {
+        const drop = selectBotDropMove(fen, 'hard', ch, 'w', classicConfig);
+        expect(drop).not.toBeNull();
+        expect(drop!.type).toBe('drop');
+        expect(doesDropGiveCheck(fen, 'w', drop!.piece, drop!.to)).toBe(true);
+      }
+    });
+
+    it('medium bot always selects a checking drop when it is the only check (classic)', () => {
+      const ch: CrazyhouseState = {
+        whiteReserve: { ...EMPTY_RESERVE, r: 1 },
+        blackReserve: { ...EMPTY_RESERVE },
+      };
+      for (let i = 0; i < 10; i++) {
+        const drop = selectBotDropMove(fen, 'medium', ch, 'w', classicConfig);
+        expect(drop).not.toBeNull();
+        expect(doesDropGiveCheck(fen, 'w', drop!.piece, drop!.to)).toBe(true);
+      }
+    });
+
+    it('bot prefers checking drop over non-checking regular move (classic)', () => {
+      // Position with strong regular moves but checking drops are the only checks
+      const materialFen = '4k3/8/8/8/8/8/PPPPPPPP/4K3 w - - 0 1';
+      const ch: CrazyhouseState = {
+        whiteReserve: { ...EMPTY_RESERVE, n: 1 },
+        blackReserve: { ...EMPTY_RESERVE },
+      };
+      // Ensure no regular checking moves
+      expect(getCheckingMoves(materialFen)).toHaveLength(0);
+      expect(getCheckingDropMoves(materialFen, ch, 'w').length).toBeGreaterThan(0);
+
+      // The bot must drop to give check — not play a regular non-checking move
+      const drop = selectBotDropMove(materialFen, 'hard', ch, 'w', classicConfig);
+      expect(drop).not.toBeNull();
+      expect(doesDropGiveCheck(materialFen, 'w', drop!.piece, drop!.to)).toBe(true);
     });
   });
 
