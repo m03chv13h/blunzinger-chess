@@ -1391,15 +1391,16 @@ export function applyMoveWithRules(
   if (atomicEnabled && move.captured) {
     // Validate Atomic legality: kings can't capture, can't explode own king
     if (move.piece === 'k') return state; // kings never capture in Atomic
-    if (!fenHasKing(applyExplosionToFen(newFen, move.to as Square), movingSide)) {
+    const postExplosionFen = applyExplosionToFen(newFen, move.to as Square);
+    if (!fenHasKing(postExplosionFen, movingSide)) {
       return state; // would explode own king
     }
 
     // Check if opponent's king is exploded
     atomicKingExploded = doesAtomicMoveExplodeOpponentKing(fenBeforeMove, move);
 
-    // Apply the explosion to the FEN
-    newFen = applyExplosionToFen(newFen, move.to as Square);
+    // Apply the cached explosion FEN
+    newFen = postExplosionFen;
     // chess.js instance is no longer valid for the post-explosion position
     postMoveChess = null;
   }
