@@ -411,7 +411,6 @@ function evaluateAtomicPressure(
   perspective: Color,
 ): number {
   let score = 0;
-  const opponent: Color = perspective === 'w' ? 'b' : 'w';
 
   // Find both kings
   let ownKingR = -1, ownKingF = -1;

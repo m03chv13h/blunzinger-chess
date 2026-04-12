@@ -150,8 +150,6 @@ describe('applyExplosionToFen', () => {
 
   it('updates castling rights when rook is exploded', () => {
     // Rook on h1 adjacent to explosion on g2
-    // Position: Capture on g2 with rook on h1
-    const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPnP/RNBQKBNR w KQkq - 0 1';
     // After some piece captures on g2, capturing piece is on g2, h1 has rook
     const fenAfterCapture = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPBP/RNBQK1NR b KQkq - 0 1';
     const result = applyExplosionToFen(fenAfterCapture, 'g2');
@@ -653,7 +651,6 @@ describe('Atomic edge cases', () => {
 
   it('explosion in corner destroys fewer pieces', () => {
     // Capture on a1 — only 3 adjacent squares
-    const fen = '4k3/8/8/8/8/8/1p6/nK6 w - - 0 1';
     const explosionSquares = getExplosionSquares('a1');
     expect(explosionSquares).toHaveLength(3);
   });

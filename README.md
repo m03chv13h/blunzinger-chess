@@ -76,7 +76,7 @@ If a move produces an immediate terminal result (checkmate, King of the Hill, et
 - Only relevant when Clock overlay is enabled
 - Default: 60 seconds
 
-## C) Overlays / Options (5)
+## C) Overlays / Options (6)
 
 All variant modes and both game types can be extended with:
 
@@ -147,27 +147,64 @@ Chess960 castling is handled at the application level because the underlying che
 **Bot support:**
 Bots play from Chess960 starting positions using the same variant-aware move selection. The Blunznforön engine does not explicitly consider Chess960 castling in its search, but all regular moves are handled correctly.
 
+### Atomic Chess (Optional)
+
+When enabled, every capture triggers an **explosion** on the destination square. Atomic Chess can be combined with all variant modes, both game types, and all other overlays.
+
+**Explosion rules:**
+- On any capture, the capturing piece and captured piece are both destroyed
+- All non-pawn pieces on the 8 surrounding squares are also destroyed
+- Pawns are immune to adjacency explosions (but a pawn that is directly captured is still removed)
+- If a rook is destroyed by an explosion, the corresponding castling right is lost
+
+**Legality rules:**
+- Kings may never capture (because that would explode the capturing king)
+- A move is illegal if the resulting explosion would destroy the moving side's own king
+- Kings may stand adjacent to each other since kings cannot capture
+
+**Victory condition:**
+- A player wins immediately by exploding the opponent's king without exploding their own
+- Standard checkmate and other terminal conditions still apply when no king explosion occurs
+
+**Interaction with Blunziger rules:**
+- Checking/non-checking move detection uses Atomic-aware legality
+- A capture that explodes the opponent's king counts as a "checking" move for variant rule purposes
+- In Classic Blunzinger: if an explosion-check move exists, the player must play it
+- In Reverse Blunzinger: explosion-check moves follow the same avoidance rules as standard checks
+- An immediate king explosion win takes precedence over later penalty/report handling
+
+**Evaluation:**
+Atomic positions are evaluated with additional heuristics:
+- Pieces clustered near a king are treated as liabilities (can chain-explode the king)
+- Opponent pieces near their own king represent tactical opportunities
+- King isolation (fewer adjacent non-pawn pieces) is rewarded
+
+**Bot support:**
+Bots only select Atomic-legal moves. The Blunznforön engine filters illegal Atomic captures from all candidate move lists, including the variant-aware filtering pipeline. Immediate king explosion wins are prioritized.
+
 ## Termination / Precedence
 
 Authoritative move resolution order:
 
 1. Validate standard chess legality
-2. Detect variant-mode-specific violation
-3. Update King Hunt scores
-4. Evaluate immediate terminal conditions:
+2. **Atomic explosion** (if Atomic enabled and move is a capture): apply explosion, check for king explosion win
+3. Detect variant-mode-specific violation
+4. Update King Hunt scores
+5. Evaluate immediate terminal conditions:
+   - Atomic king explosion (if enabled)
    - Checkmate
    - King of the Hill (if enabled)
    - Stalemate / draw
    - King Hunt given-check-limit immediate win (if applicable)
    - King Hunt ply-limit outcome (if limit reached)
-5. **If game is over: STOP — do not apply report or penalties**
-6. If violation and game type is Report Incorrectness:
+6. **If game is over: STOP — do not apply report or penalties**
+7. If violation and game type is Report Incorrectness:
    - DCP overlay + severe → immediate loss
    - else → create reportable violation state
-7. If violation and game type is Penalty on Miss:
+8. If violation and game type is Penalty on Miss:
    - apply penalties in deterministic order (additional move → piece removal → time reduction)
-8. If penalty effects create a terminal condition: resolve and end
-9. Handle extra-turn state; otherwise continue normally
+9. If penalty effects create a terminal condition: resolve and end
+10. Handle extra-turn state; otherwise continue normally
 
 **Important:** Checkmate always takes absolute precedence. A move producing checkmate ends the game immediately, regardless of violations.
 
@@ -182,6 +219,9 @@ Examples of valid setups:
 - Variant Mode: Reverse Blunzinger / Game Type: Penalty on Miss / Overlays: Crazyhouse, King of the Hill
 - Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Chess960, Clock
 - Variant Mode: Classic Blunzinger – King Hunt – Move Limit / Game Type: Penalty on Miss / Overlays: Chess960, Crazyhouse
+- Variant Mode: Classic Blunzinger / Game Type: Report Incorrectness / Overlays: Atomic Chess, Clock
+- Variant Mode: Reverse Blunzinger / Game Type: Penalty on Miss / Overlays: Atomic Chess, King of the Hill
+- Variant Mode: Classic Blunzinger – King Hunt – Move Limit / Game Type: Penalty on Miss / Overlays: Atomic Chess, Chess960
 
 ## Default Values
 
@@ -205,7 +245,7 @@ The New Game setup screen presents:
 4. Bot settings (when applicable)
 5. Variant-specific fields (ply limit, check target — shown when relevant)
 6. Game-type-specific fields (report threshold / penalty checkboxes + values)
-7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure, Crazyhouse, Chess960)
+7. **Overlays / Options** checkboxes (King of the Hill, Clock, Double Check Pressure, Crazyhouse, Chess960, Atomic Chess)
 
 Fields are shown/hidden based on selections. Irrelevant fields are not exposed.
 
@@ -214,7 +254,7 @@ Fields are shown/hidden based on selections. Irrelevant fields are not exposed.
 During play, a read-only summary shows the selected configuration:
 - Variant Mode, Game Type, Player Mode
 - Penalties (if Penalty on Miss)
-- Overlays (King of the Hill, Clock, Double Check Pressure, Chess960)
+- Overlays (King of the Hill, Clock, Double Check Pressure, Chess960, Atomic Chess)
 - Variant-specific config (ply limit, check target)
 
 ## Evaluation Bar (Optional)
@@ -471,6 +511,10 @@ src/
 | `reportViolation(state, side)` | Process a report |
 | `applyTimeout(state, losingSide)` | End game due to clock timeout |
 | `isKingOfTheHillEnabled(config)` | Whether KOTH overlay is on |
+| `isAtomicEnabled(config)` | Whether Atomic overlay is on |
+| `getExplosionSquares(square)` | 8 adjacent squares for explosion blast radius |
+| `applyExplosionToFen(fen, square)` | Apply Atomic explosion to FEN |
+| `getAtomicLegalMoves(fen)` | Legal moves filtered for Atomic rules |
 | `evaluateGameState(state, whiteMs, blackMs)` | Variant-aware position evaluation (evaluation module) |
 | `evaluateBasePosition(fen)` | Base chess evaluation (material + mobility) |
 | `evaluateVariantAdjustments(state, whiteMs, blackMs)` | Variant/game-type/overlay evaluation adjustments |
