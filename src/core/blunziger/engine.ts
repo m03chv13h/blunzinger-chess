@@ -34,6 +34,15 @@ import {
   identifyChess960Castling,
   doesCastlingGiveCheck,
 } from './chess960';
+import {
+  getAtomicLegalMoves,
+  getAtomicCheckingMoves,
+  getAtomicNonCheckingMoves,
+  doesAtomicMoveGiveCheck,
+  doesAtomicMoveExplodeOpponentKing,
+  applyExplosionToFen,
+  fenHasKing,
+} from './atomic';
 
 /** The four center squares for King of the Hill. */
 const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
@@ -45,6 +54,13 @@ const HILL_SQUARES: readonly Square[] = ['d4', 'e4', 'd5', 'e5'];
  */
 export function isKingOfTheHillEnabled(config: MatchConfig): boolean {
   return config.overlays.enableKingOfTheHill;
+}
+
+/**
+ * Check whether Atomic Chess overlay is enabled in the config.
+ */
+export function isAtomicEnabled(config: MatchConfig): boolean {
+  return config.overlays.enableAtomic;
 }
 
 /**
@@ -75,8 +91,12 @@ export function didKingReachHill(fen: string, side: Color): boolean {
 /**
  * Get all legal moves from the current position.
  * When chess960 state is provided, includes Chess960 castling moves.
+ * When atomic is true, filters for Atomic Chess legality.
  */
-export function getLegalMoves(fen: string, chess960?: Chess960State | null): Move[] {
+export function getLegalMoves(fen: string, chess960?: Chess960State | null, atomic?: boolean): Move[] {
+  if (atomic) {
+    return getAtomicLegalMoves(fen, chess960);
+  }
   const chess = new Chess(fen);
   const moves = chess.moves({ verbose: true });
   if (chess960) {
@@ -94,8 +114,12 @@ export function dropMoveToSan(drop: DropMove): string {
 /**
  * Get all legal moves that give check.
  * When chess960 state is provided, includes Chess960 castling moves that give check.
+ * When atomic is true, uses Atomic-aware check detection.
  */
-export function getCheckingMoves(fen: string, chess960?: Chess960State | null): Move[] {
+export function getCheckingMoves(fen: string, chess960?: Chess960State | null, atomic?: boolean): Move[] {
+  if (atomic) {
+    return getAtomicCheckingMoves(fen, chess960);
+  }
   const chess = new Chess(fen);
   const moves = chess.moves({ verbose: true });
   const checking = moves.filter((move) => {
@@ -114,8 +138,12 @@ export function getCheckingMoves(fen: string, chess960?: Chess960State | null): 
 /**
  * Get all legal moves that do NOT give check.
  * When chess960 state is provided, includes Chess960 castling moves that don't give check.
+ * When atomic is true, uses Atomic-aware check detection.
  */
-export function getNonCheckingMoves(fen: string, chess960?: Chess960State | null): Move[] {
+export function getNonCheckingMoves(fen: string, chess960?: Chess960State | null, atomic?: boolean): Move[] {
+  if (atomic) {
+    return getAtomicNonCheckingMoves(fen, chess960);
+  }
   const chess = new Chess(fen);
   const moves = chess.moves({ verbose: true });
   const nonChecking = moves.filter((move) => {
@@ -1064,8 +1092,9 @@ export function detectViolation(
   variantMode: VariantMode,
   dcpEnabled: boolean,
   chess960?: Chess960State | null,
+  atomic?: boolean,
 ): ViolationRecord | null {
-  const checkingMoves = getCheckingMoves(fenBeforeMove, chess960);
+  const checkingMoves = getCheckingMoves(fenBeforeMove, chess960, atomic);
 
   if (isClassicForcedCheck(variantMode)) {
     // Classic / King Hunt: must play checking move if available
@@ -1094,12 +1123,15 @@ export function detectViolation(
     // Reverse Blunzinger: must avoid giving check if non-checking moves exist
     if (checkingMoves.length === 0) return null;
 
-    const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960);
+    const nonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960, atomic);
     // If ALL legal moves give check, any move is allowed
     if (nonCheckingMoves.length === 0) return null;
 
     // Check if the player gave check (violation)
-    if (!didMoveGiveCheck(fenBeforeMove, move)) return null;
+    const gaveCheck = atomic
+      ? doesAtomicMoveGiveCheck(fenBeforeMove, move)
+      : didMoveGiveCheck(fenBeforeMove, move);
+    if (!gaveCheck) return null;
 
     const chess = new Chess(fenBeforeMove);
     const violatingSide = chess.turn();
@@ -1133,8 +1165,9 @@ function detectViolationWithDrops(
   ch: CrazyhouseState,
   side: Color,
   chess960?: Chess960State | null,
+  atomic?: boolean,
 ): ViolationRecord | null {
-  const regularCheckingMoves = getCheckingMoves(fenBeforeMove, chess960);
+  const regularCheckingMoves = getCheckingMoves(fenBeforeMove, chess960, atomic);
   const checkingDrops = getCheckingDropMoves(fenBeforeMove, ch, side);
   const totalCheckingCount = regularCheckingMoves.length + checkingDrops.length;
 
@@ -1163,15 +1196,16 @@ function detectViolationWithDrops(
     // Reverse Blunzinger
     if (totalCheckingCount === 0) return null;
 
-    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960);
+    const regularNonCheckingMoves = getNonCheckingMoves(fenBeforeMove, chess960, atomic);
     const nonCheckingDrops = getNonCheckingDropMoves(fenBeforeMove, ch, side);
     const totalNonCheckingCount = regularNonCheckingMoves.length + nonCheckingDrops.length;
 
     if (totalNonCheckingCount === 0) return null;
 
-    const chess = new Chess(fenBeforeMove);
-    chess.move(move.san);
-    if (!chess.inCheck()) return null;
+    const gaveCheck = atomic
+      ? doesAtomicMoveGiveCheck(fenBeforeMove, move)
+      : (() => { const c = new Chess(fenBeforeMove); c.move(move.san); return c.inCheck(); })();
+    if (!gaveCheck) return null;
 
     return {
       violatingSide: side,
@@ -1351,6 +1385,26 @@ export function applyMoveWithRules(
     }
   }
 
+  // ── Atomic explosion handling ──
+  const atomicEnabled = isAtomicEnabled(cfg);
+  let atomicKingExploded = false;
+  if (atomicEnabled && move.captured) {
+    // Validate Atomic legality: kings can't capture, can't explode own king
+    if (move.piece === 'k') return state; // kings never capture in Atomic
+    const postExplosionFen = applyExplosionToFen(newFen, move.to as Square);
+    if (!fenHasKing(postExplosionFen, movingSide)) {
+      return state; // would explode own king
+    }
+
+    // Check if opponent's king is exploded
+    atomicKingExploded = doesAtomicMoveExplodeOpponentKing(fenBeforeMove, move);
+
+    // Apply the cached explosion FEN
+    newFen = postExplosionFen;
+    // chess.js instance is no longer valid for the post-explosion position
+    postMoveChess = null;
+  }
+
   // ── Expire previous pending violation ──
   let updatedPendingViolation = state.pendingViolation;
   if (updatedPendingViolation && updatedPendingViolation.reportable) {
@@ -1360,6 +1414,9 @@ export function applyMoveWithRules(
   // ── Detect violation ──
   // When Crazyhouse is enabled, drop moves contribute to checking/non-checking
   // move detection for violation purposes.
+  // When Atomic is enabled, pass the flag so checking/non-checking move
+  // classification uses Atomic-aware legality.
+  const atomicFlag = atomicEnabled || undefined;
   const newViolation = state.crazyhouse
     ? detectViolationWithDrops(
         fenBeforeMove,
@@ -1370,6 +1427,7 @@ export function applyMoveWithRules(
         state.crazyhouse,
         movingSide,
         state.chess960,
+        atomicFlag,
       )
     : detectViolation(
         fenBeforeMove,
@@ -1378,6 +1436,7 @@ export function applyMoveWithRules(
         cfg.variantMode,
         cfg.overlays.enableDoubleCheckPressure,
         state.chess960,
+        atomicFlag,
       );
 
   // ── Crazyhouse reserve update ──
@@ -1388,10 +1447,13 @@ export function applyMoveWithRules(
 
   // ── Score update (King Hunt) ──
   const newScores = { ...state.scores };
-  // For Chess960 castling, check via the after-FEN; for normal moves, use didMoveGiveCheck
+  // For Chess960 castling, check via the after-FEN; for normal moves, use didMoveGiveCheck.
+  // For Atomic captures, use Atomic-aware check detection.
   const moveGaveCheck = isCastlingMove
     ? doesCastlingGiveCheck(newFen)
-    : didMoveGiveCheck(fenBeforeMove, move);
+    : atomicEnabled
+      ? doesAtomicMoveGiveCheck(fenBeforeMove, move)
+      : didMoveGiveCheck(fenBeforeMove, move);
   if (isKingHuntVariant(cfg.variantMode) && moveGaveCheck) {
     newScores[movingSide] = (newScores[movingSide] || 0) + 1;
   }
@@ -1400,35 +1462,80 @@ export function applyMoveWithRules(
   const sideLabel = (s: Color) => (s === 'w' ? 'White' : 'Black');
 
   // ── Termination conditions ──
-  // Reuse the chess.js instance from the normal move path when available;
-  // create a new instance only for Chess960 castling (which bypasses chess.js).
-  const postChess = postMoveChess ?? new Chess(newFen);
+  // Atomic king explosion takes precedence over all other terminal conditions.
   let result: GameResult | null = null;
 
-  if (postChess.isCheckmate()) {
-    result = { winner: movingSide, reason: 'checkmate' };
+  if (atomicKingExploded) {
+    result = {
+      winner: movingSide,
+      reason: 'atomic_king_explosion',
+      detail: `${sideLabel(movingSide)} exploded ${sideLabel(opponentSide)}'s king!`,
+    };
   }
 
-  if (!result && isKingOfTheHillEnabled(cfg)) {
-    if (didKingReachHill(newFen, movingSide)) {
-      result = {
-        winner: movingSide,
-        reason: 'king_of_the_hill',
-        detail: `${sideLabel(movingSide)}'s king reached a center square!`,
-      };
-    }
-  }
-
+  // Standard termination: reuse the chess.js instance from the normal move path when available;
+  // create a new instance only for Chess960 castling (which bypasses chess.js).
+  // After an Atomic explosion the FEN may be invalid for chess.js (missing king),
+  // so wrap in try-catch and skip standard checks when the FEN can't be loaded.
   if (!result) {
-    if (postChess.isStalemate()) {
-      result = { winner: 'draw', reason: 'stalemate' };
-    } else if (postChess.isDraw()) {
-      if (postChess.isInsufficientMaterial()) {
-        result = { winner: 'draw', reason: 'insufficient-material' };
-      } else if (postChess.isThreefoldRepetition()) {
-        result = { winner: 'draw', reason: 'threefold-repetition' };
-      } else {
-        result = { winner: 'draw', reason: 'fifty-move-rule' };
+    let postChess: InstanceType<typeof Chess> | null = postMoveChess;
+    if (!postChess) {
+      try {
+        postChess = new Chess(newFen);
+      } catch {
+        // FEN is invalid for chess.js (e.g. after Atomic explosion removed pieces).
+        // Skip standard termination checks — Atomic-specific handling takes over.
+        postChess = null;
+      }
+    }
+
+    if (postChess) {
+      if (postChess.isCheckmate()) {
+        result = { winner: movingSide, reason: 'checkmate' };
+      }
+
+      if (!result && isKingOfTheHillEnabled(cfg)) {
+        if (didKingReachHill(newFen, movingSide)) {
+          result = {
+            winner: movingSide,
+            reason: 'king_of_the_hill',
+            detail: `${sideLabel(movingSide)}'s king reached a center square!`,
+          };
+        }
+      }
+
+      if (!result) {
+        if (postChess.isStalemate()) {
+          result = { winner: 'draw', reason: 'stalemate' };
+        } else if (postChess.isDraw()) {
+          if (postChess.isInsufficientMaterial()) {
+            result = { winner: 'draw', reason: 'insufficient-material' };
+          } else if (postChess.isThreefoldRepetition()) {
+            result = { winner: 'draw', reason: 'threefold-repetition' };
+          } else {
+            result = { winner: 'draw', reason: 'fifty-move-rule' };
+          }
+        }
+      }
+    } else if (atomicEnabled) {
+      // After Atomic explosion: check if the opponent has no king (win)
+      // This handles edge cases where the explosion win wasn't caught above
+      if (!fenHasKing(newFen, opponentSide)) {
+        result = {
+          winner: movingSide,
+          reason: 'atomic_king_explosion',
+          detail: `${sideLabel(movingSide)} exploded ${sideLabel(opponentSide)}'s king!`,
+        };
+      }
+      // KOTH check after Atomic explosion
+      if (!result && isKingOfTheHillEnabled(cfg)) {
+        if (didKingReachHill(newFen, movingSide)) {
+          result = {
+            winner: movingSide,
+            reason: 'king_of_the_hill',
+            detail: `${sideLabel(movingSide)}'s king reached a center square!`,
+          };
+        }
       }
     }
   }

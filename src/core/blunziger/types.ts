@@ -34,6 +34,7 @@ export interface OverlayConfig {
   enableDoubleCheckPressure: boolean;
   enableCrazyhouse: boolean;
   enableChess960: boolean;
+  enableAtomic: boolean;
 }
 
 // ── Game-Type-Specific Config ────────────────────────────────────────
@@ -152,7 +153,8 @@ export type GameResultReason =
   | 'king_hunt_ply_limit'
   | 'king_hunt_ply_limit_draw'
   | 'king_hunt_given_check_limit'
-  | 'piece_removal_no_piece_loss';
+  | 'piece_removal_no_piece_loss'
+  | 'atomic_king_explosion';
 
 export interface GameResult {
   winner: Color | 'draw';
@@ -385,6 +387,7 @@ export interface GameSetupConfig {
   enableDoubleCheckPressure: boolean;
   enableCrazyhouse: boolean;
   enableChess960: boolean;
+  enableAtomic: boolean;
   // Report config
   invalidReportLossThreshold: number;
   // Penalty config
@@ -420,6 +423,7 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   enableDoubleCheckPressure: false,
   enableCrazyhouse: false,
   enableChess960: false,
+  enableAtomic: false,
   invalidReportLossThreshold: 2,
   enableAdditionalMovePenalty: false,
   additionalMoveCount: 1,
@@ -457,6 +461,7 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
       enableDoubleCheckPressure: setup.enableDoubleCheckPressure,
       enableCrazyhouse: setup.enableCrazyhouse,
       enableChess960: chess960Enabled,
+      enableAtomic: setup.enableAtomic,
     },
     reportConfig: {
       invalidReportLossThreshold: setup.invalidReportLossThreshold,

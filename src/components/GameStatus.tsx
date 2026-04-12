@@ -145,6 +145,9 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
         {config.overlays.enableCrazyhouse && (
           <span className="koth-indicator">♻ Crazyhouse enabled</span>
         )}
+        {config.overlays.enableAtomic && (
+          <span className="koth-indicator">💥 Atomic Chess enabled</span>
+        )}
       </div>
     </div>
   );
@@ -184,6 +187,8 @@ function formatReason(reason: string): string {
       return 'King Hunt ply limit reached (draw)';
     case 'king_hunt_given_check_limit':
       return 'King Hunt given check target reached';
+    case 'atomic_king_explosion':
+      return 'King exploded (Atomic)';
     default:
       return reason;
   }

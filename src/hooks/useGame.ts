@@ -23,6 +23,7 @@ import {
   applyTimeout,
   applyPieceRemoval,
   selectBestPieceForRemoval,
+  isAtomicEnabled,
 } from '../core/blunziger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 import type { BotActionRequest, BotActionResponse, BotActionResult } from '../bot/botWorker';
@@ -411,10 +412,11 @@ export function useGame(
 
   const legalMovesFrom = useCallback(
     (square: Square): Square[] => {
-      const moves = getLegalMoves(state.fen, state.chess960);
+      const atomic = isAtomicEnabled(state.config);
+      const moves = getLegalMoves(state.fen, state.chess960, atomic);
       return moves.filter((m) => m.from === square).map((m) => m.to as Square);
     },
-    [state.fen, state.chess960],
+    [state.fen, state.chess960, state.config],
   );
 
   // Determine if it's a human's turn

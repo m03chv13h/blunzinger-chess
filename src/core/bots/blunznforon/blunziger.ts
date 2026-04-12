@@ -48,24 +48,25 @@ export function getFilteredCandidates(
   chess960?: Chess960State | null,
 ): FilteredMoves {
   const isReverse = isReverseForcedCheckMode(config.variantMode);
+  const atomic = config.overlays.enableAtomic || undefined;
 
   // Get regular moves
   let regularMoves: Move[];
   let hasCheckingRegularMoves = false;
   if (isReverse) {
-    const checking = getCheckingMoves(fen, chess960);
+    const checking = getCheckingMoves(fen, chess960, atomic);
     hasCheckingRegularMoves = checking.length > 0;
     if (checking.length > 0) {
-      const nonChecking = getNonCheckingMoves(fen, chess960);
-      regularMoves = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen, chess960);
+      const nonChecking = getNonCheckingMoves(fen, chess960, atomic);
+      regularMoves = nonChecking.length > 0 ? nonChecking : getLegalMoves(fen, chess960, atomic);
     } else {
-      regularMoves = getLegalMoves(fen, chess960);
+      regularMoves = getLegalMoves(fen, chess960, atomic);
     }
   } else {
     // Classic / King Hunt: prefer checking moves
-    const checking = getCheckingMoves(fen, chess960);
+    const checking = getCheckingMoves(fen, chess960, atomic);
     hasCheckingRegularMoves = checking.length > 0;
-    regularMoves = checking.length > 0 ? checking : getLegalMoves(fen, chess960);
+    regularMoves = checking.length > 0 ? checking : getLegalMoves(fen, chess960, atomic);
   }
 
   // Get drop moves (Crazyhouse)
@@ -118,20 +119,21 @@ export function getViolationMoves(
   chess960?: Chess960State | null,
 ): Move[] {
   const isReverse = isReverseForcedCheckMode(config.variantMode);
+  const atomic = config.overlays.enableAtomic || undefined;
 
   if (isReverse) {
     // In reverse mode: violation = giving check when non-checking moves exist
-    const checking = getCheckingMoves(fen, chess960);
-    const nonChecking = getNonCheckingMoves(fen, chess960);
+    const checking = getCheckingMoves(fen, chess960, atomic);
+    const nonChecking = getNonCheckingMoves(fen, chess960, atomic);
     if (checking.length > 0 && nonChecking.length > 0) {
       return checking; // These would be violations
     }
     return [];
   } else {
     // Classic mode: violation = not giving check when checking moves exist
-    const checking = getCheckingMoves(fen, chess960);
+    const checking = getCheckingMoves(fen, chess960, atomic);
     if (checking.length > 0) {
-      const nonChecking = getNonCheckingMoves(fen, chess960);
+      const nonChecking = getNonCheckingMoves(fen, chess960, atomic);
       return nonChecking; // These would be violations
     }
     return [];

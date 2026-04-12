@@ -64,7 +64,8 @@ function hillDistance(sq: Square): number {
  */
 export function evaluateClassicBlunzinger(state: GameState): Adjustment {
   const { fen, sideToMove } = state;
-  const checkingMoves = getCheckingMoves(fen);
+  const atomic = state.config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(fen, null, atomic);
 
   if (checkingMoves.length === 0) {
     // No checking moves — the side to move will violate if it's their turn.
@@ -94,9 +95,10 @@ export function evaluateClassicBlunzinger(state: GameState): Adjustment {
  */
 export function evaluateReverseBlunzinger(state: GameState): Adjustment {
   const { fen, sideToMove } = state;
-  const checkingMoves = getCheckingMoves(fen);
-  const nonCheckingMoves = getNonCheckingMoves(fen);
-  const legalMoves = getLegalMoves(fen);
+  const atomic = state.config.overlays.enableAtomic || undefined;
+  const checkingMoves = getCheckingMoves(fen, null, atomic);
+  const nonCheckingMoves = getNonCheckingMoves(fen, null, atomic);
+  const legalMoves = getLegalMoves(fen, null, atomic);
 
   if (legalMoves.length === 0) return NO_ADJUSTMENT;
 
