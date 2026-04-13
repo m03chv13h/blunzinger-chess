@@ -24,6 +24,7 @@ import {
   applyPieceRemoval,
   selectBestPieceForRemoval,
   isAtomicEnabled,
+  determineNoMoveResult,
 } from '../core/blunziger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 import type { BotActionRequest, BotActionResponse, BotActionResult } from '../bot/botWorker';
@@ -562,7 +563,15 @@ export function useGame(
           worker.removeEventListener('message', onMessage);
 
           const { action } = e.data;
-          if (!action) { setBotThinking(false); return; }
+          if (!action) {
+            // Bot found no move — determine checkmate vs stalemate
+            const cur = stateRef.current;
+            if (!cur.result) {
+              setState({ ...cur, result: determineNoMoveResult(cur.fen, cur.sideToMove) });
+            }
+            setBotThinking(false);
+            return;
+          }
           applyBotAction(action);
         };
         worker.addEventListener('message', onMessage);
@@ -605,6 +614,10 @@ export function useGame(
         }
       } catch {
         // Move selection failed (e.g. invalid FEN) — stop thinking gracefully.
+      }
+      // Bot found no move — determine checkmate vs stalemate
+      if (!current.result) {
+        setState({ ...current, result: determineNoMoveResult(current.fen, current.sideToMove) });
       }
       setBotThinking(false);
     }, delay);

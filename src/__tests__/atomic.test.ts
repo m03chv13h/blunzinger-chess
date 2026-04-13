@@ -982,3 +982,51 @@ describe('Atomic + Crazyhouse explosion reserves', () => {
     expect(newState.crazyhouse!.blackReserve).toEqual(EMPTY_RESERVE);
   });
 });
+
+// ── 8. Atomic checkmate/stalemate detection ──────────────────────────
+
+describe('Atomic checkmate/stalemate detection', () => {
+  it('detects checkmate when Atomic rules remove all escape moves (reported bug)', () => {
+    // Position from the bug report: after Qa7+ black has no Atomic-legal moves.
+    // King can't capture (Atomic rule), rook capture would explode own king.
+    const fen = 'rkb1nqrb/Qpp1p3/3pnppp/p7/P3N2P/5P2/1PPPP1P1/RKB1N1RB b - - 1 7';
+    const config = makeAtomicConfig();
+
+    // In standard chess, black has moves (e.g. Kxa7)
+    const standardMoves = getLegalMoves(fen);
+    expect(standardMoves.length).toBeGreaterThan(0);
+
+    // In Atomic chess, black has NO moves
+    const atomicMoves = getAtomicLegalMoves(fen);
+    expect(atomicMoves.length).toBe(0);
+
+    // Playing Qa7+ should detect checkmate
+    const preFen = 'rkb1nqrb/1pp1p3/3pnppp/p7/P3N2P/5P2/1PPPPQP1/RKB1N1RB w - - 0 7';
+    const preState: GameState = { ...createInitialState('hvh', config), fen: preFen };
+    const afterQa7 = applyMoveWithRules(preState, { from: 'f2', to: 'a7' });
+
+    expect(afterQa7.result).not.toBeNull();
+    expect(afterQa7.result!.reason).toBe('checkmate');
+    expect(afterQa7.result!.winner).toBe('w');
+  });
+
+  it('does not falsely detect checkmate when Atomic-legal moves exist', () => {
+    // White rook on a2 gives check from a8 — black king has non-capture escapes
+    const fen = '4k3/8/8/8/8/8/R7/4K3 w - - 0 1';
+    const config = makeAtomicConfig();
+    const state: GameState = { ...createInitialState('hvh', config), fen };
+
+    // Ra8+ — check from distance, king has escape squares (d7, e7, f7, etc.)
+    const newState = applyMoveWithRules(state, { from: 'a2', to: 'a8' });
+    expect(newState.result).toBeNull();
+    const atomicMoves = getAtomicLegalMoves(newState.fen);
+    expect(atomicMoves.length).toBeGreaterThan(0);
+  });
+
+  it('selectBotMove returns null for Atomic checkmate position', () => {
+    const fen = 'rkb1nqrb/Qpp1p3/3pnppp/p7/P3N2P/5P2/1PPPP1P1/RKB1N1RB b - - 1 7';
+    const config = makeAtomicConfig();
+    const move = selectBotMove(fen, 'easy', config);
+    expect(move).toBeNull();
+  });
+});
