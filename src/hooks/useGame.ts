@@ -612,12 +612,12 @@ export function useGame(
           applyBotAction({ kind: 'move', move: botMove });
           return;
         }
+        // Bot found no move — determine checkmate vs stalemate
+        if (!current.result) {
+          setState({ ...current, result: determineNoMoveResult(current.fen, current.sideToMove) });
+        }
       } catch {
         // Move selection failed (e.g. invalid FEN) — stop thinking gracefully.
-      }
-      // Bot found no move — determine checkmate vs stalemate
-      if (!current.result) {
-        setState({ ...current, result: determineNoMoveResult(current.fen, current.sideToMove) });
       }
       setBotThinking(false);
     }, delay);
