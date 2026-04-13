@@ -982,3 +982,72 @@ describe('Atomic + Crazyhouse explosion reserves', () => {
     expect(newState.crazyhouse!.blackReserve).toEqual(EMPTY_RESERVE);
   });
 });
+
+// ── Atomic Checkmate / Stalemate Detection ───────────────────────────
+
+describe('Atomic checkmate / stalemate detection', () => {
+  it('bug report position has zero Atomic-legal moves for Black', () => {
+    // After Qa7+ the black king on b8 is in check. Standard chess sees
+    // Rxa7 and Kxa7, but in Atomic both are illegal: king can't capture,
+    // and Rxa7 would explode the king on adjacent b8.
+    const postFen = 'rkb1nqrb/Qpp1p3/3pnppp/p7/P3N2P/5P2/1PPPP1P1/RKB1N1RB b - - 1 7';
+    expect(getAtomicLegalMoves(postFen)).toHaveLength(0);
+  });
+
+  it('detects Atomic checkmate via applyMoveWithRules', () => {
+    // Black king a8, rook b8.  White queen on b1 moves to b7 giving
+    // check.  Standard chess allows Kxb7 and Rxb7 but Atomic forbids
+    // both: king can't capture; Rxb7 would explode the king (a8 is
+    // adjacent to b7).
+    const postFen = 'kr6/1Q6/8/8/8/8/8/4K3 b - - 0 1';
+    expect(getAtomicLegalMoves(postFen)).toHaveLength(0);
+
+    const preFen = 'kr6/8/8/8/8/8/8/1Q2K3 w - - 0 1';
+    const config = makeAtomicConfig();
+    const preState = { ...createInitialState('hvh', config), fen: preFen, sideToMove: 'w' as const };
+    const postState = applyMoveWithRules(preState, { from: 'b1', to: 'b7' });
+    expect(postState.result).not.toBeNull();
+    expect(postState.result!.reason).toBe('checkmate');
+    expect(postState.result!.winner).toBe('w');
+  });
+
+  it('detects Atomic stalemate when only moves are king captures', () => {
+    // Black king h8 surrounded by White knights/bishop.  Standard chess
+    // allows Kxh7 and Kxg8 but Atomic forbids king captures.  Not in
+    // check → stalemate.
+    const postFen = '5BNk/6NN/8/8/8/8/8/4K3 b - - 0 1';
+    expect(getAtomicLegalMoves(postFen)).toHaveLength(0);
+
+    const preFen = '5BNk/6N1/5N2/8/8/8/8/4K3 w - - 0 1';
+    const config = makeAtomicConfig();
+    const preState = { ...createInitialState('hvh', config), fen: preFen, sideToMove: 'w' as const };
+    const postState = applyMoveWithRules(preState, { from: 'f6', to: 'h7' });
+    expect(postState.result).not.toBeNull();
+    expect(postState.result!.reason).toBe('stalemate');
+    expect(postState.result!.winner).toBe('draw');
+  });
+
+  it('Atomic + Crazyhouse: drop can escape Atomic check (no checkmate)', () => {
+    // Black king h8 in check from White rook h1 along h-file.  White
+    // knight on g8 blocks the only king escape square.  Standard chess
+    // allows Kxg8, Atomic forbids king capture → 0 regular moves.
+    // But with Crazyhouse Black can drop a piece on h2-h7 to block.
+    const postFen = '6Nk/6p1/8/8/8/8/8/4K2R b - - 0 1';
+    expect(getAtomicLegalMoves(postFen)).toHaveLength(0);
+
+    const preFen = '6Nk/6p1/8/8/8/8/8/4K1R1 w - - 0 1';
+    const config = makeAtomicConfig({ enableCrazyhouse: true });
+    const preState = {
+      ...createInitialState('hvh', config),
+      fen: preFen,
+      sideToMove: 'w' as const,
+      crazyhouse: {
+        whiteReserve: { ...EMPTY_RESERVE },
+        blackReserve: { ...EMPTY_RESERVE, r: 1 },
+      },
+    };
+    const postState = applyMoveWithRules(preState, { from: 'g1', to: 'h1' });
+    // Black can drop to block → should NOT be checkmate
+    expect(postState.result).toBeNull();
+  });
+});

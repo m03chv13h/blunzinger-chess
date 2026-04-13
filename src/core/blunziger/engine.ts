@@ -1569,6 +1569,25 @@ export function applyMoveWithRules(
           }
         }
       }
+
+      // Atomic-specific checkmate/stalemate: chess.js does not account for
+      // Atomic move restrictions (no king captures, captures that would
+      // explode own king are illegal).  A position may have standard legal
+      // moves but zero Atomic-legal moves.
+      if (!result && atomicEnabled) {
+        const atomicMoves = getAtomicLegalMoves(newFen, newChess960);
+        let hasEscape = atomicMoves.length > 0;
+        if (!hasEscape && newCrazyhouse && cfg.overlays.enableCrazyhouse) {
+          hasEscape = getCrazyhouseDropMoves(newFen, newCrazyhouse, opponentSide).length > 0;
+        }
+        if (!hasEscape) {
+          if (postChess.inCheck()) {
+            result = { winner: movingSide, reason: 'checkmate' };
+          } else {
+            result = { winner: 'draw', reason: 'stalemate' };
+          }
+        }
+      }
     } else if (atomicEnabled) {
       // After Atomic explosion: check if the opponent has no king (win)
       // This handles edge cases where the explosion win wasn't caught above
