@@ -160,3 +160,19 @@
     visibility: visible;
   }
 }
+
+/* ── Mobile: remove scroll container so tooltips are not clipped ── */
+@media (max-width: 900px) {
+  .move-list {
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .report-icon[data-tooltip]::after,
+  .extra-label[data-tooltip]::after {
+    left: 0;
+    transform: none;
+    max-width: min(220px, 90vw);
+  }
+}
