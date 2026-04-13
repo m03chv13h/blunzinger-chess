@@ -65,6 +65,23 @@ export function isAtomicEnabled(config: MatchConfig): boolean {
 }
 
 /**
+ * Determine the game result when a side has no legal moves.
+ * Returns checkmate (opponent wins) if the side is in check, otherwise stalemate (draw).
+ */
+export function determineNoMoveResult(fen: string, sideWithNoMoves: Color): GameResult {
+  try {
+    const chess = new Chess(fen);
+    if (chess.inCheck()) {
+      const winner: Color = sideWithNoMoves === 'w' ? 'b' : 'w';
+      return { winner, reason: 'checkmate' };
+    }
+  } catch {
+    // Invalid FEN — fall through to stalemate
+  }
+  return { winner: 'draw', reason: 'stalemate' };
+}
+
+/**
  * Check whether a square is one of the four hill center squares (d4, e4, d5, e5).
  */
 export function isHillSquare(square: Square): boolean {
@@ -1566,6 +1583,23 @@ export function applyMoveWithRules(
             result = { winner: 'draw', reason: 'threefold-repetition' };
           } else {
             result = { winner: 'draw', reason: 'fifty-move-rule' };
+          }
+        }
+      }
+
+      // Atomic-specific checkmate/stalemate: chess.js doesn't know about
+      // Atomic move restrictions (king can't capture, captures that would
+      // explode own king are illegal), so it may report legal moves when
+      // Atomic rules leave the opponent with none.
+      if (!result && atomicEnabled) {
+        const atomicMoves = getAtomicLegalMoves(newFen, newChess960);
+        const hasEscape = atomicMoves.length > 0
+          || (newCrazyhouse ? getCrazyhouseDropMoves(newFen, newCrazyhouse, opponentSide).length > 0 : false);
+        if (!hasEscape) {
+          if (postChess.inCheck()) {
+            result = { winner: movingSide, reason: 'checkmate' };
+          } else {
+            result = { winner: 'draw', reason: 'stalemate' };
           }
         }
       }

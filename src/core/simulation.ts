@@ -22,6 +22,7 @@ import {
   reportViolation,
   applyPieceRemoval,
   selectBestPieceForRemoval,
+  determineNoMoveResult,
 } from './blunziger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 
@@ -97,7 +98,11 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
     const activeBotLevel = state.sideToMove === 'w' ? state.botLevelWhite : state.botLevelBlack;
 
     const botMove = selectBotMove(state.fen, activeBotLevel, state.config, state.chess960);
-    if (!botMove) break;
+    if (!botMove) {
+      // Bot found no move — determine checkmate vs stalemate
+      state = { ...state, result: determineNoMoveResult(state.fen, state.sideToMove) };
+      break;
+    }
 
     // Crazyhouse: try a drop move first
     if (state.crazyhouse) {
