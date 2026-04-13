@@ -58,6 +58,14 @@ body {
   gap: 12px;
 }
 
+/* Medium screens: board + right panel (game status & moves) stay together,
+   left panel (settings & controls) wraps below. */
+@media (min-width: 901px) and (max-width: 1349px) {
+  .board-section { order: 1; }
+  .right-panel   { order: 2; }
+  .left-panel    { order: 3; }
+}
+
 @media (max-width: 900px) {
   .app-with-sidebar {
     margin-left: 0;
