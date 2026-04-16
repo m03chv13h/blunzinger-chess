@@ -61,3 +61,14 @@ export function getOAuthLoginUrl(provider: OAuthProvider, returnUrl?: string): s
 export async function fetchMe(): Promise<UserProfile> {
   return apiFetch<UserProfile>('/api/auth/me');
 }
+
+/**
+ * Fetch the list of OAuth providers the backend has configured.
+ * Returns an empty array when the backend has no OAuth credentials.
+ */
+export async function fetchProviders(): Promise<OAuthProvider[]> {
+  const data = await apiFetch<{ providers: OAuthProvider[] }>('/api/auth/providers', {
+    anonymous: true,
+  });
+  return data.providers;
+}

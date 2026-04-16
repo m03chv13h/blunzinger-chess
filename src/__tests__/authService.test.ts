@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createGuest, fetchMe, getOAuthLoginUrl } from '../services/authService';
+import { createGuest, fetchMe, fetchProviders, getOAuthLoginUrl } from '../services/authService';
 import type { OAuthProvider } from '../services/authService';
 
 // ── Mocks ────────────────────────────────────────────────────────────
@@ -96,4 +96,40 @@ describe('getOAuthLoginUrl', () => {
       expect(url).toContain(provider);
     },
   );
+});
+
+// ── fetchProviders ───────────────────────────────────────────────────
+
+describe('fetchProviders', () => {
+  it('returns the provider list from the backend', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ providers: ['Google', 'GitHub'] }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await fetchProviders();
+
+    expect(result).toEqual(['Google', 'GitHub']);
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe('/api/auth/providers');
+    // Should be anonymous (no Authorization header needed)
+    expect(opts.headers.Authorization).toBeUndefined();
+  });
+
+  it('returns an empty array when no providers are configured', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ providers: [] }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await fetchProviders();
+
+    expect(result).toEqual([]);
+  });
 });
