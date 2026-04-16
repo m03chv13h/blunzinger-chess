@@ -6,6 +6,19 @@ import { GameStatus } from '../components/GameStatus';
 import { createInitialState } from '../core/blunziger/engine';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../core/blunziger/types';
 
+// Mock useAuth so App skips the welcome screen and lands on quick-start.
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { userId: 'test', displayName: 'Test', isGuest: true, provider: 'guest' },
+    loading: false,
+    error: null,
+    availableProviders: [],
+    loginAsGuest: vi.fn(),
+    loginWithProvider: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
 /** Navigate to the New Game setup screen via the sidebar. */
 function goToNewGame() {
   fireEvent.click(screen.getByRole('button', { name: /New Game/i }));

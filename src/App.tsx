@@ -6,6 +6,7 @@ import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { Sidebar } from './components/Sidebar';
 import type { NavSection } from './components/Sidebar';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { QuickStartScreen } from './components/QuickStartScreen';
 import { Chessboard } from './components/Chessboard';
 import { MoveList } from './components/MoveList';
@@ -27,9 +28,11 @@ import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
 import { useSimulation } from './hooks/useSimulation';
+import { useAuth } from './hooks/useAuth';
 import './App.css';
 
 type AppScreen =
+  | { type: 'welcome' }
   | { type: 'quick-start' }
   | { type: 'new-game' }
   | { type: 'analyse' }
@@ -39,11 +42,22 @@ type AppScreen =
   | { type: 'playing'; config: GameSetupConfig };
 
 function App() {
-  const [screen, setScreen] = useState<AppScreen>({ type: 'quick-start' });
+  const auth = useAuth();
+  const [screen, setScreen] = useState<AppScreen>({ type: 'welcome' });
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
   const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
+
+  // If the user is already authenticated (e.g. returning with a stored token),
+  // skip the welcome screen automatically.
+  const skippedWelcomeRef = useRef(false);
+  useEffect(() => {
+    if (!auth.loading && auth.user && screen.type === 'welcome' && !skippedWelcomeRef.current) {
+      skippedWelcomeRef.current = true;
+      setScreen({ type: 'quick-start' });
+    }
+  }, [auth.loading, auth.user, screen.type]);
 
   const simulation = useSimulation();
 
@@ -238,6 +252,7 @@ function App() {
   const activeSection: NavSection | 'playing' =
     screen.type === 'playing' ? 'playing'
     : screen.type === 'simulation-running' ? 'simulate'
+    : screen.type === 'welcome' ? 'quick-start'
     : screen.type;
 
   const handleNavigate = (section: NavSection) => {
@@ -250,7 +265,24 @@ function App() {
     setScreen({ type: section });
   };
 
+  const handleContinueAsGuest = () => {
+    setScreen({ type: 'quick-start' });
+  };
+
   const analyseCount = gameHistory.length + simulationHistory.length;
+
+  // Render welcome / login screen before everything else.
+  if (screen.type === 'welcome') {
+    return (
+      <WelcomeScreen
+        availableProviders={auth.availableProviders}
+        loading={auth.loading}
+        error={auth.error}
+        onLoginWithProvider={auth.loginWithProvider}
+        onContinueAsGuest={handleContinueAsGuest}
+      />
+    );
+  }
 
   // Render setup screens (non-playing)
   if (screen.type !== 'playing') {

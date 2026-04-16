@@ -1,7 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../App';
+
+// Mock useAuth so App skips the welcome screen and lands on quick-start.
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { userId: 'test', displayName: 'Test', isGuest: true, provider: 'guest' },
+    loading: false,
+    error: null,
+    availableProviders: [],
+    loginAsGuest: vi.fn(),
+    loginWithProvider: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
 
 describe('Simulation UI', () => {
   beforeEach(() => {
