@@ -237,10 +237,9 @@ describe('Clock – core timing logic', () => {
       enableTimeReductionPenalty: true,
       timeReductionSeconds: 60,
     });
-    let state = createInitialState('hvh', cfg);
-    // Give white only 30 seconds (less than penalty)
-    state = { ...state, clocks: { whiteMs: 30_000, blackMs: 300_000, lastTimestamp: Date.now() } };
-    // If white then violates, the 60s penalty would bring clock to 0
+    // Verify config is valid
+    expect(cfg.penaltyConfig.timeReductionSeconds).toBe(60);
+    // If white has only 30 seconds and the 60s penalty fires, the clock reaches 0
     // Engine applies this in applyMoveWithRules when a violation is detected
     // We trust engine tests for the full flow; here we verify the clock math
     const remaining = Math.max(0, 30_000 - 60_000);

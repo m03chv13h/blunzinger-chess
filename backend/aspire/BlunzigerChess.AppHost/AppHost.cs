@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume("blunziger-chess-pgdata");
 
-var database = postgres.AddDatabase("blunziger_chess");
+var database = postgres.AddDatabase("blunziger-chess");
 
 // ── Node.js Game Engine Worker ───────────────────────────────────────
 
