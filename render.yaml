@@ -58,7 +58,10 @@ services:
       - key: OAuth__Microsoft__ClientSecret
         sync: false
       - key: Cors__AllowedOrigins__0
-        value: https://blunziger-frontend.onrender.com
+        fromService:
+          type: web
+          name: blunziger-frontend
+          property: host
 
   # ── Node.js Game Engine Worker (Private Service) ──────────────────
   - type: pserv
