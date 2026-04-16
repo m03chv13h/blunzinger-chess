@@ -41,7 +41,7 @@ jobs:
         run: dotnet build backend/aspire/BlunzigerChess.AppHost/BlunzigerChess.AppHost.csproj
 
       - name: Run API tests
-        run: dotnet test backend/dotnet-api/BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj --no-build
+        run: dotnet test backend/dotnet-api/BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj
 
   node-worker:
     name: Node.js Worker
