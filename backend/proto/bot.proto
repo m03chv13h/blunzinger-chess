@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package blunziger_chess;
+
+option csharp_namespace = "BlunzigerChess.Proto";
+
+import "common.proto";
+
+// ── Bot Service ──────────────────────────────────────────────────────
+
+service BotService {
+  // Select a bot move for the current position
+  rpc SelectBotMove(SelectBotMoveRequest) returns (SelectBotMoveResponse);
+
+  // Select a bot drop move (Crazyhouse)
+  rpc SelectBotDropMove(SelectBotDropMoveRequest) returns (SelectBotDropMoveResponse);
+
+  // Determine whether the bot should report an opponent's violation
+  rpc ShouldBotReport(ShouldBotReportRequest) returns (ShouldBotReportResponse);
+
+  // Select the best piece for removal (bot as chooser during penalty)
+  rpc SelectPieceForRemoval(SelectPieceForRemovalRequest) returns (SelectPieceForRemovalResponse);
+}
+
+// ── Requests & Responses ─────────────────────────────────────────────
+
+message SelectBotMoveRequest {
+  string fen = 1;
+  BotLevel level = 2;
+  optional MatchConfig config = 3;
+  optional Chess960State chess960 = 4;
+}
+message SelectBotMoveResponse {
+  optional ChessMove move = 1;
+}
+
+message SelectBotDropMoveRequest {
+  string fen = 1;
+  BotLevel level = 2;
+  CrazyhouseState crazyhouse = 3;
+  Color side = 4;
+  optional MatchConfig config = 5;
+  optional Chess960State chess960 = 6;
+}
+message SelectBotDropMoveResponse {
+  optional DropMove drop = 1;
+}
+
+message ShouldBotReportRequest {
+  BotLevel level = 1;
+  ViolationRecord violation = 2;
+}
+message ShouldBotReportResponse {
+  bool should_report = 1;
+}
+
+message SelectPieceForRemovalRequest {
+  string fen = 1;
+  Color target_side = 2;
+  optional VariantMode variant_mode = 3;
+}
+message SelectPieceForRemovalResponse {
+  optional string square = 1;
+}

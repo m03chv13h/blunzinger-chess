@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj" />
+  <Project Path="BlunzigerChess.Api/BlunzigerChess.Api.csproj" />
+</Solution>

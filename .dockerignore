@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+*.md
+**/*.test.ts
+**/*.test.tsx
+src/__tests__
+.github
+.vscode

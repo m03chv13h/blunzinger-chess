@@ -1,0 +1,341 @@
+syntax = "proto3";
+
+package blunziger_chess;
+
+option csharp_namespace = "BlunzigerChess.Proto";
+
+// ── Enums ────────────────────────────────────────────────────────────
+
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  WHITE = 1;
+  BLACK = 2;
+}
+
+enum VariantMode {
+  VARIANT_MODE_UNSPECIFIED = 0;
+  CLASSIC_BLUNZINGER = 1;
+  REVERSE_BLUNZINGER = 2;
+  CLASSIC_KING_HUNT_MOVE_LIMIT = 3;
+  CLASSIC_KING_HUNT_GIVEN_CHECK_LIMIT = 4;
+}
+
+enum GameType {
+  GAME_TYPE_UNSPECIFIED = 0;
+  REPORT_INCORRECTNESS = 1;
+  PENALTY_ON_MISS = 2;
+}
+
+enum GameMode {
+  GAME_MODE_UNSPECIFIED = 0;
+  HVH = 1;
+  HVBOT = 2;
+  BOTVBOT = 3;
+}
+
+enum BotLevel {
+  BOT_LEVEL_UNSPECIFIED = 0;
+  EASY = 1;
+  MEDIUM = 2;
+  HARD = 3;
+}
+
+enum EngineId {
+  ENGINE_ID_UNSPECIFIED = 0;
+  HEURISTIC = 1;
+  BLUNZNFORON = 2;
+  BLUNZNFISH = 3;
+}
+
+enum ViolationType {
+  VIOLATION_TYPE_UNSPECIFIED = 0;
+  MISSED_CHECK = 1;
+  GAVE_FORBIDDEN_CHECK = 2;
+  MISSED_CHECK_REMOVAL = 3;
+  GAVE_FORBIDDEN_CHECK_REMOVAL = 4;
+}
+
+enum GameResultReason {
+  GAME_RESULT_REASON_UNSPECIFIED = 0;
+  CHECKMATE = 1;
+  STALEMATE = 2;
+  DRAW = 3;
+  VALID_REPORT = 4;
+  INVALID_REPORT_THRESHOLD = 5;
+  RESIGNATION = 6;
+  INSUFFICIENT_MATERIAL = 7;
+  THREEFOLD_REPETITION = 8;
+  FIFTY_MOVE_RULE = 9;
+  KING_OF_THE_HILL = 10;
+  DOUBLE_CHECK_PRESSURE_VIOLATION = 11;
+  TIMEOUT = 12;
+  TIMEOUT_PENALTY = 13;
+  KING_HUNT_PLY_LIMIT = 14;
+  KING_HUNT_PLY_LIMIT_DRAW = 15;
+  KING_HUNT_GIVEN_CHECK_LIMIT = 16;
+  PIECE_REMOVAL_NO_PIECE_LOSS = 17;
+  ATOMIC_KING_EXPLOSION = 18;
+}
+
+// ── Configuration Messages ───────────────────────────────────────────
+
+message OverlayConfig {
+  bool enable_king_of_the_hill = 1;
+  bool enable_clock = 2;
+  int32 initial_time_ms = 3;
+  int32 increment_ms = 4;
+  int32 decrement_ms = 5;
+  bool enable_double_check_pressure = 6;
+  bool enable_crazyhouse = 7;
+  bool enable_chess960 = 8;
+  bool enable_atomic = 9;
+}
+
+message ReportGameTypeConfig {
+  int32 invalid_report_loss_threshold = 1;
+}
+
+message PenaltyGameTypeConfig {
+  bool enable_additional_move_penalty = 1;
+  int32 additional_move_count = 2;
+  bool enable_piece_removal_penalty = 3;
+  int32 piece_removal_count = 4;
+  bool enable_time_reduction_penalty = 5;
+  int32 time_reduction_seconds = 6;
+}
+
+message VariantSpecificConfig {
+  int32 king_hunt_ply_limit = 1;
+  int32 king_hunt_given_check_target = 2;
+}
+
+message MatchConfig {
+  VariantMode variant_mode = 1;
+  GameType game_type = 2;
+  OverlayConfig overlays = 3;
+  ReportGameTypeConfig report_config = 4;
+  PenaltyGameTypeConfig penalty_config = 5;
+  VariantSpecificConfig variant_specific = 6;
+  string initial_fen = 7;
+  optional int32 chess960_index = 8;
+}
+
+// ── Move Messages ────────────────────────────────────────────────────
+
+message ChessMove {
+  string from = 1;
+  string to = 2;
+  string san = 3;
+  optional string promotion = 4;
+  string color = 5;
+  string piece = 6;
+  optional string captured = 7;
+  string flags = 8;
+  string lan = 9;
+  string before = 10;
+  string after = 11;
+}
+
+message DropMove {
+  string piece = 1;   // p, n, b, r, q
+  string to = 2;      // target square
+  string color = 3;   // w or b
+}
+
+// ── State Messages ───────────────────────────────────────────────────
+
+message ScoreState {
+  int32 w = 1;
+  int32 b = 2;
+}
+
+message ClockState {
+  int64 white_ms = 1;
+  int64 black_ms = 2;
+  optional int64 last_timestamp = 3;
+}
+
+message ExtraTurnState {
+  int32 pending_extra_moves_white = 1;
+  int32 pending_extra_moves_black = 2;
+}
+
+message PlayerReserve {
+  int32 p = 1;
+  int32 n = 2;
+  int32 b = 3;
+  int32 r = 4;
+  int32 q = 5;
+}
+
+message CrazyhouseState {
+  PlayerReserve white_reserve = 1;
+  PlayerReserve black_reserve = 2;
+}
+
+message Chess960State {
+  // JSON-serialized chess960 state (rook positions, castling rights, etc.)
+  string json_data = 1;
+}
+
+message InvalidReportCounts {
+  int32 w = 1;
+  int32 b = 2;
+}
+
+message GameResult {
+  string winner = 1;  // "w", "b", or "draw"
+  GameResultReason reason = 2;
+  optional string detail = 3;
+}
+
+message ViolationRecord {
+  Color violating_side = 1;
+  int32 move_index = 2;
+  string fen_before_move = 3;
+  repeated ChessMove checking_moves = 4;
+  repeated ChessMove required_moves = 5;
+  optional ChessMove actual_move = 6;
+  bool reportable = 7;
+  ViolationType violation_type = 8;
+  bool severe = 9;
+  repeated string required_removal_squares = 10;
+  optional string chosen_removal_square = 11;
+  repeated DropMove checking_drop_moves = 12;
+  repeated DropMove required_drop_moves = 13;
+}
+
+message ReportFeedback {
+  bool valid = 1;
+  string message = 2;
+}
+
+message PendingPieceRemoval {
+  Color target_side = 1;
+  Color chooser_side = 2;
+  repeated string removable_squares = 3;
+  int32 remaining_removals = 4;
+  int32 trigger_move_index = 5;
+}
+
+message PositionHistoryEntry {
+  string fen = 1;
+  ScoreState scores = 2;
+  optional string move_notation = 3;
+  optional CrazyhouseState crazyhouse = 4;
+  optional Chess960State chess960 = 5;
+  optional int64 clock_white_ms = 6;
+  optional int64 clock_black_ms = 7;
+}
+
+message ViolationReportEntry {
+  int32 move_index = 1;
+  Color reporting_side = 2;
+  bool valid = 3;
+}
+
+message MissedCheckEntry {
+  int32 move_index = 1;
+  ViolationType violation_type = 2;
+  repeated string available_moves = 3;
+  repeated string available_regular_moves = 4;
+  repeated string available_drop_moves = 5;
+  repeated string available_removal_squares = 6;
+  bool is_additional_move = 7;
+}
+
+message PieceRemovalEntry {
+  int32 move_index = 1;
+  string piece_type = 2;
+  string piece_color = 3;
+}
+
+message TimeReductionEntry {
+  int32 move_index = 1;
+  int32 seconds = 2;
+}
+
+// ── Full Game State ──────────────────────────────────────────────────
+
+message GameState {
+  string fen = 1;
+  repeated ChessMove move_history = 2;
+  Color side_to_move = 3;
+  optional ViolationRecord pending_violation = 4;
+  InvalidReportCounts invalid_reports = 5;
+  MatchConfig config = 6;
+  optional GameResult result = 7;
+  optional ReportFeedback last_report_feedback = 8;
+  GameMode mode = 9;
+  BotLevel bot_level = 10;
+  BotLevel bot_level_white = 11;
+  BotLevel bot_level_black = 12;
+  Color bot_color = 13;
+  EngineId engine_id_white = 14;
+  EngineId engine_id_black = 15;
+  ScoreState scores = 16;
+  optional ClockState clocks = 17;
+  ExtraTurnState extra_turns = 18;
+  optional PendingPieceRemoval pending_piece_removal = 19;
+  int32 ply_count = 20;
+  repeated PositionHistoryEntry position_history = 21;
+  repeated ViolationReportEntry violation_reports = 22;
+  repeated MissedCheckEntry missed_checks = 23;
+  repeated PieceRemovalEntry piece_removals = 24;
+  repeated TimeReductionEntry time_reductions = 25;
+  bool in_extra_turn = 26;
+  optional CrazyhouseState crazyhouse = 27;
+  optional Chess960State chess960 = 28;
+}
+
+// ── Game Setup Config ────────────────────────────────────────────────
+
+message GameSetupConfig {
+  GameMode mode = 1;
+  Color bot_side = 2;
+  BotLevel bot_difficulty = 3;
+  BotLevel bot_difficulty_white = 4;
+  BotLevel bot_difficulty_black = 5;
+  VariantMode variant_mode = 6;
+  GameType game_type = 7;
+  EngineId engine_id = 8;
+  EngineId engine_id_white = 9;
+  EngineId engine_id_black = 10;
+  bool enable_king_of_the_hill = 11;
+  bool enable_clock = 12;
+  int32 initial_time_ms = 13;
+  int32 increment_ms = 14;
+  int32 decrement_ms = 15;
+  bool enable_double_check_pressure = 16;
+  bool enable_crazyhouse = 17;
+  bool enable_chess960 = 18;
+  bool enable_atomic = 19;
+  int32 invalid_report_loss_threshold = 20;
+  bool enable_additional_move_penalty = 21;
+  int32 additional_move_count = 22;
+  bool enable_piece_removal_penalty = 23;
+  int32 piece_removal_count = 24;
+  bool enable_time_reduction_penalty = 25;
+  int32 time_reduction_seconds = 26;
+  int32 king_hunt_ply_limit = 27;
+  int32 king_hunt_given_check_target = 28;
+  optional string initial_fen = 29;
+}
+
+// ── Game Record ──────────────────────────────────────────────────────
+
+message GameRecord {
+  string id = 1;
+  int64 completed_at = 2;
+  GameSetupConfig config = 3;
+  GameResult result = 4;
+  string final_fen = 5;
+  int32 move_count = 6;
+  ScoreState scores = 7;
+  repeated PositionHistoryEntry position_history = 8;
+  repeated ChessMove move_history = 9;
+  repeated ViolationReportEntry violation_reports = 10;
+  repeated MissedCheckEntry missed_checks = 11;
+  repeated PieceRemovalEntry piece_removals = 12;
+  repeated TimeReductionEntry time_reductions = 13;
+}
