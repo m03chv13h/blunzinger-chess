@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package blunziger_chess;
+
+option csharp_namespace = "BlunzigerChess.Proto";
+
+import "common.proto";
+
+// ── Simulation Service ───────────────────────────────────────────────
+
+service SimulationService {
+  // Run a complete bot-vs-bot game synchronously and return the game record
+  rpc RunSimulatedGame(RunSimulatedGameRequest) returns (RunSimulatedGameResponse);
+}
+
+// ── Requests & Responses ─────────────────────────────────────────────
+
+message RunSimulatedGameRequest {
+  GameSetupConfig config = 1;
+}
+message RunSimulatedGameResponse {
+  GameRecord record = 1;
+}

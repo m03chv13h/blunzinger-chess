@@ -1,0 +1,84 @@
+# Render Blueprint — Blunziger Chess
+# https://render.com/docs/blueprint-spec
+
+services:
+  # ── Frontend (Static Site) ────────────────────────────────────────
+  - type: web
+    name: blunziger-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: blunziger-api
+          property: hostport
+
+  # ── .NET API Backend ──────────────────────────────────────────────
+  - type: web
+    name: blunziger-api
+    runtime: docker
+    dockerfilePath: backend/dotnet-api/BlunzigerChess.Api/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: blunziger-db
+          property: connectionString
+      - key: NodeWorker__Url
+        fromService:
+          type: pserv
+          name: blunziger-node-worker
+          property: hostport
+      - key: Jwt__Secret
+        generateValue: true
+      - key: OAuth__Google__ClientId
+        sync: false
+      - key: OAuth__Google__ClientSecret
+        sync: false
+      - key: OAuth__GitHub__ClientId
+        sync: false
+      - key: OAuth__GitHub__ClientSecret
+        sync: false
+      - key: OAuth__Discord__ClientId
+        sync: false
+      - key: OAuth__Discord__ClientSecret
+        sync: false
+      - key: OAuth__Microsoft__ClientId
+        sync: false
+      - key: OAuth__Microsoft__ClientSecret
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        fromService:
+          type: web
+          name: blunziger-frontend
+          property: host
+
+  # ── Node.js Game Engine Worker (Private Service) ──────────────────
+  - type: pserv
+    name: blunziger-node-worker
+    runtime: docker
+    dockerfilePath: backend/node-worker/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - key: PORT
+        value: "50051"
+      - key: HOST
+        value: "0.0.0.0"
+
+# ── Database ────────────────────────────────────────────────────────
+databases:
+  - name: blunziger-db
+    plan: free
+    databaseName: blunziger_chess
+    user: blunziger

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.34.1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.80.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-preview.5.25277.114" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-preview.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\..\proto\common.proto" GrpcServices="Client" ProtoRoot="..\..\proto" />
+    <Protobuf Include="..\..\proto\game_logic.proto" GrpcServices="Client" ProtoRoot="..\..\proto" />
+    <Protobuf Include="..\..\proto\bot.proto" GrpcServices="Client" ProtoRoot="..\..\proto" />
+    <Protobuf Include="..\..\proto\evaluation.proto" GrpcServices="Client" ProtoRoot="..\..\proto" />
+    <Protobuf Include="..\..\proto\simulation.proto" GrpcServices="Client" ProtoRoot="..\..\proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\aspire\BlunzigerChess.ServiceDefaults\BlunzigerChess.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

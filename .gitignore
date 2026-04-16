@@ -7,9 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node
+node_modules/
+dist/
+dist-ssr/
 *.local
 
 # Editor directories and files
@@ -22,5 +23,45 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-dist
-node_modules/
+
+# .NET
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+project.lock.json
+.vs/
+launchSettings.json
+
+# .NET build artifacts
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.rsuser
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.mdf
+*.ldf
+*.nupkg
+*.snupkg
+
+# NuGet
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# .NET Aspire
+.aspire/

@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package blunziger_chess;
+
+option csharp_namespace = "BlunzigerChess.Proto";
+
+import "common.proto";
+
+// ── Game Logic Service ───────────────────────────────────────────────
+
+service GameLogicService {
+  // Create initial game state from setup config
+  rpc CreateInitialState(CreateInitialStateRequest) returns (CreateInitialStateResponse);
+
+  // Apply a move with full variant-aware rules
+  rpc ApplyMoveWithRules(ApplyMoveRequest) returns (ApplyMoveResponse);
+
+  // Apply a drop move (Crazyhouse) with variant-aware rules
+  rpc ApplyDropMoveWithRules(ApplyDropMoveRequest) returns (ApplyDropMoveResponse);
+
+  // Detect a variant-mode-specific violation
+  rpc DetectViolation(DetectViolationRequest) returns (DetectViolationResponse);
+
+  // Apply piece removal penalty
+  rpc ApplyPieceRemoval(ApplyPieceRemovalRequest) returns (ApplyPieceRemovalResponse);
+
+  // Report a violation (Report Incorrectness game type)
+  rpc ReportViolation(ReportViolationRequest) returns (ReportViolationResponse);
+
+  // Check if a side can report
+  rpc CanReport(CanReportRequest) returns (CanReportResponse);
+
+  // Apply timeout to end game
+  rpc ApplyTimeout(ApplyTimeoutRequest) returns (ApplyTimeoutResponse);
+
+  // Get legal moves for a position
+  rpc GetLegalMoves(GetLegalMovesRequest) returns (GetLegalMovesResponse);
+
+  // Get checking moves for a position
+  rpc GetCheckingMoves(GetCheckingMovesRequest) returns (GetCheckingMovesResponse);
+
+  // Get non-checking moves for a position
+  rpc GetNonCheckingMoves(GetNonCheckingMovesRequest) returns (GetNonCheckingMovesResponse);
+
+  // Get removable pieces for piece removal penalty
+  rpc GetRemovablePieces(GetRemovablePiecesRequest) returns (GetRemovablePiecesResponse);
+
+  // Get Crazyhouse drop moves
+  rpc GetCrazyhouseDropMoves(GetCrazyhouseDropMovesRequest) returns (GetCrazyhouseDropMovesResponse);
+}
+
+// ── Requests & Responses ─────────────────────────────────────────────
+
+message CreateInitialStateRequest {
+  GameSetupConfig config = 1;
+}
+message CreateInitialStateResponse {
+  GameState state = 1;
+}
+
+message ApplyMoveRequest {
+  GameState state = 1;
+  ChessMove move = 2;
+}
+message ApplyMoveResponse {
+  GameState state = 1;
+}
+
+message ApplyDropMoveRequest {
+  GameState state = 1;
+  DropMove drop = 2;
+}
+message ApplyDropMoveResponse {
+  GameState state = 1;
+}
+
+message DetectViolationRequest {
+  string fen = 1;
+  Color side_to_move = 2;
+  repeated ChessMove move_list = 3;
+  int32 move_index = 4;
+  VariantMode variant_mode = 5;
+  bool dcp_enabled = 6;
+  optional Chess960State chess960 = 7;
+  bool atomic = 8;
+  optional CrazyhouseState crazyhouse = 9;
+}
+message DetectViolationResponse {
+  optional ViolationRecord violation = 1;
+}
+
+message ApplyPieceRemovalRequest {
+  GameState state = 1;
+  string square = 2;
+}
+message ApplyPieceRemovalResponse {
+  GameState state = 1;
+}
+
+message ReportViolationRequest {
+  GameState state = 1;
+  Color reporting_side = 2;
+}
+message ReportViolationResponse {
+  GameState state = 1;
+}
+
+message CanReportRequest {
+  GameState state = 1;
+  Color side = 2;
+}
+message CanReportResponse {
+  bool can_report = 1;
+}
+
+message ApplyTimeoutRequest {
+  GameState state = 1;
+  Color losing_side = 2;
+}
+message ApplyTimeoutResponse {
+  GameState state = 1;
+}
+
+message GetLegalMovesRequest {
+  string fen = 1;
+  optional Chess960State chess960 = 2;
+  bool atomic = 3;
+}
+message GetLegalMovesResponse {
+  repeated ChessMove moves = 1;
+}
+
+message GetCheckingMovesRequest {
+  string fen = 1;
+  optional Chess960State chess960 = 2;
+  bool atomic = 3;
+}
+message GetCheckingMovesResponse {
+  repeated ChessMove moves = 1;
+}
+
+message GetNonCheckingMovesRequest {
+  string fen = 1;
+  optional Chess960State chess960 = 2;
+  bool atomic = 3;
+}
+message GetNonCheckingMovesResponse {
+  repeated ChessMove moves = 1;
+}
+
+message GetRemovablePiecesRequest {
+  string fen = 1;
+  Color side = 2;
+}
+message GetRemovablePiecesResponse {
+  repeated string squares = 1;
+}
+
+message GetCrazyhouseDropMovesRequest {
+  string fen = 1;
+  CrazyhouseState crazyhouse = 2;
+  Color side = 3;
+}
+message GetCrazyhouseDropMovesResponse {
+  repeated DropMove drops = 1;
+}

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package blunziger_chess;
+
+option csharp_namespace = "BlunzigerChess.Proto";
+
+import "common.proto";
+
+// ── Evaluation Service ───────────────────────────────────────────────
+
+service EvaluationService {
+  // Evaluate a game state using the variant-aware evaluation system
+  rpc EvaluateGameState(EvaluateGameStateRequest) returns (EvaluateGameStateResponse);
+
+  // Analyze a position using a specific engine adapter
+  rpc AnalyzePosition(AnalyzePositionRequest) returns (AnalyzePositionResponse);
+}
+
+// ── Evaluation Result ────────────────────────────────────────────────
+
+message EvaluationResult {
+  int32 score_cp = 1;
+  optional int32 mate_in = 2;
+  string favored_side = 3;   // "white", "black", or "equal"
+  double normalized_score = 4;
+  optional string best_move = 5;
+  optional string best_move_from = 6;
+  optional string best_move_to = 7;
+  repeated string explanation = 8;
+}
+
+message EngineScore {
+  optional int32 score_cp = 1;
+  optional int32 mate_in = 2;
+  optional string favored_side = 3;
+}
+
+message EngineLine {
+  optional string best_move = 1;
+  repeated string pv = 2;
+  EngineScore score = 3;
+}
+
+// ── Requests & Responses ─────────────────────────────────────────────
+
+message EvaluateGameStateRequest {
+  GameState state = 1;
+  int64 white_ms = 2;
+  int64 black_ms = 3;
+}
+message EvaluateGameStateResponse {
+  EvaluationResult result = 1;
+}
+
+message AnalyzePositionRequest {
+  EngineId engine_id = 1;
+  string fen = 2;
+  optional int32 depth = 3;
+  optional int32 multi_pv = 4;
+  optional string variant_key = 5;
+}
+message AnalyzePositionResponse {
+  repeated EngineLine lines = 1;
+}
