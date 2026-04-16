@@ -8,13 +8,13 @@ namespace BlunzigerChess.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AuthService authService, IReadOnlyList<string> enabledProviders) : ControllerBase
+public class AuthController(AuthService authService, EnabledOAuthProviders enabledProviders) : ControllerBase
 {
     /// <summary>Return the list of OAuth providers that are configured and available.</summary>
     [HttpGet("providers")]
     public IActionResult GetProviders()
     {
-        return Ok(new { providers = enabledProviders });
+        return Ok(new { providers = enabledProviders.Providers });
     }
 
     /// <summary>Initiate OAuth login for a specific provider.</summary>

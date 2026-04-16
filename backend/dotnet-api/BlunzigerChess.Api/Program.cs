@@ -126,7 +126,7 @@ if (!string.IsNullOrWhiteSpace(discordClientId) && !string.IsNullOrWhiteSpace(di
 }
 
 // Make the enabled providers list available via DI.
-builder.Services.AddSingleton<IReadOnlyList<string>>(enabledOAuthProviders);
+builder.Services.AddSingleton(new EnabledOAuthProviders(enabledOAuthProviders));
 
 builder.Services.AddAuthorization();
 

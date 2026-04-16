@@ -68,7 +68,8 @@ export function useAuth(): UseAuth {
         if (!cancelled) setUser(undefined);
       }
 
-      // 3. Fetch available OAuth providers.
+      // 3. Fetch available OAuth providers (unconditional — the UI needs this
+      //    regardless of whether the user already has a token).
       try {
         const providers = await fetchProviders();
         if (!cancelled) setAvailableProviders(providers);
