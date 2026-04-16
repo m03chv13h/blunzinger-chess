@@ -1,4 +1,5 @@
 using System.Text;
+using BlunzigerChess.Api;
 using BlunzigerChess.Api.Data;
 using BlunzigerChess.Api.GrpcClients;
 using BlunzigerChess.Api.Hubs;
@@ -13,9 +14,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ─────────────────────────────────────────────────────────
 
+var connectionString = ConnectionStringHelper.Normalize(
+    builder.Configuration.GetConnectionString("DefaultConnection"));
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Host=localhost;Database=blunziger_chess;Username=postgres;Password=postgres"));
+    options.UseNpgsql(string.IsNullOrWhiteSpace(connectionString)
+        ? "Host=localhost;Database=blunziger_chess;Username=postgres;Password=postgres"
+        : connectionString));
 
 // ── Authentication ───────────────────────────────────────────────────
 

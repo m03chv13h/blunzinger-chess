@@ -16,10 +16,9 @@ var nodeWorker = builder.AddNpmApp("node-worker", "../../node-worker", "dev")
 // ── .NET API Backend ─────────────────────────────────────────────────
 
 builder.AddProject<Projects.BlunzigerChess_Api>("api")
-    .WithReference(database)
+    .WithReference(database, connectionName: "DefaultConnection")
     .WithReference(nodeWorker)
     .WithExternalHttpEndpoints()
-    .WithEnvironment("ConnectionStrings__DefaultConnection", database)
     .WithEnvironment("NodeWorker__Url", nodeWorker.GetEndpoint("http"));
 
 builder.Build().Run();
