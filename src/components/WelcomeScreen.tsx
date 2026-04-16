@@ -1,4 +1,5 @@
 import type { OAuthProvider } from '../services/authService';
+import { BlutwurstIcon } from './BlutwurstIcon';
 import './WelcomeScreen.css';
 
 interface WelcomeScreenProps {
@@ -31,7 +32,7 @@ export function WelcomeScreen({
   return (
     <div className="welcome-screen">
       <div className="welcome-card">
-        <h1>♟ Blunziger Chess</h1>
+        <h1><BlutwurstIcon /> Blunziger Chess</h1>
         <p className="welcome-subtitle">
           A chess variant where every check counts.
         </p>
