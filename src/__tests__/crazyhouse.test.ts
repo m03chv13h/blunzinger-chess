@@ -144,9 +144,9 @@ describe('Crazyhouse Overlay', () => {
     it('should add captured pawn to reserve', () => {
       const state = makeCrazyhouseState();
       // Play 1. e4 d5 2. exd5 — white captures black pawn
-      let s = applyMoveWithRules(state, { from: 'e2' as any, to: 'e4' as any });
-      s = applyMoveWithRules(s, { from: 'd7' as any, to: 'd5' as any });
-      s = applyMoveWithRules(s, { from: 'e4' as any, to: 'd5' as any });
+      let s = applyMoveWithRules(state, { from: 'e2', to: 'e4' });
+      s = applyMoveWithRules(s, { from: 'd7', to: 'd5' });
+      s = applyMoveWithRules(s, { from: 'e4', to: 'd5' });
       expect(s.crazyhouse).not.toBeNull();
       expect(s.crazyhouse!.whiteReserve.p).toBe(1);
     });
@@ -156,7 +156,7 @@ describe('Crazyhouse Overlay', () => {
       const fen = 'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2';
       const state = makeStateWithReserves(fen, EMPTY_RESERVE, EMPTY_RESERVE);
       // exd5 captures pawn
-      const s = applyMoveWithRules(state, { from: 'e4' as any, to: 'd5' as any });
+      const s = applyMoveWithRules(state, { from: 'e4', to: 'd5' });
       expect(s.crazyhouse!.whiteReserve.p).toBe(1);
     });
   });
@@ -263,7 +263,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, n: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).not.toBe(state);
       expect(result.crazyhouse!.whiteReserve.n).toBe(0);
@@ -278,7 +278,7 @@ describe('Crazyhouse Overlay', () => {
         EMPTY_RESERVE,
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state); // Unchanged
     });
@@ -289,7 +289,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, n: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'e1' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'e1', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state); // Unchanged
     });
@@ -300,7 +300,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, p: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'p', to: 'a1' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'p', to: 'a1', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state);
     });
@@ -311,14 +311,14 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, p: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'p', to: 'a8' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'p', to: 'a8', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state);
     });
 
     it('should reject drop when Crazyhouse is not enabled', () => {
       const state = createInitialState();
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state);
     });
@@ -330,7 +330,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, n: 1 },
       );
       // Black tries to drop on white's turn
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'b' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'b' };
       const result = applyDropMoveWithRules(state, drop);
       expect(result).toBe(state);
     });
@@ -341,7 +341,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, n: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       const lastEntry = result.positionHistory[result.positionHistory.length - 1];
       expect(lastEntry.crazyhouse).toBeDefined();
@@ -353,12 +353,12 @@ describe('Crazyhouse Overlay', () => {
     it('should detect when a drop gives check', () => {
       // Black king on e8, drop a white queen on e7 (gives check via proximity)
       const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
-      expect(doesDropGiveCheck(fen, 'w', 'q', 'e7' as any)).toBe(true);
+      expect(doesDropGiveCheck(fen, 'w', 'q', 'e7')).toBe(true);
     });
 
     it('should detect when a drop does not give check', () => {
       const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
-      expect(doesDropGiveCheck(fen, 'w', 'n', 'a1' as any)).toBe(false);
+      expect(doesDropGiveCheck(fen, 'w', 'n', 'a1')).toBe(false);
     });
 
     it('should get checking drop moves', () => {
@@ -477,7 +477,7 @@ describe('Crazyhouse Overlay', () => {
         EMPTY_RESERVE,
       );
       // Regular move: a3 (doesn't give check, and no regular checking moves exist)
-      const result = applyMoveWithRules(state, { from: 'a2' as any, to: 'a3' as any });
+      const result = applyMoveWithRules(state, { from: 'a2', to: 'a3' });
       // Should be a violation because checking drops existed
       expect(result.pendingViolation).not.toBeNull();
       expect(result.pendingViolation!.violationType).toBe('missed_check');
@@ -671,7 +671,7 @@ describe('Crazyhouse Overlay', () => {
   describe('applyDropToFen', () => {
     it('should place piece and swap turn', () => {
       const fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
-      const result = applyDropToFen(fen, 'w', 'n', 'd4' as any);
+      const result = applyDropToFen(fen, 'w', 'n', 'd4');
       // Check the piece is placed
       expect(result).toContain('N');
       // Turn should be black
@@ -680,7 +680,7 @@ describe('Crazyhouse Overlay', () => {
 
     it('should increment fullmove number after black drop', () => {
       const fen = '4k3/8/8/8/8/8/8/4K3 b - - 0 1';
-      const result = applyDropToFen(fen, 'b', 'n', 'd5' as any);
+      const result = applyDropToFen(fen, 'b', 'n', 'd5');
       // Fullmove number should be 2
       expect(result.split(' ')[5]).toBe('2');
     });
@@ -716,9 +716,9 @@ describe('Crazyhouse Overlay', () => {
     it('should include crazyhouse state in position history after capture', () => {
       const state = makeCrazyhouseState();
       // Play: 1. e4 d5 2. exd5 (capture)
-      let s = applyMoveWithRules(state, { from: 'e2' as any, to: 'e4' as any });
-      s = applyMoveWithRules(s, { from: 'd7' as any, to: 'd5' as any });
-      s = applyMoveWithRules(s, { from: 'e4' as any, to: 'd5' as any });
+      let s = applyMoveWithRules(state, { from: 'e2', to: 'e4' });
+      s = applyMoveWithRules(s, { from: 'd7', to: 'd5' });
+      s = applyMoveWithRules(s, { from: 'e4', to: 'd5' });
 
       // The last position history entry should have crazyhouse data
       const lastEntry = s.positionHistory[s.positionHistory.length - 1];
@@ -732,7 +732,7 @@ describe('Crazyhouse Overlay', () => {
         { ...EMPTY_RESERVE, n: 1 },
         EMPTY_RESERVE,
       );
-      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4' as any, color: 'w' };
+      const drop: DropMove = { type: 'drop', piece: 'n', to: 'd4', color: 'w' };
       const result = applyDropMoveWithRules(state, drop);
       const lastEntry = result.positionHistory[result.positionHistory.length - 1];
       expect(lastEntry.crazyhouse).toBeDefined();
@@ -749,7 +749,7 @@ describe('Crazyhouse Overlay', () => {
         EMPTY_RESERVE,
       );
       // Regular move: a3 (no regular checking moves exist)
-      const result = applyMoveWithRules(state, { from: 'a2' as any, to: 'a3' as any });
+      const result = applyMoveWithRules(state, { from: 'a2', to: 'a3' });
       expect(result.pendingViolation).not.toBeNull();
       expect(result.pendingViolation!.violationType).toBe('missed_check');
       // Regular checking moves are empty
@@ -769,7 +769,7 @@ describe('Crazyhouse Overlay', () => {
         EMPTY_RESERVE,
       );
       // Play a non-checking regular move
-      const afterMove = applyMoveWithRules(state, { from: 'a2' as any, to: 'a3' as any });
+      const afterMove = applyMoveWithRules(state, { from: 'a2', to: 'a3' });
       expect(afterMove.pendingViolation).not.toBeNull();
 
       // Report the violation as black
@@ -796,7 +796,7 @@ describe('Crazyhouse Overlay', () => {
       );
 
       // White plays Kb1 (non-checking, no draw)
-      const afterMove = applyMoveWithRules(state, { from: 'a1' as any, to: 'b1' as any });
+      const afterMove = applyMoveWithRules(state, { from: 'a1', to: 'b1' });
       expect(afterMove.pendingViolation).not.toBeNull();
       // Has both regular and drop checking moves
       expect(afterMove.pendingViolation!.checkingMoves.length).toBeGreaterThan(0);

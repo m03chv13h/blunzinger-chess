@@ -15,7 +15,7 @@ import {
 } from '../core/evaluation/evaluateVariant';
 import { evaluateGameState } from '../core/evaluation/evaluate';
 import { createInitialState } from '../core/blunziger/engine';
-import type { GameState, MatchConfig } from '../core/blunziger/types';
+import type { GameState, MatchConfig, Move } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../core/blunziger/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ describe('evaluateReportIncorrectness', () => {
         fenBeforeMove: INITIAL_FEN,
         checkingMoves: [],
         requiredMoves: [],
-        actualMove: { from: 'e2', to: 'e4' } as any,
+        actualMove: { from: 'e2', to: 'e4' } as unknown as Move,
         reportable: true,
         violationType: 'missed_check',
         severe: false,
@@ -492,7 +492,7 @@ describe('bestMove in evaluateGameState', () => {
         fenBeforeMove: INITIAL_FEN,
         checkingMoves: [],
         requiredMoves: [],
-        actualMove: { from: 'e2', to: 'e4' } as any,
+        actualMove: { from: 'e2', to: 'e4' } as unknown as Move,
         reportable: true,
         violationType: 'missed_check',
         severe: false,
@@ -516,7 +516,7 @@ describe('bestMove in evaluateGameState', () => {
         fenBeforeMove: INITIAL_FEN,
         checkingMoves: [],
         requiredMoves: [],
-        actualMove: { from: 'e7', to: 'e5' } as any,
+        actualMove: { from: 'e7', to: 'e5' } as unknown as Move,
         reportable: true,
         violationType: 'missed_check',
         severe: false,
@@ -537,7 +537,7 @@ describe('bestMove in evaluateGameState', () => {
         fenBeforeMove: INITIAL_FEN,
         checkingMoves: [],
         requiredMoves: [],
-        actualMove: { from: 'e2', to: 'e4' } as any,
+        actualMove: { from: 'e2', to: 'e4' } as unknown as Move,
         reportable: false,
         violationType: 'missed_check',
         severe: false,
@@ -600,7 +600,7 @@ describe('bestMoveFrom/bestMoveTo in evaluateGameState', () => {
         fenBeforeMove: INITIAL_FEN,
         checkingMoves: [],
         requiredMoves: [],
-        actualMove: { from: 'e2', to: 'e4' } as any,
+        actualMove: { from: 'e2', to: 'e4' } as unknown as Move,
         reportable: true,
         violationType: 'missed_check',
         severe: false,

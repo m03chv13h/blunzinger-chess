@@ -15,7 +15,6 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Call<T> = ServerUnaryCall<T, any>;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Callback<T> = sendUnaryData<T>;
 
 export const evaluationHandlers = {

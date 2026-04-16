@@ -1,0 +1,64 @@
+name: Build Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'src/core/**'
+      - 'src/bot/**'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'src/core/**'
+      - 'src/bot/**'
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet:
+    name: .NET API & Aspire
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore backend/dotnet-api/BlunzigerChess.Api/BlunzigerChess.Api.csproj
+
+      - name: Build API
+        run: dotnet build backend/dotnet-api/BlunzigerChess.Api/BlunzigerChess.Api.csproj --no-restore
+
+      - name: Build Aspire AppHost
+        run: dotnet build backend/aspire/BlunzigerChess.AppHost/BlunzigerChess.AppHost.csproj
+
+      - name: Run API tests
+        run: dotnet test backend/dotnet-api/BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj
+
+  node-worker:
+    name: Node.js Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: backend/node-worker
+        run: npm ci
+
+      - name: Type-check
+        working-directory: backend/node-worker
+        run: npx tsc --noEmit
