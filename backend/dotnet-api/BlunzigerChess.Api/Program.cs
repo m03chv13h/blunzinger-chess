@@ -6,6 +6,7 @@ using BlunzigerChess.Api.Hubs;
 using BlunzigerChess.Api.Services;
 using BlunzigerChess.Proto;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -186,6 +187,10 @@ var app = builder.Build();
 
 // ── Middleware Pipeline ──────────────────────────────────────────────
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+});
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
