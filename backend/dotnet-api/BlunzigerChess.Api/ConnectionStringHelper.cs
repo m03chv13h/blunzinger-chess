@@ -27,7 +27,9 @@ public static class ConnectionStringHelper
 
         var result = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
 
-        // Cloud-hosted PostgreSQL (Render, Heroku, etc.) requires SSL for external connections
+        // Cloud-hosted PostgreSQL (Render, Heroku, etc.) requires SSL for external connections.
+        // Trust Server Certificate is needed because managed database providers typically use
+        // certificates that are not in the system trust store.
         result += ";SSL Mode=Require;Trust Server Certificate=true";
 
         return result;

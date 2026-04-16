@@ -58,7 +58,7 @@ public class ConnectionStringHelperTests
     }
 
     [Fact]
-    public void Normalize_ReturnsEmptyString_ForWhitespace()
+    public void Normalize_ReturnsOriginalValue_ForWhitespace()
     {
         var result = ConnectionStringHelper.Normalize("   ");
         Assert.Equal("   ", result);
