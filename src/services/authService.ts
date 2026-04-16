@@ -7,7 +7,7 @@
  * - Current-user profile retrieval
  */
 
-import { apiFetch, setToken } from './apiClient';
+import { apiFetch, setToken, API_BASE } from './apiClient';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export async function createGuest(): Promise<GuestTokenResponse> {
  * After authentication the backend redirects back with `?token=…`.
  */
 export function getOAuthLoginUrl(provider: OAuthProvider, returnUrl?: string): string {
-  const base = (import.meta.env.VITE_API_BASE_URL ?? '') + `/api/auth/login/${provider}`;
+  const base = API_BASE + `/api/auth/login/${provider}`;
   if (returnUrl) {
     return `${base}?returnUrl=${encodeURIComponent(returnUrl)}`;
   }

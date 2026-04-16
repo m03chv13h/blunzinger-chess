@@ -13,7 +13,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import type { HubConnection } from '@microsoft/signalr';
-import { getToken } from '../services/apiClient';
+import { getToken, API_BASE } from '../services/apiClient';
 
 // ── Server → Client event payloads ──────────────────────────────────
 
@@ -109,7 +109,7 @@ export interface UseGameHub {
 }
 
 /** Hub URL – resolved relative to the API base. */
-const HUB_URL = (import.meta.env.VITE_API_BASE_URL ?? '') + '/hubs/game';
+const HUB_URL = API_BASE + '/hubs/game';
 
 export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
   const [connected, setConnected] = useState(false);

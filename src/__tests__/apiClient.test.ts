@@ -141,6 +141,18 @@ describe('apiFetch', () => {
     await expect(apiFetch('/api/error')).rejects.toThrow(ApiError);
   });
 
+  it('throws ApiError when 2xx response is not JSON (e.g. SPA fallback)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'text/html' }),
+      text: async () => '<html><body>index.html</body></html>',
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(apiFetch('/api/auth/providers')).rejects.toThrow(ApiError);
+  });
+
   it('omits Authorization when no token stored', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
