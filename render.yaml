@@ -13,11 +13,11 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      - key: VITE_API_URL
+      - key: VITE_API_BASE_URL
         fromService:
           type: web
           name: blunziger-api
-          property: hostport
+          property: host
 
   # ── .NET API Backend ──────────────────────────────────────────────
   - type: web

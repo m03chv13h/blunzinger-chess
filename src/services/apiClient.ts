@@ -8,8 +8,25 @@
 
 const TOKEN_KEY = 'blunziger_token';
 
+/**
+ * Resolve the API base URL from the environment.
+ *
+ * - Empty string → "same origin" (handled by Vite proxy in dev).
+ * - Bare hostname or host:port (e.g. from Render `fromService` linking) →
+ *   prepends `https://`.
+ * - Full URL → used as-is.
+ */
+function resolveApiBase(): string {
+  const raw = import.meta.env.VITE_API_BASE_URL ?? '';
+  if (!raw) return '';
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    return `https://${raw}`;
+  }
+  return raw;
+}
+
 /** Resolved base URL — empty string means "same origin" (handled by Vite proxy in dev). */
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+export const API_BASE = resolveApiBase();
 
 // ── Token helpers ────────────────────────────────────────────────────
 
@@ -98,6 +115,13 @@ export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Prom
 
   if (!res.ok) {
     throw new ApiError(res.status, data);
+  }
+
+  // All API endpoints return JSON.  A successful non-JSON response (e.g.
+  // an SPA fallback returning index.html for an /api/* route) indicates
+  // that the request never reached the backend.
+  if (!isJson) {
+    throw new ApiError(res.status, 'Expected JSON response from API');
   }
 
   return data as T;
