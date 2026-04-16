@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { UserProfile, OAuthProvider } from '../services/authService';
-import { createGuest, fetchMe, getOAuthLoginUrl } from '../services/authService';
+import { createGuest, fetchMe, fetchProviders, getOAuthLoginUrl } from '../services/authService';
 import { getToken, setToken, clearToken } from '../services/apiClient';
 
 export interface AuthState {
@@ -18,6 +18,8 @@ export interface AuthState {
   loading: boolean;
   /** Last error from an auth operation. */
   error: string | null;
+  /** OAuth providers that are configured on the backend. Empty when none are available. */
+  availableProviders: OAuthProvider[];
 }
 
 export interface UseAuth extends AuthState {
@@ -33,8 +35,10 @@ export function useAuth(): UseAuth {
   const [user, setUser] = useState<UserProfile | null | undefined>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableProviders, setAvailableProviders] = useState<OAuthProvider[]>([]);
 
   // On mount: check URL for OAuth token, then try to hydrate profile.
+  // Also fetch the list of enabled OAuth providers from the backend.
   useEffect(() => {
     let cancelled = false;
 
@@ -62,6 +66,16 @@ export function useAuth(): UseAuth {
         }
       } else {
         if (!cancelled) setUser(undefined);
+      }
+
+      // 3. Fetch available OAuth providers (unconditional — the UI needs this
+      //    regardless of whether the user already has a token).
+      try {
+        const providers = await fetchProviders();
+        if (!cancelled) setAvailableProviders(providers);
+      } catch {
+        // Backend unreachable or endpoint missing — no OAuth available.
+        if (!cancelled) setAvailableProviders([]);
       }
 
       if (!cancelled) setLoading(false);
@@ -99,5 +113,5 @@ export function useAuth(): UseAuth {
     setError(null);
   }, []);
 
-  return { user, loading, error, loginAsGuest, loginWithProvider, logout };
+  return { user, loading, error, availableProviders, loginAsGuest, loginWithProvider, logout };
 }

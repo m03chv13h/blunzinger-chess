@@ -27,7 +27,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "dev-secret-key-change-in-production-min-32-chars!!";
 var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
-builder.Services.AddAuthentication(options =>
+// Track which OAuth providers have credentials configured.
+var enabledOAuthProviders = new List<string>();
+
+var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -59,38 +62,71 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-})
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["OAuth:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["OAuth:Google:ClientSecret"] ?? "";
-})
-.AddMicrosoftAccount(options =>
-{
-    options.ClientId = builder.Configuration["OAuth:Microsoft:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["OAuth:Microsoft:ClientSecret"] ?? "";
-})
-.AddOAuth("GitHub", options =>
-{
-    options.ClientId = builder.Configuration["OAuth:GitHub:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"] ?? "";
-    options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
-    options.TokenEndpoint = "https://github.com/login/oauth/access_token";
-    options.UserInformationEndpoint = "https://api.github.com/user";
-    options.CallbackPath = "/signin-github";
-    options.Scope.Add("user:email");
-})
-.AddOAuth("Discord", options =>
-{
-    options.ClientId = builder.Configuration["OAuth:Discord:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["OAuth:Discord:ClientSecret"] ?? "";
-    options.AuthorizationEndpoint = "https://discord.com/api/oauth2/authorize";
-    options.TokenEndpoint = "https://discord.com/api/oauth2/token";
-    options.UserInformationEndpoint = "https://discord.com/api/users/@me";
-    options.CallbackPath = "/signin-discord";
-    options.Scope.Add("identify");
-    options.Scope.Add("email");
 });
+
+// Only register OAuth providers whose ClientId and ClientSecret are both provided.
+
+var googleClientId = builder.Configuration["OAuth:Google:ClientId"];
+var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+    });
+    enabledOAuthProviders.Add("Google");
+}
+
+var msClientId = builder.Configuration["OAuth:Microsoft:ClientId"];
+var msClientSecret = builder.Configuration["OAuth:Microsoft:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(msClientId) && !string.IsNullOrWhiteSpace(msClientSecret))
+{
+    authBuilder.AddMicrosoftAccount(options =>
+    {
+        options.ClientId = msClientId;
+        options.ClientSecret = msClientSecret;
+    });
+    enabledOAuthProviders.Add("Microsoft");
+}
+
+var ghClientId = builder.Configuration["OAuth:GitHub:ClientId"];
+var ghClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(ghClientId) && !string.IsNullOrWhiteSpace(ghClientSecret))
+{
+    authBuilder.AddOAuth("GitHub", options =>
+    {
+        options.ClientId = ghClientId;
+        options.ClientSecret = ghClientSecret;
+        options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+        options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+        options.UserInformationEndpoint = "https://api.github.com/user";
+        options.CallbackPath = "/signin-github";
+        options.Scope.Add("user:email");
+    });
+    enabledOAuthProviders.Add("GitHub");
+}
+
+var discordClientId = builder.Configuration["OAuth:Discord:ClientId"];
+var discordClientSecret = builder.Configuration["OAuth:Discord:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(discordClientId) && !string.IsNullOrWhiteSpace(discordClientSecret))
+{
+    authBuilder.AddOAuth("Discord", options =>
+    {
+        options.ClientId = discordClientId;
+        options.ClientSecret = discordClientSecret;
+        options.AuthorizationEndpoint = "https://discord.com/api/oauth2/authorize";
+        options.TokenEndpoint = "https://discord.com/api/oauth2/token";
+        options.UserInformationEndpoint = "https://discord.com/api/users/@me";
+        options.CallbackPath = "/signin-discord";
+        options.Scope.Add("identify");
+        options.Scope.Add("email");
+    });
+    enabledOAuthProviders.Add("Discord");
+}
+
+// Make the enabled providers list available via DI.
+builder.Services.AddSingleton(new EnabledOAuthProviders(enabledOAuthProviders));
 
 builder.Services.AddAuthorization();
 

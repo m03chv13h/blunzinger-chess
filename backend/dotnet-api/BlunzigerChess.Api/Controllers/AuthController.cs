@@ -8,14 +8,20 @@ namespace BlunzigerChess.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AuthService authService) : ControllerBase
+public class AuthController(AuthService authService, EnabledOAuthProviders enabledProviders) : ControllerBase
 {
+    /// <summary>Return the list of OAuth providers that are configured and available.</summary>
+    [HttpGet("providers")]
+    public IActionResult GetProviders()
+    {
+        return Ok(new { providers = enabledProviders.Providers });
+    }
+
     /// <summary>Initiate OAuth login for a specific provider.</summary>
     [HttpGet("login/{provider}")]
     public IActionResult Login(string provider, [FromQuery] string? returnUrl = null)
     {
-        var validProviders = new[] { "Google", "GitHub", "Discord", "Microsoft" };
-        if (!validProviders.Contains(provider, StringComparer.OrdinalIgnoreCase))
+        if (!enabledProviders.Contains(provider, StringComparer.OrdinalIgnoreCase))
             return BadRequest(new { error = "Unsupported provider" });
 
         var properties = new AuthenticationProperties
