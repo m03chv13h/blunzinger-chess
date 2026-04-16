@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BlutwurstIcon } from './BlutwurstIcon';
 import './Sidebar.css';
 
 export type NavSection = 'quick-start' | 'new-game' | 'analyse' | 'simulate' | 'rules';
@@ -33,7 +34,7 @@ export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) 
 
       <nav className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar-header">
-          <h2>♟ Blunziger Chess</h2>
+          <h2><BlutwurstIcon /> Blunziger Chess</h2>
         </div>
 
         <ul className="sidebar-nav">
