@@ -88,7 +88,8 @@ export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Prom
   });
 
   if (res.status === 204) {
-    return undefined as T;
+    // 204 No Content — callers should use apiFetch<void> for these endpoints.
+    return undefined as unknown as T;
   }
 
   const contentType = res.headers.get('content-type') ?? '';
