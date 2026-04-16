@@ -28,7 +28,7 @@ describe('WelcomeScreen', () => {
 
   it('renders the title and subtitle', () => {
     render(<WelcomeScreen {...defaultProps} />);
-    expect(screen.getByText('♟ Blunziger Chess')).toBeInTheDocument();
+    expect(screen.getByText('Blunziger Chess')).toBeInTheDocument();
     expect(screen.getByText('A chess variant where every check counts.')).toBeInTheDocument();
   });
 
@@ -113,7 +113,7 @@ describe('App starts on welcome screen', () => {
   it('shows the welcome screen on first load', async () => {
     const App = (await import('../App')).default;
     render(<App />);
-    expect(screen.getByText('♟ Blunziger Chess')).toBeInTheDocument();
+    expect(screen.getByText('Blunziger Chess')).toBeInTheDocument();
     expect(screen.getByText('▶ Continue as Guest')).toBeInTheDocument();
   });
 
