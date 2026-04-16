@@ -7,6 +7,7 @@ using BlunzigerChess.Proto;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,6 +117,10 @@ builder.Services.AddSignalR();
 
 builder.Services.AddControllers();
 
+// ── OpenAPI ──────────────────────────────────────────────────────────
+
+builder.Services.AddOpenApi();
+
 // ── CORS ─────────────────────────────────────────────────────────────
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -144,6 +149,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
+
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
