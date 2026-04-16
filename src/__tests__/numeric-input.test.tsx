@@ -4,6 +4,19 @@ import '@testing-library/jest-dom';
 import { NumericInput } from '../components/NumericInput';
 import App from '../App';
 
+// Mock useAuth so App skips the welcome screen and lands on quick-start.
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { userId: 'test', displayName: 'Test', isGuest: true, provider: 'guest' },
+    loading: false,
+    error: null,
+    availableProviders: [],
+    loginAsGuest: vi.fn(),
+    loginWithProvider: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
 describe('NumericInput component', () => {
   it('shows the initial value', () => {
     const onChange = vi.fn();
