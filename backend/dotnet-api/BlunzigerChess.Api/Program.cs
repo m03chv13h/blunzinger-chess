@@ -187,10 +187,16 @@ var app = builder.Build();
 
 // ── Middleware Pipeline ──────────────────────────────────────────────
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-});
+};
+// Cloud PaaS proxies (Render, etc.) use dynamic IPs; clear the default
+// loopback-only lists so the middleware accepts their forwarded headers.
+// ForwardLimit = 1 (the default) still prevents chained header spoofing.
+forwardedHeadersOptions.KnownProxies.Clear();
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
