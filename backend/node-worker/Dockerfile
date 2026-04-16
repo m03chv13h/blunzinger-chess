@@ -3,6 +3,7 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 # Copy shared frontend core modules (the worker depends on these)
+COPY src/package.json src/package.json
 COPY src/core/ src/core/
 COPY src/bot/ src/bot/
 
@@ -17,6 +18,7 @@ RUN npm ci
 FROM node:22-alpine
 WORKDIR /app
 
+COPY --from=build /app/src/package.json src/package.json
 COPY --from=build /app/src/core/ src/core/
 COPY --from=build /app/src/bot/ src/bot/
 COPY --from=build /app/backend/node-worker/ backend/node-worker/
