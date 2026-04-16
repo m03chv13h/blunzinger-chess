@@ -160,11 +160,10 @@ app.MapScalarApiReference();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
-// ── Auto-migrate in development ──────────────────────────────────────
+// ── Auto-migrate database ────────────────────────────────────────────
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
 }
