@@ -164,8 +164,10 @@ builder.Services.AddOpenApi();
 
 // ── CORS ─────────────────────────────────────────────────────────────
 
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? ["http://localhost:5173", "http://localhost:4173"];
+var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:5173", "http://localhost:4173"])
+    .Select(o => o.Contains("://") ? o : $"https://{o}")
+    .ToArray();
 
 builder.Services.AddCors(options =>
 {
