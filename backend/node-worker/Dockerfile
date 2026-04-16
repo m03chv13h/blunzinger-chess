@@ -22,6 +22,10 @@ COPY --from=build /app/src/bot/ src/bot/
 COPY --from=build /app/backend/node-worker/ backend/node-worker/
 COPY --from=build /app/backend/proto/ backend/proto/
 
+# Symlink so that shared source files (src/core/, src/bot/) can resolve
+# npm packages installed in the worker's node_modules (e.g. chess.js).
+RUN ln -s /app/backend/node-worker/node_modules /app/node_modules
+
 WORKDIR /app/backend/node-worker
 
 ENV PORT=50051
