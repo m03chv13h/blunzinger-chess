@@ -14,7 +14,8 @@
     "rootDir": "../..",
     "paths": {
       "@core/*": ["../../src/core/*"],
-      "@bot/*": ["../../src/bot/*"]
+      "@bot/*": ["../../src/bot/*"],
+      "chess.js": ["./node_modules/chess.js"]
     },
     "baseUrl": "."
   },
