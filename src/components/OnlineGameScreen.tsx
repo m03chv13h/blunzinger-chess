@@ -8,6 +8,8 @@ import type {
   OpponentDropMoveEvent,
   OpponentPieceRemovalEvent,
   PlayerJoinedEvent,
+  PlayerLeftEvent,
+  GameOverEvent,
 } from '../hooks/useGameHub';
 import { useEvaluation } from '../hooks/useEvaluation';
 import { useReview } from '../hooks/useReview';
@@ -81,15 +83,18 @@ export function OnlineGameScreen({
     game.selectPieceForRemoval(event.square as Square);
   }, [game]);
 
-  const setOpponentOnlineTrue = useCallback(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handlePlayerJoined = useCallback((_event: PlayerJoinedEvent) => {
     setOpponentOnline(true);
   }, []);
 
-  const setOpponentOnlineFalse = useCallback(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleOpponentDisconnected = useCallback((_event: PlayerLeftEvent) => {
     setOpponentOnline(false);
   }, []);
 
-  const handleGameOver = useCallback(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleGameOver = useCallback((_event: GameOverEvent) => {
     // Game over from server (resignation, draw agreement)
     // The local game engine handles checkmate/stalemate already
   }, []);
@@ -107,20 +112,27 @@ export function OnlineGameScreen({
     onOpponentDropMove: handleOpponentDropMove,
     onOpponentReported: handleOpponentReported,
     onOpponentPieceRemoval: handleOpponentPieceRemoval,
-    onPlayerJoined: setOpponentOnlineTrue as (event: PlayerJoinedEvent) => void,
-    onOpponentDisconnected: setOpponentOnlineFalse as () => void,
-    onOpponentReconnected: setOpponentOnlineTrue as (event: PlayerJoinedEvent) => void,
-    onGameOver: handleGameOver as () => void,
+    onPlayerJoined: handlePlayerJoined,
+    onOpponentDisconnected: handleOpponentDisconnected,
+    onOpponentReconnected: handlePlayerJoined,
+    onGameOver: handleGameOver,
     onDrawOffered: handleDrawOffered,
     onError: handleError,
   });
 
-  // Connect to hub and join room on mount
-  const joinedRef = useRef(false);
+  // Initialize game and connect to hub on mount.
+  // Dependencies are intentionally omitted: this effect runs exactly once
+  // to set up the game state and SignalR connection for the lifetime of
+  // this component instance.
+  const initRef = useRef(false);
   useEffect(() => {
-    if (joinedRef.current) return;
-    joinedRef.current = true;
+    if (initRef.current) return;
+    initRef.current = true;
 
+    // Reset local game engine with the match config
+    game.resetGame('hvh', matchConfig);
+
+    // Connect to hub and join room
     (async () => {
       try {
         if (!hub.connected) {
@@ -131,15 +143,6 @@ export function OnlineGameScreen({
         setHubError('Failed to connect to game server');
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Reset game with the match config on mount
-  const resetRef = useRef(false);
-  useEffect(() => {
-    if (resetRef.current) return;
-    resetRef.current = true;
-    game.resetGame('hvh', matchConfig);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -42,7 +42,11 @@ export function OnlineLobbyScreen({
     onError: (msg) => setHubError(msg),
   });
 
-  // Connect to hub and create room on mount
+  // Connect to hub and create room on mount.
+  // Dependencies are limited to `authenticated` to run only when auth
+  // state is ready. `hub`, `lobby`, and `config` are stable across
+  // renders (hooks return memoized objects) and including them would
+  // trigger duplicate room creation.
   useEffect(() => {
     if (!authenticated || isStaticMode || createdRef.current) return;
     createdRef.current = true;
