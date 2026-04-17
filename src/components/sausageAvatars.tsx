@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 interface SausageAvatarProps {
   size?: string;
 }
@@ -7,7 +5,7 @@ interface SausageAvatarProps {
 const defaultSize = '1em';
 
 /** Krakauer – a smoked, reddish-brown sausage with speckled seasoning. */
-export function KrakauerAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function KrakauerAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Casing */}
@@ -31,7 +29,7 @@ export function KrakauerAvatar({ size = defaultSize }: SausageAvatarProps): Reac
 }
 
 /** Blunze (Blunzenwurst) – dark blood sausage cross-section with fat inclusions. */
-export function BlunzeAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function BlunzeAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Outer casing */}
@@ -54,7 +52,7 @@ export function BlunzeAvatar({ size = defaultSize }: SausageAvatarProps): ReactN
 }
 
 /** Käsekrainer – grilled sausage with melted cheese bursting through. */
-export function KaesekrainerAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function KaesekrainerAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Sausage body */}
@@ -75,7 +73,7 @@ export function KaesekrainerAvatar({ size = defaultSize }: SausageAvatarProps): 
 }
 
 /** Eitrige – Viennese-style cheese sausage with split casing showing cheese. */
-export function EitrigeAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function EitrigeAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Sausage body */}
@@ -95,7 +93,7 @@ export function EitrigeAvatar({ size = defaultSize }: SausageAvatarProps): React
 }
 
 /** Currywurst – sliced sausage pieces with curry-ketchup sauce drizzled on top. */
-export function CurrywurstAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function CurrywurstAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Sliced sausage pieces */}
@@ -120,7 +118,7 @@ export function CurrywurstAvatar({ size = defaultSize }: SausageAvatarProps): Re
 }
 
 /** Depreziner (Debreziner) – spicy red paprika sausage, slender and bright. */
-export function DeprezinerAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function DeprezinerAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Sausage body – bright paprika red */}
@@ -141,7 +139,7 @@ export function DeprezinerAvatar({ size = defaultSize }: SausageAvatarProps): Re
 }
 
 /** Bratwurst – golden-brown grilled sausage with char marks. */
-export function BratwurstAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function BratwurstAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Sausage body */}
@@ -159,7 +157,7 @@ export function BratwurstAvatar({ size = defaultSize }: SausageAvatarProps): Rea
 }
 
 /** Fleischwurst – smooth, pink bologna-style ring sausage. */
-export function FleischwurstAvatar({ size = defaultSize }: SausageAvatarProps): ReactNode {
+export function FleischwurstAvatar({ size = defaultSize }: SausageAvatarProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       {/* Ring shape – outer */}

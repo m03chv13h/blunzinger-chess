@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { UseUserProfile } from '../hooks/useUserProfile';
-import { AVATAR_PRESETS, getAvatarSvg } from './avatarPresets';
+import { AVATAR_PRESETS, getAvatarDisplay } from './avatarPresets';
 import './ProfileSettingsScreen.css';
 
 interface ProfileSettingsScreenProps {
@@ -96,7 +96,7 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
           {currentAvatar && (
             <div className="profile-current-avatar">
               <span className="profile-current-avatar-emoji">
-                {getAvatarSvg(currentAvatar.id)?.({ size: '32px' }) ?? currentAvatar.emoji}
+                {getAvatarDisplay(currentAvatar.id, '32px')}
               </span>
               <span className="profile-current-avatar-label">Current: {currentAvatar.label}</span>
             </div>
@@ -115,7 +115,7 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
                 title={preset.label}
               >
                 <span className="profile-avatar-emoji">
-                  {getAvatarSvg(preset.id)?.({ size: '28px' }) ?? preset.emoji}
+                  {getAvatarDisplay(preset.id, '28px')}
                 </span>
                 <span className="profile-avatar-label">{preset.label}</span>
               </button>

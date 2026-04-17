@@ -66,7 +66,3 @@ export function getAvatarDisplay(avatarId: string | undefined | null, size?: str
   return AVATAR_PRESETS.find(a => a.id === avatarId)?.emoji;
 }
 
-/** Look up the SVG component for a given avatar ID. Returns undefined if not found. */
-export function getAvatarSvg(avatarId: string): ((props: { size?: string }) => ReactNode) | undefined {
-  return SAUSAGE_SVG[avatarId];
-}
