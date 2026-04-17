@@ -725,4 +725,72 @@ describe('Chess960 Config Building', () => {
     expect(DEFAULT_CONFIG.overlays.enableChess960).toBe(false);
     expect(DEFAULT_CONFIG.initialFen).toBe(INITIAL_FEN);
   });
+
+  it('buildMatchConfig uses pre-resolved chess960Index from setup config', () => {
+    // Simulates online game flow: host pre-resolves chess960 index before sharing config
+    const index = 42;
+    const expectedFen = chess960IndexToFen(index);
+    const config = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableChess960: true,
+      chess960Index: index,
+      initialFen: expectedFen,
+    });
+
+    expect(config.chess960Index).toBe(index);
+    expect(config.initialFen).toBe(expectedFen);
+    expect(config.overlays.enableChess960).toBe(true);
+  });
+
+  it('buildMatchConfig derives FEN from pre-resolved chess960Index when initialFen not set', () => {
+    const index = 100;
+    const config = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableChess960: true,
+      chess960Index: index,
+    });
+
+    expect(config.chess960Index).toBe(index);
+    expect(config.initialFen).toBe(chess960IndexToFen(index));
+  });
+
+  it('host and guest produce identical MatchConfig from serialized setup config', () => {
+    // Simulates the online flow: host pre-resolves, serializes config,
+    // guest deserializes and both call buildMatchConfig.
+    const index = 314;
+    const fen = chess960IndexToFen(index);
+
+    const hostSetup = {
+      ...DEFAULT_SETUP_CONFIG,
+      enableChess960: true,
+      chess960Index: index,
+      initialFen: fen,
+    };
+
+    // Guest receives the same config via JSON serialization
+    const guestSetup = JSON.parse(JSON.stringify(hostSetup)) as typeof hostSetup;
+
+    const hostMatch = buildMatchConfig(hostSetup);
+    const guestMatch = buildMatchConfig(guestSetup);
+
+    expect(hostMatch.chess960Index).toBe(guestMatch.chess960Index);
+    expect(hostMatch.initialFen).toBe(guestMatch.initialFen);
+    expect(hostMatch.overlays.enableChess960).toBe(guestMatch.overlays.enableChess960);
+  });
+
+  it('pre-resolved chess960 config produces correct game state', () => {
+    const index = 200;
+    const fen = chess960IndexToFen(index);
+    const config = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableChess960: true,
+      chess960Index: index,
+      initialFen: fen,
+    });
+
+    const state = createInitialState('hvh', config);
+    expect(state.fen).toBe(fen);
+    expect(state.chess960).not.toBeNull();
+    expect(state.chess960!.positionIndex).toBe(index);
+  });
 });

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { GameSetupConfig, CrazyhousePieceType } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
+import { getRandomChess960Index, chess960IndexToFen } from './core/blunziger/chess960';
 import type { Square, Color } from './core/blunziger/types';
 import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
@@ -181,8 +182,16 @@ function App() {
   const handleStartGame = (config: GameSetupConfig, isOnline?: boolean) => {
     setLastConfig(config);
     if (isOnline) {
-      // Online game: go to the lobby to create a room and wait for opponent
-      setScreen({ type: 'online-lobby', config });
+      // Online game: pre-resolve the Chess960 position so both players
+      // share the same starting placement. Without this, each client
+      // would independently call getRandomChess960Index() and end up
+      // with different starting positions.
+      let onlineConfig = config;
+      if (config.enableChess960 && config.chess960Index == null && !config.initialFen) {
+        const idx = getRandomChess960Index();
+        onlineConfig = { ...config, chess960Index: idx, initialFen: chess960IndexToFen(idx) };
+      }
+      setScreen({ type: 'online-lobby', config: onlineConfig });
       return;
     }
     setScreen({ type: 'playing', config });
