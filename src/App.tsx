@@ -289,6 +289,7 @@ function App() {
   };
 
   const handleContinueAsGuest = () => {
+    auth.loginAsGuest();
     setScreen({ type: 'quick-start' });
   };
 

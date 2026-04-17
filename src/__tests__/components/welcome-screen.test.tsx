@@ -12,13 +12,14 @@ vi.mock('../../config/deployMode', () => ({
 }));
 
 // Mock useAuth so the App-level tests in this file show the welcome screen (no user).
+const mockLoginAsGuest = vi.fn();
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     user: undefined,
     loading: false,
     error: null,
     availableProviders: [],
-    loginAsGuest: vi.fn(),
+    loginAsGuest: mockLoginAsGuest,
     loginWithProvider: vi.fn(),
     logout: vi.fn(),
   }),
@@ -129,5 +130,13 @@ describe('App starts on welcome screen', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Continue as Guest'));
     expect(screen.getByText('⚡ Quick Start')).toBeInTheDocument();
+  });
+
+  it('calls loginAsGuest when clicking Continue as Guest', async () => {
+    mockLoginAsGuest.mockClear();
+    const App = (await import('../../App')).default;
+    render(<App />);
+    fireEvent.click(screen.getByText('▶ Continue as Guest'));
+    expect(mockLoginAsGuest).toHaveBeenCalledOnce();
   });
 });
