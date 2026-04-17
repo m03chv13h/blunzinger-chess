@@ -42,9 +42,12 @@ public class AuthController(AuthService authService, EnabledOAuthProviders enabl
     [HttpGet("callback/{provider}")]
     public async Task<IActionResult> OAuthCallback(string provider)
     {
-        var result = await HttpContext.AuthenticateAsync(provider);
+        var result = await HttpContext.AuthenticateAsync("ExternalCookie");
         if (!result.Succeeded)
             return BadRequest(new { error = "Authentication failed" });
+
+        // Clean up the temporary external cookie
+        await HttpContext.SignOutAsync("ExternalCookie");
 
         var claims = result.Principal?.Claims.ToList() ?? [];
         var providerId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
