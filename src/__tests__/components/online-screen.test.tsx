@@ -68,7 +68,7 @@ beforeEach(() => {
 describe('OnlineScreen (unauthenticated)', () => {
   it('shows sign-in prompt when not authenticated', () => {
     render(<OnlineScreen authenticated={false} />);
-    expect(screen.getByText(/Join Online Game/)).toBeInTheDocument();
+    expect(screen.getByText(/Lobby \(join online Game\)/)).toBeInTheDocument();
     expect(screen.getByText(/Sign in to play online/)).toBeInTheDocument();
   });
 

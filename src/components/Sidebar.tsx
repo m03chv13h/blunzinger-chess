@@ -73,7 +73,7 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
               title={!isConnected ? 'Online play requires a backend connection' : undefined}
             >
               <span className="sidebar-icon">🌐</span>
-              <span className="sidebar-label">Join Online Game</span>
+              <span className="sidebar-label">Lobby (join online Game)</span>
               {!isConnected && <span className="sidebar-badge sidebar-badge--offline">offline</span>}
             </button>
           </li>
