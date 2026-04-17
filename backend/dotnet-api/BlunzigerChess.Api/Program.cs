@@ -167,14 +167,17 @@ builder.Services.AddOpenApi();
 
 var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:5173", "http://localhost:4173"])
+    .Select(o => o.Trim())
+    .Where(o => !string.IsNullOrEmpty(o))
     .Select(o => o.Contains("://") ? o : $"https://{o}")
-    .ToArray();
+    .Select(o => o.TrimEnd('/'))
+    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin => allowedOrigins.Contains(origin.TrimEnd('/')))
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -198,6 +201,9 @@ forwardedHeadersOptions.KnownProxies.Clear();
 forwardedHeadersOptions.KnownIPNetworks.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseCors();
+
+app.Logger.LogInformation("CORS allowed origins: {Origins}", string.Join(", ", allowedOrigins));
+
 app.UseAuthentication();
 app.UseAuthorization();
 
