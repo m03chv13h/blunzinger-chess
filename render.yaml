@@ -13,6 +13,8 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      - key: VITE_DEPLOY_MODE
+        value: connected
       - key: VITE_API_BASE_URL
         fromService:
           type: web

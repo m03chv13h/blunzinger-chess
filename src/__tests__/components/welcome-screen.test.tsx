@@ -4,6 +4,13 @@ import '@testing-library/jest-dom';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import type { OAuthProvider } from '../../services/authService';
 
+// Force connected mode so the App-level tests see the welcome screen.
+vi.mock('../../config/deployMode', () => ({
+  DEPLOY_MODE: 'connected',
+  isConnectedMode: true,
+  isStaticMode: false,
+}));
+
 // Mock useAuth so the App-level tests in this file show the welcome screen (no user).
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({

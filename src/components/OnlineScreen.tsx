@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isStaticMode } from '../config/deployMode';
 import { useLobby } from '../hooks/useLobby';
 import { useGameHub } from '../hooks/useGameHub';
 import type { RoomListItem } from '../services/lobbyService';
@@ -83,6 +84,22 @@ export function OnlineScreen({ authenticated }: OnlineScreenProps) {
     lobby.clearActiveRoom();
     setPlayerJoined(false);
   }, [hub, lobby]);
+
+  // Static mode – online play is not available.
+  if (isStaticMode) {
+    return (
+      <div className="online-screen">
+        <div className="online-card">
+          <h2>🌐 Play Online</h2>
+          <p className="online-subtitle">Online play is not available in static mode.</p>
+          <p className="online-empty">
+            This instance is running as a standalone app without a backend connection.
+            To play online, deploy the app with <code>VITE_DEPLOY_MODE=connected</code> and a running backend API.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Not authenticated – prompt to sign in.
   if (!authenticated) {

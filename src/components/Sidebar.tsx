@@ -8,9 +8,15 @@ interface SidebarProps {
   activeSection: NavSection | 'playing';
   onNavigate: (section: NavSection) => void;
   gameCount: number;
+  /** Whether the app is running in connected (backend) mode. */
+  isConnected?: boolean;
+  /** Display name of the authenticated user (connected mode). */
+  userName?: string;
+  /** Logout handler (connected mode only). */
+  onLogout?: () => void;
 }
 
-export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) {
+export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, userName, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNav = (section: NavSection) => {
@@ -60,9 +66,12 @@ export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) 
             <button
               className={`sidebar-item ${activeSection === 'online' ? 'sidebar-item--active' : ''}`}
               onClick={() => handleNav('online')}
+              disabled={!isConnected}
+              title={!isConnected ? 'Online play requires a backend connection' : undefined}
             >
               <span className="sidebar-icon">🌐</span>
               <span className="sidebar-label">Play Online</span>
+              {!isConnected && <span className="sidebar-badge sidebar-badge--offline">offline</span>}
             </button>
           </li>
           <li>
@@ -94,6 +103,17 @@ export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) 
             </button>
           </li>
         </ul>
+
+        {isConnected && userName && (
+          <div className="sidebar-user">
+            <span className="sidebar-user-name" title={userName}>👤 {userName}</span>
+            {onLogout && (
+              <button className="sidebar-logout-btn" onClick={onLogout}>
+                Sign out
+              </button>
+            )}
+          </div>
+        )}
       </nav>
     </>
   );

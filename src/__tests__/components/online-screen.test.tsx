@@ -3,6 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineScreen } from '../../components/OnlineScreen';
 
+// Force connected mode for all online-screen tests.
+vi.mock('../../config/deployMode', () => ({
+  DEPLOY_MODE: 'connected',
+  isConnectedMode: true,
+  isStaticMode: false,
+}));
+
 // ── Mocks ────────────────────────────────────────────────────────────
 
 const mockLobby = {

@@ -4,6 +4,8 @@ import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
 import type { Square } from './core/blunziger/types';
 import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
+import { isStaticMode, isConnectedMode } from './config/deployMode';
+import { DeployModeProvider } from './config/DeployModeContext';
 import { Sidebar } from './components/Sidebar';
 import type { NavSection } from './components/Sidebar';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -30,6 +32,8 @@ import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
+import { useGameHistory } from './hooks/useGameHistory';
+import { useUserProfile } from './hooks/useUserProfile';
 import './App.css';
 
 type AppScreen =
@@ -45,17 +49,30 @@ type AppScreen =
 
 function App() {
   const auth = useAuth();
-  const [screen, setScreen] = useState<AppScreen>({ type: 'welcome' });
+  // In static mode, skip welcome and start at quick-start.
+  const [screen, setScreen] = useState<AppScreen>(
+    isStaticMode ? { type: 'quick-start' } : { type: 'welcome' },
+  );
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
   const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
 
+  // Backend-connected hooks (no-ops in static mode).
+  const gameHistoryBackend = useGameHistory();
+  const userProfile = useUserProfile(!!auth.user);
+
+  // In connected mode, include remote game count in the sidebar badge.
+  const remoteGameCount = isConnectedMode ? userProfile.profile?.gameCount ?? 0 : 0;
+
   // If the user is already authenticated (e.g. returning with a stored token),
-  // skip the welcome screen automatically.
+  // skip the welcome screen automatically (connected mode only).
   const skippedWelcomeRef = useRef(false);
   useEffect(() => {
-    if (!auth.loading && auth.user && screen.type === 'welcome' && !skippedWelcomeRef.current) {
+    if (
+      isConnectedMode &&
+      !auth.loading && auth.user && screen.type === 'welcome' && !skippedWelcomeRef.current
+    ) {
       skippedWelcomeRef.current = true;
       setScreen({ type: 'quick-start' });
     }
@@ -129,9 +146,13 @@ function App() {
     const record = pendingRecordRef.current;
     if (record) {
       setGameHistory(prev => [record, ...prev]);
+      // Also persist to backend in connected mode.
+      if (isConnectedMode) {
+        gameHistoryBackend.saveGameToBackend(record);
+      }
       pendingRecordRef.current = null;
     }
-  }, []);
+  }, [gameHistoryBackend]);
 
   // The state used for evaluation: reviewed state when reviewing, otherwise live state.
   const stateForEval = review.reviewedGameState ?? game.state;
@@ -271,33 +292,39 @@ function App() {
     setScreen({ type: 'quick-start' });
   };
 
-  const analyseCount = gameHistory.length + simulationHistory.length;
+  const analyseCount = gameHistory.length + simulationHistory.length + remoteGameCount;
 
-  // Render welcome / login screen before everything else.
-  if (screen.type === 'welcome') {
+  // Render welcome / login screen before everything else (connected mode only).
+  if (screen.type === 'welcome' && isConnectedMode) {
     return (
-      <WelcomeScreen
-        availableProviders={auth.availableProviders}
-        loading={auth.loading}
-        error={auth.error}
-        onLoginWithProvider={auth.loginWithProvider}
-        onContinueAsGuest={handleContinueAsGuest}
-      />
+      <DeployModeProvider>
+        <WelcomeScreen
+          availableProviders={auth.availableProviders}
+          loading={auth.loading}
+          error={auth.error}
+          onLoginWithProvider={auth.loginWithProvider}
+          onContinueAsGuest={handleContinueAsGuest}
+        />
+      </DeployModeProvider>
     );
   }
 
   // Render setup screens (non-playing)
   if (screen.type !== 'playing') {
     return (
-      <div className="app-layout">
-        <Sidebar
-          activeSection={activeSection}
-          onNavigate={handleNavigate}
-          gameCount={analyseCount}
-        />
-        <div className="app-with-sidebar">
-          <main className="app-main">
-            {screen.type === 'quick-start' && (
+      <DeployModeProvider>
+        <div className="app-layout">
+          <Sidebar
+            activeSection={activeSection}
+            onNavigate={handleNavigate}
+            gameCount={analyseCount}
+            isConnected={isConnectedMode}
+            userName={auth.user?.displayName}
+            onLogout={isConnectedMode ? auth.logout : undefined}
+          />
+          <div className="app-with-sidebar">
+            <main className="app-main">
+              {screen.type === 'quick-start' && (
               <QuickStartScreen onStartGame={handleStartGame} />
             )}
             {screen.type === 'new-game' && (
@@ -335,17 +362,22 @@ function App() {
           </main>
         </div>
       </div>
+      </DeployModeProvider>
     );
   }
 
   // Playing screen
   return (
-    <div className="app-layout">
-      <Sidebar
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-        gameCount={analyseCount}
-      />
+    <DeployModeProvider>
+      <div className="app-layout">
+        <Sidebar
+          activeSection={activeSection}
+          onNavigate={handleNavigate}
+          gameCount={analyseCount}
+          isConnected={isConnectedMode}
+          userName={auth.user?.displayName}
+          onLogout={isConnectedMode ? auth.logout : undefined}
+        />
       <div className="app-with-sidebar">
         <main className="app-main">
           <aside className="left-panel">
@@ -436,6 +468,7 @@ function App() {
         </main>
       </div>
     </div>
+    </DeployModeProvider>
   );
 }
 

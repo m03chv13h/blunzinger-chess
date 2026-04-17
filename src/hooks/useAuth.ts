@@ -1,12 +1,16 @@
 /**
  * useAuth – React hook for authentication state.
  *
- * On mount it checks for an existing JWT (from localStorage or from an
- * OAuth redirect `?token=…` parameter) and hydrates the user profile.
- * Exposes helpers for guest login, OAuth redirect, and logout.
+ * In connected mode: checks for an existing JWT (from localStorage or
+ * from an OAuth redirect `?token=…` parameter) and hydrates the user
+ * profile. Exposes helpers for guest login, OAuth redirect, and logout.
+ *
+ * In static mode: immediately resolves with a synthetic local-only user.
+ * No network requests are made.
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { isStaticMode } from '../config/deployMode';
 import type { UserProfile, OAuthProvider } from '../services/authService';
 import { createGuest, fetchMe, fetchProviders, getOAuthLoginUrl } from '../services/authService';
 import { getToken, setToken, clearToken } from '../services/apiClient';
@@ -31,15 +35,31 @@ export interface UseAuth extends AuthState {
   logout: () => void;
 }
 
+/** Synthetic user returned in static (no-backend) mode. */
+const STATIC_USER: UserProfile = {
+  userId: 'local',
+  displayName: 'Local Player',
+  isGuest: true,
+  provider: 'local',
+};
+
 export function useAuth(): UseAuth {
   const [user, setUser] = useState<UserProfile | null | undefined>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isStaticMode);
   const [error, setError] = useState<string | null>(null);
   const [availableProviders, setAvailableProviders] = useState<OAuthProvider[]>([]);
 
-  // On mount: check URL for OAuth token, then try to hydrate profile.
-  // Also fetch the list of enabled OAuth providers from the backend.
+  // ── Static mode: resolve immediately with a local user ─────────────
   useEffect(() => {
+    if (isStaticMode) {
+      setUser(STATIC_USER);
+      return;
+    }
+  }, []);
+
+  // ── Connected mode: OAuth / JWT hydration ──────────────────────────
+  useEffect(() => {
+    if (isStaticMode) return;
     let cancelled = false;
 
     async function init() {
