@@ -3,6 +3,8 @@ import type { GameSetupConfig } from '../core/blunziger/types';
 import type { GameRecord } from '../core/gameRecord';
 import { getResultLabel } from '../core/gameRecord';
 import { runSimulatedGame } from '../core/simulation';
+import { isConnectedMode } from '../config/deployMode';
+import { runSimulatedGameRemote } from '../services/simulationService';
 
 export interface SimulationGameEntry {
   /** 1-based game number. */
@@ -82,7 +84,8 @@ export function useSimulation(): UseSimulationReturn {
     setRunning(false);
   }, []);
 
-  // Run simulation games one at a time using setTimeout for non-blocking execution
+  // Run simulation games one at a time using setTimeout for non-blocking execution.
+  // In connected mode, games are offloaded to the backend Node worker via the API.
   useEffect(() => {
     if (!running || !pendingRef.current) return;
     if (runningRef.current) return;
@@ -93,19 +96,7 @@ export function useSimulation(): UseSimulationReturn {
 
     let currentGame = 0;
 
-    const runNext = () => {
-      if (cancelledRef.current || currentGame >= count) {
-        runningRef.current = false;
-        setRunning(false);
-        return;
-      }
-
-      const gameIndex = currentGame;
-      currentGame++;
-
-      // Run the game synchronously (each game is fast for easy/medium bots)
-      const record = runSimulatedGame(simConfig);
-
+    const completeGame = (gameIndex: number, record: GameRecord) => {
       setGames((prev) => {
         const updated = [...prev];
         updated[gameIndex] = {
@@ -117,8 +108,41 @@ export function useSimulation(): UseSimulationReturn {
         };
         return updated;
       });
+    };
 
-      // Yield to the browser between games so the UI can render updates
+    // runNext is async so it can `await` remote API calls in connected mode.
+    // Sequential execution is guaranteed because the next setTimeout is
+    // only scheduled AFTER the current game (including any await) completes.
+    const runNext = async () => {
+      if (cancelledRef.current || currentGame >= count) {
+        runningRef.current = false;
+        setRunning(false);
+        return;
+      }
+
+      const gameIndex = currentGame;
+      currentGame++;
+
+      if (isConnectedMode) {
+        // Offload to the backend Node worker via the API
+        try {
+          const record = await runSimulatedGameRemote(simConfig);
+          if (cancelledRef.current) return;
+          completeGame(gameIndex, record);
+        } catch {
+          if (cancelledRef.current) return;
+          // Fall back to local simulation if the backend call fails
+          const record = runSimulatedGame(simConfig);
+          completeGame(gameIndex, record);
+        }
+      } else {
+        // Run locally (each game is fast for easy/medium bots)
+        const record = runSimulatedGame(simConfig);
+        completeGame(gameIndex, record);
+      }
+
+      // Yield to the browser between games so the UI can render updates.
+      // This is scheduled after the await above, ensuring one game at a time.
       setTimeout(runNext, 0);
     };
 

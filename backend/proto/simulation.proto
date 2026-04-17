@@ -11,6 +11,10 @@ import "common.proto";
 service SimulationService {
   // Run a complete bot-vs-bot game synchronously and return the game record
   rpc RunSimulatedGame(RunSimulatedGameRequest) returns (RunSimulatedGameResponse);
+
+  // JSON passthrough variant — accepts/returns native frontend JSON to avoid
+  // complex enum mapping on the .NET gateway side.
+  rpc RunSimulatedGameJson(RunSimulatedGameJsonRequest) returns (RunSimulatedGameJsonResponse);
 }
 
 // ── Requests & Responses ─────────────────────────────────────────────
@@ -20,4 +24,11 @@ message RunSimulatedGameRequest {
 }
 message RunSimulatedGameResponse {
   GameRecord record = 1;
+}
+
+message RunSimulatedGameJsonRequest {
+  string config_json = 1;
+}
+message RunSimulatedGameJsonResponse {
+  string record_json = 1;
 }

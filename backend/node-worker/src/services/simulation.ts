@@ -70,6 +70,21 @@ export const simulationHandlers = {
       callback(toGrpcError(err));
     }
   },
+
+  /**
+   * JSON passthrough variant — accepts and returns native frontend JSON
+   * so the .NET API gateway can forward requests without complex enum mapping.
+   */
+  RunSimulatedGameJson(call: Call<unknown>, callback: Callback<unknown>) {
+    try {
+      const req = call.request as { configJson: string };
+      const config = JSON.parse(req.configJson) as import('../../../../src/core/blunziger/types.js').GameSetupConfig;
+      const record = runSimulatedGame(config);
+      callback(null, { recordJson: JSON.stringify(record) });
+    } catch (err) {
+      callback(toGrpcError(err));
+    }
+  },
 };
 
 function toGrpcError(err: unknown): { code: number; message: string } {

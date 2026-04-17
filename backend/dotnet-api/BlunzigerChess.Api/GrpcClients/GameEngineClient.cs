@@ -97,4 +97,15 @@ public class GameEngineClient(
             new RunSimulatedGameRequest { Config = config });
         return response.Record;
     }
+
+    /// <summary>
+    /// JSON passthrough variant — sends the frontend config JSON directly to the
+    /// Node worker and returns the result JSON without proto enum mapping.
+    /// </summary>
+    public async Task<string> RunSimulatedGameJsonAsync(string configJson)
+    {
+        var response = await simulation.RunSimulatedGameJsonAsync(
+            new RunSimulatedGameJsonRequest { ConfigJson = configJson });
+        return response.RecordJson;
+    }
 }
