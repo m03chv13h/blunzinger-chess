@@ -42,30 +42,6 @@
   margin: 0 0 8px 0;
 }
 
-/* ── Create Room ──────────────────────────────────────────────────── */
-
-.online-create-btn {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  transition: background 0.15s;
-}
-
-.online-create-btn:hover {
-  background: #218838;
-}
-
-.online-create-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* ── Join Room ────────────────────────────────────────────────────── */
 
 .online-join-row {

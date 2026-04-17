@@ -43,18 +43,6 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
-  const handleCreateRoom = useCallback(async () => {
-    setHubError(null);
-    setPlayerJoined(false);
-    try {
-      const res = await lobby.createRoom('{}');
-      // Join the SignalR room group after REST creation.
-      await hub.joinRoom(res.code);
-    } catch {
-      // Error is already set in lobby state.
-    }
-  }, [lobby, hub]);
-
   const handleJoinRoom = useCallback(async () => {
     if (!joinCode.trim()) return;
     setHubError(null);
@@ -114,7 +102,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Play Online</h2>
+          <h2>🌐 Join Online Game</h2>
           <p className="online-subtitle">Online play is not available in static mode.</p>
           <p className="online-empty">
             This instance is running as a standalone app without a backend connection.
@@ -130,7 +118,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Play Online</h2>
+          <h2>🌐 Join Online Game</h2>
           <p className="online-subtitle">Sign in to play online via WebSocket.</p>
           <p className="online-empty">
             Please sign in or create a guest account to access online play.
@@ -145,7 +133,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Play Online</h2>
+          <h2>🌐 Join Online Game</h2>
 
           <div className="online-hub-status">
             <span className={`online-hub-dot ${hub.connected ? 'online-hub-dot--connected' : 'online-hub-dot--disconnected'}`} />
@@ -177,29 +165,15 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
   return (
     <div className="online-screen">
       <div className="online-card">
-        <h2>🌐 Play Online</h2>
+        <h2>🌐 Join Online Game</h2>
         <p className="online-subtitle">
-          Create a room or join one using a code.
+          Join a room using a code or pick one from the list.
         </p>
 
         <div className="online-hub-status">
           <span className={`online-hub-dot ${hub.connected ? 'online-hub-dot--connected' : 'online-hub-dot--disconnected'}`} />
           {hub.connected ? 'Connected to server' : 'Connecting…'}
         </div>
-
-        {/* Create Room */}
-        <div className="online-section">
-          <h3>Create a Room</h3>
-          <button
-            className="online-create-btn"
-            onClick={handleCreateRoom}
-            disabled={lobby.loading || !hub.connected}
-          >
-            {lobby.loading ? 'Creating…' : '➕ Create Room'}
-          </button>
-        </div>
-
-        <div className="online-divider">or</div>
 
         {/* Join by code */}
         <div className="online-section">
