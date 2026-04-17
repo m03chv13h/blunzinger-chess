@@ -36,7 +36,7 @@ public class UserController(AppDbContext db) : ControllerBase
         });
     }
 
-    /// <summary>Update display name.</summary>
+    /// <summary>Update display name and/or avatar URL.</summary>
     [HttpPatch("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
@@ -49,9 +49,12 @@ public class UserController(AppDbContext db) : ControllerBase
         if (!string.IsNullOrWhiteSpace(request.DisplayName))
             user.DisplayName = request.DisplayName.Trim();
 
+        if (request.AvatarUrl is not null)
+            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+
         await db.SaveChangesAsync();
 
-        return Ok(new { user.Id, user.DisplayName });
+        return Ok(new { user.Id, user.DisplayName, user.AvatarUrl });
     }
 
     private Guid? GetUserId()
@@ -64,4 +67,5 @@ public class UserController(AppDbContext db) : ControllerBase
 public record UpdateProfileRequest
 {
     public string? DisplayName { get; init; }
+    public string? AvatarUrl { get; init; }
 }
