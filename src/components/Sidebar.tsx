@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import './Sidebar.css';
 
-export type NavSection = 'quick-start' | 'new-game' | 'analyse' | 'simulate' | 'rules';
+export type NavSection = 'quick-start' | 'new-game' | 'online' | 'analyse' | 'simulate' | 'rules';
 
 interface SidebarProps {
   activeSection: NavSection | 'playing';
@@ -54,6 +54,15 @@ export function Sidebar({ activeSection, onNavigate, gameCount }: SidebarProps) 
             >
               <span className="sidebar-icon">🎮</span>
               <span className="sidebar-label">New Game</span>
+            </button>
+          </li>
+          <li>
+            <button
+              className={`sidebar-item ${activeSection === 'online' ? 'sidebar-item--active' : ''}`}
+              onClick={() => handleNav('online')}
+            >
+              <span className="sidebar-icon">🌐</span>
+              <span className="sidebar-label">Play Online</span>
             </button>
           </li>
           <li>

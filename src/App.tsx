@@ -24,6 +24,7 @@ import { ReviewControls } from './components/ReviewControls';
 import { CrazyhouseReserves } from './components/CrazyhouseReserve';
 import { FenDisplay } from './components/FenDisplay';
 import { ReportIssue } from './components/ReportIssue';
+import { OnlineScreen } from './components/OnlineScreen';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -35,6 +36,7 @@ type AppScreen =
   | { type: 'welcome' }
   | { type: 'quick-start' }
   | { type: 'new-game' }
+  | { type: 'online' }
   | { type: 'analyse' }
   | { type: 'simulate' }
   | { type: 'simulation-running' }
@@ -311,6 +313,9 @@ function App() {
                 onSelectGame={handleSelectGameForReview}
                 onStartAnalysis={handleStartGame}
               />
+            )}
+            {screen.type === 'online' && (
+              <OnlineScreen authenticated={!!auth.user} />
             )}
             {screen.type === 'simulate' && (
               <SimulationSetupScreen onStart={handleStartSimulation} />
