@@ -41,8 +41,16 @@ export function OnlineLobbyScreen({
     }
   }, [onGameReady]);
 
+  const handleRoomExpired = useCallback(() => {
+    if (cancelRef.current) return;
+    cancelRef.current = true;
+    lobby.clearActiveRoom();
+    onCancel();
+  }, [lobby, onCancel]);
+
   const hub = useGameHub({
     onPlayerJoined: handlePlayerJoined,
+    onRoomExpired: handleRoomExpired,
     onError: (msg) => setHubError(msg),
   });
 

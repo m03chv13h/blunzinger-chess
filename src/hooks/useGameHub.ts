@@ -69,6 +69,11 @@ export interface OpponentPieceRemovalEvent {
   square: string;
 }
 
+export interface RoomExpiredEvent {
+  roomCode: string;
+  reason: string;
+}
+
 // ── Client → Server DTOs ────────────────────────────────────────────
 
 export interface ChessMove {
@@ -98,6 +103,7 @@ export interface GameHubCallbacks {
   onOpponentDropMove?: (event: OpponentDropMoveEvent) => void;
   onOpponentReported?: () => void;
   onOpponentPieceRemoval?: (event: OpponentPieceRemovalEvent) => void;
+  onRoomExpired?: (event: RoomExpiredEvent) => void;
   onError?: (message: string) => void;
 }
 
@@ -174,6 +180,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     connection.on('OpponentDropMove', (e: OpponentDropMoveEvent) => callbacksRef.current.onOpponentDropMove?.(e));
     connection.on('OpponentReported', () => callbacksRef.current.onOpponentReported?.());
     connection.on('OpponentPieceRemoval', (e: OpponentPieceRemovalEvent) => callbacksRef.current.onOpponentPieceRemoval?.(e));
+    connection.on('RoomExpired', (e: RoomExpiredEvent) => callbacksRef.current.onRoomExpired?.(e));
     connection.on('Error', (msg: string) => callbacksRef.current.onError?.(msg));
 
     connection.onclose(() => setConnected(false));
