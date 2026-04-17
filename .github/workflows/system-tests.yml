@@ -11,9 +11,8 @@ on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'Base URL to test against'
+        description: 'Base URL to test against (leave empty to build & test locally)'
         required: false
-        default: 'https://blunziger-frontend.onrender.com'
 
 permissions:
   contents: read
@@ -39,13 +38,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build
+        if: ${{ !github.event.inputs.target_url }}
+        run: npm run build
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run system tests
+      - name: Run system tests (local preview)
+        if: ${{ !github.event.inputs.target_url }}
+        run: npm run test:system:local
+
+      - name: Run system tests (remote)
+        if: ${{ github.event.inputs.target_url }}
         run: npx playwright test
         env:
-          BASE_URL: ${{ github.event.inputs.target_url || 'https://blunziger-frontend.onrender.com' }}
+          BASE_URL: ${{ github.event.inputs.target_url }}
 
       - name: Upload test results
         if: ${{ !cancelled() }}

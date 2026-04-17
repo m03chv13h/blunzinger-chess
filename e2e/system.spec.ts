@@ -2,11 +2,35 @@ import { test, expect } from '@playwright/test';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Navigate past the welcome screen by clicking "Continue as Guest". */
+/**
+ * Navigate past the welcome screen if it is shown (connected mode).
+ * In static mode the app starts directly at Quick Start, so we just
+ * verify the sidebar is visible.
+ */
 async function skipWelcome(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: /Continue as Guest/i }).click();
+  const guestBtn = page.getByRole('button', { name: /Continue as Guest/i });
+  // In connected mode the welcome screen shows; click through it.
+  // In static mode the button doesn't exist — just continue.
+  if (await guestBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await guestBtn.click();
+  }
   // Wait for the sidebar to appear, confirming we left the welcome screen.
   await expect(page.getByRole('navigation')).toBeVisible();
+}
+
+/**
+ * Ensure "Play Online" is unchecked before starting a game.
+ * In connected mode the Quick Start / New Game screens default to
+ * online play, which navigates to the lobby instead of starting a
+ * local game.  This helper deselects the checkbox if it exists.
+ */
+async function ensureLocalPlay(page: import('@playwright/test').Page) {
+  const checkbox = page.getByRole('checkbox', { name: /Play Online/i });
+  if (await checkbox.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if (await checkbox.isChecked()) {
+      await checkbox.uncheck();
+    }
+  }
 }
 
 // ── 1. Smoke Test ────────────────────────────────────────────────────
@@ -19,17 +43,23 @@ test.describe('Smoke', () => {
 });
 
 // ── 2. Welcome Screen ────────────────────────────────────────────────
+// These tests only apply in connected mode where the welcome screen is shown.
 
 test.describe('Welcome Screen', () => {
-  test('displays the welcome heading and subtitle', async ({ page }) => {
+  test('displays the welcome heading or Quick Start heading', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Blunziger Chess/i })).toBeVisible();
-    await expect(page.getByText('A chess variant where every check counts.')).toBeVisible();
+    // In connected mode, the welcome screen shows first.
+    // In static mode, the app goes straight to Quick Start.
+    const welcome = page.getByText('A chess variant where every check counts.');
+    const quickStart = page.getByRole('heading', { name: /Quick Start/i });
+    await expect(welcome.or(quickStart)).toBeVisible();
   });
 
-  test('shows Continue as Guest button', async ({ page }) => {
+  test('shows Continue as Guest button or Quick Start screen', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('button', { name: /Continue as Guest/i })).toBeVisible();
+    const guestBtn = page.getByRole('button', { name: /Continue as Guest/i });
+    const quickStart = page.getByRole('heading', { name: /Quick Start/i });
+    await expect(guestBtn.or(quickStart)).toBeVisible();
   });
 });
 
@@ -63,6 +93,7 @@ test.describe('Quick Start Screen', () => {
   });
 
   test('can start a game and see the chessboard', async ({ page }) => {
+    await ensureLocalPlay(page);
     await page.getByRole('button', { name: /Start Game/i }).click();
     await expect(page.getByRole('grid', { name: /Chess board/i })).toBeVisible();
   });
@@ -140,6 +171,7 @@ test.describe('New Game Setup', () => {
   });
 
   test('can start a game from the new game screen', async ({ page }) => {
+    await ensureLocalPlay(page);
     await page.getByRole('button', { name: /Start Game/i }).click();
     await expect(page.getByRole('grid', { name: /Chess board/i })).toBeVisible();
   });
@@ -173,6 +205,7 @@ test.describe('Playing a Game', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await skipWelcome(page);
+    await ensureLocalPlay(page);
     await page.getByRole('button', { name: /Start Game/i }).click();
     // Wait for the board to render.
     await expect(page.getByRole('grid', { name: /Chess board/i })).toBeVisible();
