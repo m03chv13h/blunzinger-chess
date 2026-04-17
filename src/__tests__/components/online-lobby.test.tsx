@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineLobbyScreen } from '../../components/OnlineLobbyScreen';
 import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
@@ -56,10 +56,15 @@ vi.mock('../../hooks/useGameHub', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers();
   mockLobby.loading = false;
   mockLobby.error = null;
   mockLobby.activeRoom = null;
   mockHub.connected = true;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -158,5 +163,68 @@ describe('OnlineLobbyScreen', () => {
       />,
     );
     expect(screen.getByText('Connection failed')).toBeInTheDocument();
+  });
+
+  // ── Countdown timer tests ──────────────────────────────────────────
+
+  it('shows countdown when room code is available', () => {
+    mockLobby.activeRoom = { roomId: 'r1', code: 'TEST42' };
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.getByText('Room closes in 60s')).toBeInTheDocument();
+  });
+
+  it('decrements the countdown every second', () => {
+    mockLobby.activeRoom = { roomId: 'r1', code: 'TEST42' };
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(screen.getByText('Room closes in 57s')).toBeInTheDocument();
+  });
+
+  it('auto-cancels when countdown reaches 0', async () => {
+    mockLobby.activeRoom = { roomId: 'r1', code: 'TEST42' };
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+
+    act(() => { vi.advanceTimersByTime(60_000); });
+
+    await vi.waitFor(() => {
+      expect(onCancel).toHaveBeenCalled();
+    });
+    expect(mockHub.leaveRoom).toHaveBeenCalled();
+    expect(mockLobby.clearActiveRoom).toHaveBeenCalled();
+  });
+
+  it('does not show countdown when room code is not yet available', () => {
+    mockLobby.activeRoom = null;
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.queryByText(/Room closes in/)).not.toBeInTheDocument();
   });
 });

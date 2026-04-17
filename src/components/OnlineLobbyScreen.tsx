@@ -15,6 +15,9 @@ interface OnlineLobbyScreenProps {
   onCancel: () => void;
 }
 
+/** How long (in seconds) to wait for an opponent before auto-closing. */
+const LOBBY_TIMEOUT_SECONDS = 60;
+
 export function OnlineLobbyScreen({
   config,
   authenticated,
@@ -24,6 +27,7 @@ export function OnlineLobbyScreen({
   const lobby = useLobby();
   const [hubError, setHubError] = useState<string | null>(null);
   const [opponentName, setOpponentName] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(LOBBY_TIMEOUT_SECONDS);
   const createdRef = useRef(false);
   const roomCodeRef = useRef<string | null>(null);
 
@@ -37,8 +41,16 @@ export function OnlineLobbyScreen({
     }
   }, [onGameReady]);
 
+  const handleRoomExpired = useCallback(() => {
+    if (cancelRef.current) return;
+    cancelRef.current = true;
+    lobby.clearActiveRoom();
+    onCancel();
+  }, [lobby, onCancel]);
+
   const hub = useGameHub({
     onPlayerJoined: handlePlayerJoined,
+    onRoomExpired: handleRoomExpired,
     onError: (msg) => setHubError(msg),
   });
 
@@ -71,6 +83,37 @@ export function OnlineLobbyScreen({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
+
+  // ── Countdown timer — auto-cancel after LOBBY_TIMEOUT_SECONDS ────
+  const cancelRef = useRef(false);
+
+  useEffect(() => {
+    // Only start the countdown once the room code is visible
+    if (!lobby.activeRoom?.code || opponentName) return;
+
+    const id = setInterval(() => {
+      setCountdown(prev => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [lobby.activeRoom?.code, opponentName]);
+
+  // Trigger cancel when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && !opponentName && !cancelRef.current) {
+      cancelRef.current = true;
+      // Fire-and-forget: leave the room and notify the parent
+      (async () => {
+        try {
+          await hub.leaveRoom();
+        } catch {
+          // ignore
+        }
+        lobby.clearActiveRoom();
+        onCancel();
+      })();
+    }
+  }, [countdown, opponentName, hub, lobby, onCancel]);
 
   const handleCancel = useCallback(async () => {
     try {
@@ -111,6 +154,11 @@ export function OnlineLobbyScreen({
             <p className="online-lobby-waiting">
               <span className="online-lobby-spinner">⏳</span> Waiting for opponent…
             </p>
+            {!opponentName && (
+              <p className="online-lobby-countdown">
+                Room closes in {countdown}s
+              </p>
+            )}
             {opponentName && (
               <p className="online-lobby-joined">✅ {opponentName} joined!</p>
             )}
