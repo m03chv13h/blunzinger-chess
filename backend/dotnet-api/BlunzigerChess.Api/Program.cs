@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using BlunzigerChess.Api;
 using BlunzigerChess.Api.Data;
@@ -35,6 +36,12 @@ var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = "ExternalCookie";
+})
+.AddCookie("ExternalCookie", options =>
+{
+    options.Cookie.Name = "BlunzigerExtAuth";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
 })
 .AddJwtBearer(options =>
 {
@@ -104,6 +111,23 @@ if (!string.IsNullOrWhiteSpace(ghClientId) && !string.IsNullOrWhiteSpace(ghClien
         options.UserInformationEndpoint = "https://api.github.com/user";
         options.CallbackPath = "/signin-github";
         options.Scope.Add("user:email");
+        options.Events.OnCreatingTicket = async context =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
+            request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
+            response.EnsureSuccessStatusCode();
+            using var user = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var root = user.RootElement;
+            var identity = (ClaimsIdentity)context.Principal!.Identity!;
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, root.GetProperty("id").GetRawText()));
+            identity.AddClaim(new Claim(ClaimTypes.Name, root.GetProperty("login").GetString() ?? "User"));
+            if (root.TryGetProperty("email", out var email) && email.ValueKind == System.Text.Json.JsonValueKind.String)
+                identity.AddClaim(new Claim(ClaimTypes.Email, email.GetString()!));
+            if (root.TryGetProperty("avatar_url", out var avatar) && avatar.ValueKind == System.Text.Json.JsonValueKind.String)
+                identity.AddClaim(new Claim("avatar_url", avatar.GetString()!));
+        };
     });
     enabledOAuthProviders.Add("GitHub");
 }
@@ -122,6 +146,26 @@ if (!string.IsNullOrWhiteSpace(discordClientId) && !string.IsNullOrWhiteSpace(di
         options.CallbackPath = "/signin-discord";
         options.Scope.Add("identify");
         options.Scope.Add("email");
+        options.Events.OnCreatingTicket = async context =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", context.AccessToken);
+            request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
+            response.EnsureSuccessStatusCode();
+            using var user = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var root = user.RootElement;
+            var identity = (ClaimsIdentity)context.Principal!.Identity!;
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, root.GetProperty("id").GetString() ?? ""));
+            identity.AddClaim(new Claim(ClaimTypes.Name, root.GetProperty("username").GetString() ?? "User"));
+            if (root.TryGetProperty("email", out var email) && email.ValueKind == System.Text.Json.JsonValueKind.String)
+                identity.AddClaim(new Claim(ClaimTypes.Email, email.GetString()!));
+            if (root.TryGetProperty("avatar", out var avatar) && avatar.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var discordId = root.GetProperty("id").GetString();
+                identity.AddClaim(new Claim("avatar_url", $"https://cdn.discordapp.com/avatars/{discordId}/{avatar.GetString()}.png"));
+            }
+        };
     });
     enabledOAuthProviders.Add("Discord");
 }
