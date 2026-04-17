@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import './Sidebar.css';
 
-export type NavSection = 'quick-start' | 'new-game' | 'online' | 'analyse' | 'simulate' | 'rules';
+export type NavSection = 'quick-start' | 'new-game' | 'online' | 'analyse' | 'simulate' | 'rules' | 'profile';
 
 interface SidebarProps {
   activeSection: NavSection | 'playing';
@@ -12,11 +12,13 @@ interface SidebarProps {
   isConnected?: boolean;
   /** Display name of the authenticated user (connected mode). */
   userName?: string;
+  /** Avatar identifier of the authenticated user (connected mode). */
+  userAvatar?: string;
   /** Logout handler (connected mode only). */
   onLogout?: () => void;
 }
 
-export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, userName, onLogout }: SidebarProps) {
+export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, userName, userAvatar, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNav = (section: NavSection) => {
@@ -106,7 +108,14 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
 
         {isConnected && userName && (
           <div className="sidebar-user">
-            <span className="sidebar-user-name" title={userName}>👤 {userName}</span>
+            <button
+              className={`sidebar-user-profile-btn ${activeSection === 'profile' ? 'sidebar-user-profile-btn--active' : ''}`}
+              onClick={() => handleNav('profile')}
+              title="Profile settings"
+            >
+              <span className="sidebar-user-avatar">{userAvatar ?? '👤'}</span>
+              <span className="sidebar-user-name">{userName}</span>
+            </button>
             {onLogout && (
               <button className="sidebar-logout-btn" onClick={onLogout}>
                 Sign out

@@ -21,11 +21,13 @@ export interface UserProfileDetail {
 
 export interface UpdateProfileRequest {
   displayName?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateProfileResponse {
   id: string;
   displayName: string;
+  avatarUrl?: string;
 }
 
 // ── API calls ────────────────────────────────────────────────────────

@@ -30,6 +30,8 @@ import { ReportIssue } from './components/ReportIssue';
 import { OnlineScreen } from './components/OnlineScreen';
 import { OnlineLobbyScreen } from './components/OnlineLobbyScreen';
 import { OnlineGameScreen } from './components/OnlineGameScreen';
+import { ProfileSettingsScreen } from './components/ProfileSettingsScreen';
+import { getAvatarEmoji } from './components/avatarPresets';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -50,6 +52,7 @@ type AppScreen =
   | { type: 'simulate' }
   | { type: 'simulation-running' }
   | { type: 'rules' }
+  | { type: 'profile' }
   | { type: 'playing'; config: GameSetupConfig };
 
 function App() {
@@ -383,6 +386,7 @@ function App() {
             gameCount={analyseCount}
             isConnected={isConnectedMode}
             userName={auth.user?.displayName}
+            userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
           <div className="app-with-sidebar">
@@ -433,6 +437,9 @@ function App() {
               />
             )}
             {screen.type === 'rules' && <RulesPage />}
+            {screen.type === 'profile' && (
+              <ProfileSettingsScreen userProfile={userProfile} />
+            )}
           </main>
         </div>
       </div>
@@ -451,6 +458,7 @@ function App() {
             gameCount={analyseCount}
             isConnected={isConnectedMode}
             userName={auth.user?.displayName}
+            userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
           <div className="app-with-sidebar">
@@ -479,6 +487,7 @@ function App() {
           gameCount={analyseCount}
           isConnected={isConnectedMode}
           userName={auth.user?.displayName}
+          userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
           onLogout={isConnectedMode ? handleLogout : undefined}
         />
       <div className="app-with-sidebar">

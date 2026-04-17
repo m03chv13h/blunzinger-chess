@@ -21,6 +21,8 @@ export interface UseUserProfile {
   refresh: () => Promise<void>;
   /** Update the display name. */
   updateDisplayName: (name: string) => Promise<void>;
+  /** Update the avatar URL. */
+  updateAvatarUrl: (url: string) => Promise<void>;
 }
 
 export function useUserProfile(authenticated: boolean): UseUserProfile {
@@ -56,6 +58,20 @@ export function useUserProfile(authenticated: boolean): UseUserProfile {
     }
   }, []);
 
+  const updateAvatarUrl = useCallback(async (url: string) => {
+    if (!isConnectedMode) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await updateUserProfile({ avatarUrl: url });
+      setProfile(prev => prev ? { ...prev, avatarUrl: res.avatarUrl } : prev);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update avatar');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Auto-fetch profile when authenticated in connected mode.
   useEffect(() => {
     if (isConnectedMode && authenticated) {
@@ -66,5 +82,5 @@ export function useUserProfile(authenticated: boolean): UseUserProfile {
     }
   }, [authenticated, refresh]);
 
-  return { profile, loading, error, refresh, updateDisplayName };
+  return { profile, loading, error, refresh, updateDisplayName, updateAvatarUrl };
 }

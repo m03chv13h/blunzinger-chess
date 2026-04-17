@@ -104,6 +104,33 @@
   gap: 6px;
 }
 
+.sidebar-user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.sidebar-user-profile-btn:hover {
+  background: #2d2d4a;
+}
+
+.sidebar-user-profile-btn--active {
+  background: #3a3a5c;
+}
+
+.sidebar-user-avatar {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
 .sidebar-user-name {
   font-size: 13px;
   color: #c0c0d0;
