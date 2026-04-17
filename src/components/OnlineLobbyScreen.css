@@ -1,0 +1,152 @@
+/* ── OnlineLobbyScreen ─────────────────────────────────────────────── */
+
+.online-lobby-screen {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.online-lobby-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.online-lobby-card h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.online-lobby-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+/* ── Hub Status ── */
+
+.online-lobby-hub-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 14px;
+}
+
+.online-lobby-hub-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-lobby-hub-dot--connected {
+  background: #28a745;
+}
+
+.online-lobby-hub-dot--disconnected {
+  background: #d32f2f;
+}
+
+/* ── Config Summary ── */
+
+.online-lobby-config-summary {
+  margin-bottom: 18px;
+}
+
+/* ── Room Display ── */
+
+.online-lobby-room {
+  border: 2px solid #5b8def;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  background: #f0f4ff;
+  margin-bottom: 16px;
+}
+
+.online-lobby-room-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #444;
+  margin: 0 0 8px 0;
+}
+
+.online-lobby-room-code {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #1a1a2e;
+  margin: 8px 0;
+  font-family: monospace;
+  user-select: all;
+}
+
+.online-lobby-waiting {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.online-lobby-spinner {
+  display: inline-block;
+  animation: online-lobby-pulse 1.2s ease-in-out infinite;
+  margin-right: 4px;
+}
+
+@keyframes online-lobby-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.online-lobby-joined {
+  font-size: 14px;
+  color: #28a745;
+  font-weight: 600;
+  margin: 8px 0 0 0;
+}
+
+.online-lobby-creating {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+/* ── Error ── */
+
+.online-lobby-error {
+  color: #d32f2f;
+  font-size: 13px;
+  text-align: center;
+  margin: 8px 0;
+}
+
+/* ── Cancel Button ── */
+
+.online-lobby-cancel-btn {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: 1px solid #888;
+  color: #666;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.online-lobby-cancel-btn:hover {
+  background: #f0f0f5;
+  color: #333;
+}

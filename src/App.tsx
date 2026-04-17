@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { GameSetupConfig, CrazyhousePieceType } from './core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
-import type { Square } from './core/blunziger/types';
+import type { Square, Color } from './core/blunziger/types';
 import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
@@ -27,6 +27,8 @@ import { CrazyhouseReserves } from './components/CrazyhouseReserve';
 import { FenDisplay } from './components/FenDisplay';
 import { ReportIssue } from './components/ReportIssue';
 import { OnlineScreen } from './components/OnlineScreen';
+import { OnlineLobbyScreen } from './components/OnlineLobbyScreen';
+import { OnlineGameScreen } from './components/OnlineGameScreen';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -41,6 +43,8 @@ type AppScreen =
   | { type: 'quick-start' }
   | { type: 'new-game' }
   | { type: 'online' }
+  | { type: 'online-lobby'; config: GameSetupConfig }
+  | { type: 'online-playing'; config: GameSetupConfig; roomCode: string; playerColor: Color; opponentName: string }
   | { type: 'analyse' }
   | { type: 'simulate' }
   | { type: 'simulation-running' }
@@ -174,8 +178,13 @@ function App() {
     }
   }, [review]);
 
-  const handleStartGame = (config: GameSetupConfig) => {
+  const handleStartGame = (config: GameSetupConfig, isOnline?: boolean) => {
     setLastConfig(config);
+    if (isOnline) {
+      // Online game: go to the lobby to create a room and wait for opponent
+      setScreen({ type: 'online-lobby', config });
+      return;
+    }
     setScreen({ type: 'playing', config });
     const mc = buildMatchConfig(config);
     game.resetGame(
@@ -201,6 +210,38 @@ function App() {
     flushPendingRecord();
     handleStartGame(screen.config);
   };
+
+  // ── Online game handlers ──────────────────────────────────────────
+
+  const handleOnlineGameReady = useCallback((roomCode: string, playerColor: Color, opponentName: string) => {
+    if (screen.type !== 'online-lobby') return;
+    setScreen({
+      type: 'online-playing',
+      config: screen.config,
+      roomCode,
+      playerColor,
+      opponentName,
+    });
+  }, [screen]);
+
+  const handleOnlineJoinGame = useCallback((config: GameSetupConfig, roomCode: string, playerColor: Color, opponentName: string) => {
+    setLastConfig(config);
+    setScreen({
+      type: 'online-playing',
+      config,
+      roomCode,
+      playerColor,
+      opponentName,
+    });
+  }, []);
+
+  const handleLeaveOnlineGame = useCallback(() => {
+    setScreen({ type: 'online' });
+  }, []);
+
+  const handleCancelOnlineLobby = useCallback(() => {
+    setScreen({ type: 'quick-start' });
+  }, []);
 
   const handleMove = (from: Square, to: Square, promotion?: string): boolean => {
     // If a drop piece is selected but user clicks the board for a regular move, deselect
@@ -274,6 +315,8 @@ function App() {
 
   const activeSection: NavSection | 'playing' =
     screen.type === 'playing' ? 'playing'
+    : screen.type === 'online-playing' ? 'playing'
+    : screen.type === 'online-lobby' ? 'online'
     : screen.type === 'simulation-running' ? 'simulate'
     : screen.type === 'welcome' ? 'quick-start'
     : screen.type;
@@ -321,7 +364,7 @@ function App() {
   }
 
   // Render setup screens (non-playing)
-  if (screen.type !== 'playing') {
+  if (screen.type !== 'playing' && screen.type !== 'online-playing') {
     return (
       <DeployModeProvider>
         <div className="app-layout">
@@ -353,7 +396,18 @@ function App() {
               />
             )}
             {screen.type === 'online' && (
-              <OnlineScreen authenticated={!!auth.user} />
+              <OnlineScreen
+                authenticated={!!auth.user}
+                onJoinGame={handleOnlineJoinGame}
+              />
+            )}
+            {screen.type === 'online-lobby' && (
+              <OnlineLobbyScreen
+                config={screen.config}
+                authenticated={!!auth.user}
+                onGameReady={handleOnlineGameReady}
+                onCancel={handleCancelOnlineLobby}
+              />
             )}
             {screen.type === 'simulate' && (
               <SimulationSetupScreen onStart={handleStartSimulation} />
@@ -373,6 +427,35 @@ function App() {
           </main>
         </div>
       </div>
+      </DeployModeProvider>
+    );
+  }
+
+  // Online playing screen
+  if (screen.type === 'online-playing') {
+    return (
+      <DeployModeProvider>
+        <div className="app-layout">
+          <Sidebar
+            activeSection={activeSection}
+            onNavigate={handleNavigate}
+            gameCount={analyseCount}
+            isConnected={isConnectedMode}
+            userName={auth.user?.displayName}
+            onLogout={isConnectedMode ? handleLogout : undefined}
+          />
+          <div className="app-with-sidebar">
+            <main className="app-main">
+              <OnlineGameScreen
+                config={screen.config}
+                roomCode={screen.roomCode}
+                playerColor={screen.playerColor}
+                opponentName={screen.opponentName}
+                onLeaveGame={handleLeaveOnlineGame}
+              />
+            </main>
+          </div>
+        </div>
       </DeployModeProvider>
     );
   }

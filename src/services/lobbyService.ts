@@ -19,6 +19,8 @@ export interface CreateRoomResponse {
 export interface JoinRoomResponse {
   roomId: string;
   code: string;
+  matchConfig?: string;
+  hostDisplayName?: string;
 }
 
 export interface RoomListItem {

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { GameSetupConfig } from '../core/blunziger/types';
+import type { Color } from '../core/blunziger/types';
 import { isStaticMode } from '../config/deployMode';
 import { useLobby } from '../hooks/useLobby';
 import { useGameHub } from '../hooks/useGameHub';
@@ -8,9 +10,11 @@ import './OnlineScreen.css';
 interface OnlineScreenProps {
   /** Whether the user is authenticated (has a valid token). */
   authenticated: boolean;
+  /** Called when the user joins a room and the game is ready to start. */
+  onJoinGame?: (config: GameSetupConfig, roomCode: string, playerColor: Color, opponentName: string) => void;
 }
 
-export function OnlineScreen({ authenticated }: OnlineScreenProps) {
+export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
   const lobby = useLobby();
   const [joinCode, setJoinCode] = useState('');
   const [hubError, setHubError] = useState<string | null>(null);
@@ -59,10 +63,20 @@ export function OnlineScreen({ authenticated }: OnlineScreenProps) {
       const res = await lobby.joinRoom(joinCode.trim().toUpperCase());
       await hub.joinRoom(res.code);
       setJoinCode('');
+
+      // If the room has a match config, transition to the online game
+      if (onJoinGame && res.matchConfig) {
+        try {
+          const config = JSON.parse(res.matchConfig) as GameSetupConfig;
+          onJoinGame(config, res.code, 'b', res.hostDisplayName ?? 'Host');
+        } catch {
+          // Fallback: stay on the online screen
+        }
+      }
     } catch {
       // Error is already set in lobby state.
     }
-  }, [joinCode, lobby, hub]);
+  }, [joinCode, lobby, hub, onJoinGame]);
 
   const handleJoinFromList = useCallback(async (room: RoomListItem) => {
     setHubError(null);
@@ -70,10 +84,20 @@ export function OnlineScreen({ authenticated }: OnlineScreenProps) {
     try {
       const res = await lobby.joinRoom(room.code);
       await hub.joinRoom(res.code);
+
+      // Transition to online game if match config is available
+      if (onJoinGame && res.matchConfig) {
+        try {
+          const config = JSON.parse(res.matchConfig) as GameSetupConfig;
+          onJoinGame(config, res.code, 'b', res.hostDisplayName ?? room.hostName);
+        } catch {
+          // Fallback: stay on the online screen
+        }
+      }
     } catch {
       // Error is already set in lobby state.
     }
-  }, [lobby, hub]);
+  }, [lobby, hub, onJoinGame]);
 
   const handleLeaveRoom = useCallback(async () => {
     try {

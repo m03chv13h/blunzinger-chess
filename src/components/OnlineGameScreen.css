@@ -1,0 +1,273 @@
+/* ── OnlineGameScreen ──────────────────────────────────────────────── */
+
+.online-game-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+}
+
+/* ── Info Bar ── */
+
+.online-game-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0f4ff;
+  border-bottom: 1px solid #d0d8e8;
+  padding: 8px 16px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.online-game-opponent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.online-game-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-game-status-dot--online {
+  background: #28a745;
+}
+
+.online-game-status-dot--offline {
+  background: #d32f2f;
+}
+
+.online-game-opponent-name {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.online-game-opponent-status {
+  color: #666;
+  font-size: 12px;
+}
+
+.online-game-room-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.online-game-room-label {
+  color: #888;
+}
+
+.online-game-room-code {
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #1a1a2e;
+}
+
+.online-game-color-label {
+  color: #555;
+  font-weight: 500;
+}
+
+/* ── Error ── */
+
+.online-game-error {
+  background: #fff3f3;
+  border: 1px solid #e8c4c4;
+  color: #d32f2f;
+  padding: 6px 16px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── Main Layout ── */
+
+.online-game-main {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  padding: 12px 16px;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+/* ── Controls ── */
+
+.online-game-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.online-game-eval-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #444;
+  cursor: pointer;
+}
+
+.online-game-resign-btn {
+  background: none;
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.online-game-resign-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+.online-game-cancel-btn {
+  background: none;
+  border: 1px solid #888;
+  color: #666;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.online-game-draw-btn {
+  background: none;
+  border: 1px solid #5b8def;
+  color: #5b8def;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.online-game-draw-btn:hover {
+  background: #5b8def;
+  color: white;
+}
+
+.online-game-draw-pending {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Draw Offer ── */
+
+.online-game-draw-offer {
+  background: #fff8e1;
+  border: 1px solid #f5d060;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.online-game-draw-offer p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.online-game-accept-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.online-game-decline-btn {
+  background: #d32f2f;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ── Result ── */
+
+.online-game-result {
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.online-game-result h2 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+}
+
+.online-game-result--win {
+  background: #e8f5e9;
+  border: 2px solid #28a745;
+}
+
+.online-game-result--win h2 {
+  color: #28a745;
+}
+
+.online-game-result--loss {
+  background: #ffeef0;
+  border: 2px solid #d32f2f;
+}
+
+.online-game-result--loss h2 {
+  color: #d32f2f;
+}
+
+.online-game-result--draw {
+  background: #fff8e1;
+  border: 2px solid #f5a623;
+}
+
+.online-game-result--draw h2 {
+  color: #f5a623;
+}
+
+.online-game-result-reason {
+  font-size: 14px;
+  color: #444;
+  margin: 4px 0;
+}
+
+.online-game-result-detail {
+  font-size: 12px;
+  color: #777;
+  margin: 4px 0;
+}
+
+.online-game-leave-btn {
+  margin-top: 10px;
+  background: #5b8def;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.online-game-leave-btn:hover {
+  background: #4a7cde;
+}

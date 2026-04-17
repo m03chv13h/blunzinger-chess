@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import { isConnectedMode } from '../config/deployMode';
 import { TimeInput } from './TimeInput';
 import './QuickStartScreen.css';
 
 interface QuickStartScreenProps {
-  onStartGame: (config: GameSetupConfig) => void;
+  onStartGame: (config: GameSetupConfig, isOnline?: boolean) => void;
 }
 
 const MODE_DESCRIPTIONS: Record<GameMode, string> = {
@@ -22,6 +23,7 @@ export function QuickStartScreen({ onStartGame }: QuickStartScreenProps) {
   const [enableClock, setEnableClock] = useState(true);
   const [initialTimeMs, setInitialTimeMs] = useState(5 * 60 * 1000);
   const [incrementMs, setIncrementMs] = useState(0);
+  const [isOnline, setIsOnline] = useState(isConnectedMode);
 
   const handleStart = () => {
     const config: GameSetupConfig = {
@@ -35,7 +37,7 @@ export function QuickStartScreen({ onStartGame }: QuickStartScreenProps) {
       initialTimeMs: enableClock ? initialTimeMs : 0,
       incrementMs: enableClock ? incrementMs : 0,
     };
-    onStartGame(config);
+    onStartGame(config, mode === 'hvh' && isOnline ? true : undefined);
   };
 
   return (
@@ -60,6 +62,25 @@ export function QuickStartScreen({ onStartGame }: QuickStartScreenProps) {
           </select>
           <p className="qs-description">{MODE_DESCRIPTIONS[mode]}</p>
         </div>
+
+        {/* Play Online (connected mode, HvH only) */}
+        {isConnectedMode && mode === 'hvh' && (
+          <div className="qs-group">
+            <label className="qs-checkbox-label">
+              <input
+                type="checkbox"
+                checked={isOnline}
+                onChange={(e) => setIsOnline(e.target.checked)}
+              />
+              Play Online
+            </label>
+            <p className="qs-description">
+              {isOnline
+                ? 'Creates an online room. Share the code with your opponent.'
+                : 'Two players take turns on the same device.'}
+            </p>
+          </div>
+        )}
 
         {/* Bot Difficulty */}
         {(mode === 'hvbot' || mode === 'botvbot') && (
