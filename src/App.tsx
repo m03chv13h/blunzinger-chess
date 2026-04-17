@@ -360,6 +360,26 @@ function App() {
 
   const analyseCount = gameHistory.length + simulationHistory.length + remoteGameCount;
 
+  // Fetch remote games when navigating to the Analyse tab (connected mode).
+  useEffect(() => {
+    if (screen.type === 'analyse' && isConnectedMode) {
+      gameHistoryBackend.fetchPage(1);
+    }
+  }, [screen.type, gameHistoryBackend]);
+
+  // Handle selecting a remote saved game for review.
+  const handleSelectRemoteGame = useCallback(async (id: string) => {
+    const record = await gameHistoryBackend.fetchGameForReview(id);
+    if (record) {
+      handleSelectGameForReview(record);
+    }
+  }, [gameHistoryBackend]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle deleting a remote saved game.
+  const handleDeleteRemoteGame = useCallback(async (id: string) => {
+    await gameHistoryBackend.removeGame(id);
+  }, [gameHistoryBackend]);
+
   // Render welcome / login screen before everything else (connected mode only).
   if (screen.type === 'welcome' && isConnectedMode) {
     return (
@@ -406,6 +426,14 @@ function App() {
                 simulations={simulationHistory}
                 onSelectGame={handleSelectGameForReview}
                 onStartAnalysis={handleStartGame}
+                remoteGames={isConnectedMode ? gameHistoryBackend.remoteGames : undefined}
+                remoteTotal={isConnectedMode ? gameHistoryBackend.remoteTotal : undefined}
+                remotePage={isConnectedMode ? gameHistoryBackend.page : undefined}
+                remoteLoading={isConnectedMode ? gameHistoryBackend.loading : undefined}
+                remoteError={isConnectedMode ? gameHistoryBackend.error : undefined}
+                onFetchRemotePage={isConnectedMode ? gameHistoryBackend.fetchPage : undefined}
+                onSelectRemoteGame={isConnectedMode ? handleSelectRemoteGame : undefined}
+                onDeleteRemoteGame={isConnectedMode ? handleDeleteRemoteGame : undefined}
               />
             )}
             {screen.type === 'online' && (

@@ -205,3 +205,87 @@
   padding: 3px 10px;
   border-radius: 12px;
 }
+
+/* ── Remote (saved) games ── */
+
+.analyse-remote-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.analyse-remote-row .analyse-game-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.analyse-remote-delete {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyse-remote-delete:hover {
+  background: #fee;
+  border-color: #e88;
+}
+
+.analyse-remote-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.analyse-remote-loading {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.analyse-remote-error {
+  text-align: center;
+  color: #c00;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* ── Pagination ── */
+
+.analyse-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.analyse-pagination button {
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a5cb0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyse-pagination button:hover:not(:disabled) {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.analyse-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.analyse-page-info {
+  font-size: 12px;
+  color: #666;
+}

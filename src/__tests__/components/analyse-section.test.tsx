@@ -6,6 +6,7 @@ import type { GameRecord } from '../../core/gameRecord';
 import type { SimulationRecord } from '../../core/gameRecord';
 import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
 import type { GameSetupConfig, ScoreState } from '../../core/blunziger/types';
+import type { GameListItem } from '../../services/gamesService';
 
 function makeGameRecord(overrides: Partial<GameRecord> = {}): GameRecord {
   return {
@@ -182,6 +183,230 @@ describe('AnalyseSection', () => {
       );
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
       expect(screen.getByText('🔬 Simulations')).toBeInTheDocument();
+    });
+  });
+
+  describe('remote saved games', () => {
+    function makeRemoteGame(overrides: Partial<GameListItem> = {}): GameListItem {
+      return {
+        id: `remote-${Date.now()}-${Math.random()}`,
+        matchConfig: JSON.stringify({ ...DEFAULT_SETUP_CONFIG, mode: 'hvh' }),
+        result: JSON.stringify({ winner: 'b', reason: 'checkmate' }),
+        finalFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+        moveCount: 30,
+        gameMode: 'local',
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        ...overrides,
+      };
+    }
+
+    it('shows Saved Games heading when remoteGames are provided', () => {
+      const remote = [makeRemoteGame()];
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+        />,
+      );
+      expect(screen.getByText('☁️ Saved Games')).toBeInTheDocument();
+    });
+
+    it('does not show empty message when only remote games exist', () => {
+      const remote = [makeRemoteGame()];
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+        />,
+      );
+      expect(screen.queryByText(/No games played yet/)).not.toBeInTheDocument();
+    });
+
+    it('displays remote game variant and result info', () => {
+      const remote = [makeRemoteGame()];
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+        />,
+      );
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
+      expect(screen.getByText(/30 moves/)).toBeInTheDocument();
+    });
+
+    it('calls onSelectRemoteGame when a remote game is clicked', () => {
+      const remote = [makeRemoteGame({ id: 'game-123' })];
+      const onSelectRemote = vi.fn();
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+          onSelectRemoteGame={onSelectRemote}
+        />,
+      );
+      fireEvent.click(screen.getByText('Black wins'));
+      expect(onSelectRemote).toHaveBeenCalledWith('game-123');
+    });
+
+    it('shows delete button when onDeleteRemoteGame is provided', () => {
+      const remote = [makeRemoteGame()];
+      const onDelete = vi.fn();
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+          onDeleteRemoteGame={onDelete}
+        />,
+      );
+      expect(screen.getByTitle('Delete saved game')).toBeInTheDocument();
+    });
+
+    it('calls onDeleteRemoteGame when delete button is clicked', () => {
+      const remote = [makeRemoteGame({ id: 'del-456' })];
+      const onDelete = vi.fn();
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+          onDeleteRemoteGame={onDelete}
+        />,
+      );
+      fireEvent.click(screen.getByTitle('Delete saved game'));
+      expect(onDelete).toHaveBeenCalledWith('del-456');
+    });
+
+    it('shows loading state', () => {
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={[]}
+          remoteLoading={true}
+        />,
+      );
+      expect(screen.getByText('Loading saved games…')).toBeInTheDocument();
+    });
+
+    it('shows error state', () => {
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={[]}
+          remoteError="Network error"
+        />,
+      );
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+    });
+
+    it('shows pagination when total exceeds page size', () => {
+      const remote = [makeRemoteGame()];
+      const onFetchPage = vi.fn();
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={50}
+          remotePage={1}
+          onFetchRemotePage={onFetchPage}
+        />,
+      );
+      expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
+      expect(screen.getByText('Next →')).toBeInTheDocument();
+    });
+
+    it('calls onFetchRemotePage when Next is clicked', () => {
+      const remote = [makeRemoteGame()];
+      const onFetchPage = vi.fn();
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={50}
+          remotePage={1}
+          onFetchRemotePage={onFetchPage}
+        />,
+      );
+      fireEvent.click(screen.getByText('Next →'));
+      expect(onFetchPage).toHaveBeenCalledWith(2);
+    });
+
+    it('does not show pagination when total fits in one page', () => {
+      const remote = [makeRemoteGame()];
+      render(
+        <AnalyseSection
+          games={[]}
+          simulations={[]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={10}
+          remotePage={1}
+          onFetchRemotePage={() => {}}
+        />,
+      );
+      expect(screen.queryByText(/Page/)).not.toBeInTheDocument();
+    });
+
+    it('shows all three sections when local, simulation and remote games exist', () => {
+      const game = makeGameRecord();
+      const sim = makeSimulationRecord();
+      const remote = [makeRemoteGame()];
+      render(
+        <AnalyseSection
+          games={[game]}
+          simulations={[sim]}
+          onSelectGame={() => {}}
+          onStartAnalysis={() => {}}
+          remoteGames={remote}
+          remoteTotal={1}
+          remotePage={1}
+        />,
+      );
+      expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
+      expect(screen.getByText('🔬 Simulations')).toBeInTheDocument();
+      expect(screen.getByText('☁️ Saved Games')).toBeInTheDocument();
     });
   });
 });
