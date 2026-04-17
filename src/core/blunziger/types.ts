@@ -402,6 +402,8 @@ export interface GameSetupConfig {
   kingHuntGivenCheckTarget: number;
   /** Optional custom FEN to start the game from. When set, overrides the default starting position. */
   initialFen?: string;
+  /** Pre-resolved Chess960 position index (0-959). Set for online games so both players share the same starting position. */
+  chess960Index?: number;
 }
 
 export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
@@ -444,9 +446,15 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
   let initialFen = setup.initialFen ?? INITIAL_FEN;
   let chess960Index: number | undefined;
 
-  if (chess960Enabled && !setup.initialFen) {
-    chess960Index = getRandomChess960Index();
-    initialFen = chess960IndexToFen(chess960Index);
+  if (chess960Enabled) {
+    if (setup.chess960Index != null) {
+      // Chess960 index was pre-resolved (e.g., for online games).
+      chess960Index = setup.chess960Index;
+      initialFen = setup.initialFen ?? chess960IndexToFen(chess960Index);
+    } else if (!setup.initialFen) {
+      chess960Index = getRandomChess960Index();
+      initialFen = chess960IndexToFen(chess960Index);
+    }
   }
 
   return {
