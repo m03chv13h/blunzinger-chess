@@ -291,13 +291,20 @@ export function OnlineGameScreen({
 
   // ── Perspective-aware feedback ─────────────────────────────────────
   // Report-feedback messages are written from the reporter's perspective
-  // ("Correct! The opponent missed…"). In online mode the losing player
-  // (the violator) shares the same state, so we adjust the message to
-  // make sense from their point of view.
+  // ("Correct! The opponent missed…" / "Wrong! There was no violation…").
+  // In online mode both players share the same state, so we adjust the
+  // message to make sense from the non-reporting player's point of view.
   const perspectiveState = useMemo(() => {
-    const { lastReportFeedback, result } = game.state;
+    const { lastReportFeedback, result, violationReports } = game.state;
+    if (!lastReportFeedback) return game.state;
+
+    const lastReport = violationReports.length > 0
+      ? violationReports[violationReports.length - 1]
+      : null;
+
+    // Valid report: adjust for the losing player (the violator)
     if (
-      lastReportFeedback?.valid &&
+      lastReportFeedback.valid &&
       result &&
       result.winner !== 'draw' &&
       result.winner !== playerColor
@@ -310,6 +317,22 @@ export function OnlineGameScreen({
         },
       };
     }
+
+    // Invalid report: adjust for the non-reporting player
+    if (
+      !lastReportFeedback.valid &&
+      lastReport &&
+      lastReport.reportingSide !== playerColor
+    ) {
+      return {
+        ...game.state,
+        lastReportFeedback: {
+          ...lastReportFeedback,
+          message: 'Your opponent reported incorrectly.',
+        },
+      };
+    }
+
     return game.state;
   }, [game.state, playerColor]);
 

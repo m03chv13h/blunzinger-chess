@@ -118,10 +118,11 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
     expect(screen.getByText('Your opponent correctly reported a rule violation.')).toBeInTheDocument();
   });
 
-  it('does not adjust feedback for invalid reports', () => {
+  it('shows adjusted feedback when opponent reported incorrectly', () => {
     const originalMessage = 'Wrong! There was no violation to report. (White: 1/3 invalid reports)';
     mockGameState = makeGameState({
       lastReportFeedback: { valid: false, message: originalMessage },
+      violationReports: [{ moveIndex: 0, reportingSide: 'w', valid: false }],
     });
 
     render(
@@ -134,8 +135,56 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
       />,
     );
 
-    // Invalid report feedback should remain unchanged
+    // Non-reporting player should see a perspective-appropriate message
+    expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
+    expect(screen.getByText('Your opponent reported incorrectly.')).toBeInTheDocument();
+  });
+
+  it('does not adjust feedback when the player themselves reported incorrectly', () => {
+    const originalMessage = 'Wrong! There was no violation to report. (Black: 1/3 invalid reports)';
+    mockGameState = makeGameState({
+      lastReportFeedback: { valid: false, message: originalMessage },
+      violationReports: [{ moveIndex: 0, reportingSide: 'b', valid: false }],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Reporter should see the original feedback message
     expect(screen.getByText(originalMessage)).toBeInTheDocument();
+  });
+
+  it('shows adjusted feedback when opponent hits invalid report threshold', () => {
+    const originalMessage = 'Wrong! There was no violation to report. White loses due to reaching the invalid report threshold.';
+    mockGameState = makeGameState({
+      lastReportFeedback: { valid: false, message: originalMessage },
+      result: { winner: 'b', reason: 'invalid-report-threshold', detail: 'White made 3 invalid report(s), reaching the threshold of 3.' },
+      violationReports: [
+        { moveIndex: 0, reportingSide: 'w', valid: false },
+        { moveIndex: 1, reportingSide: 'w', valid: false },
+        { moveIndex: 2, reportingSide: 'w', valid: false },
+      ],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
+    expect(screen.getByText('Your opponent reported incorrectly.')).toBeInTheDocument();
   });
 
   it('shows adjusted feedback for reverse mode valid report when player lost', () => {
