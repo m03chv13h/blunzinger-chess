@@ -19,9 +19,11 @@ import { getToken, API_BASE } from '../services/apiClient';
 
 export interface PlayerJoinedEvent {
   userId: string;
+  displayName?: string;
   roomCode: string;
   status: string;
   gameState: string | null;
+  matchConfig?: string;
 }
 
 export interface GameStateUpdatedEvent {
@@ -52,6 +54,21 @@ export interface PlayerLeftEvent {
   userId: string;
 }
 
+export interface OpponentMovedEvent {
+  from: string;
+  to: string;
+  promotion?: string;
+}
+
+export interface OpponentDropMoveEvent {
+  pieceType: string;
+  square: string;
+}
+
+export interface OpponentPieceRemovalEvent {
+  square: string;
+}
+
 // ── Client → Server DTOs ────────────────────────────────────────────
 
 export interface ChessMove {
@@ -71,11 +88,16 @@ export interface GameHubCallbacks {
   onPlayerJoined?: (event: PlayerJoinedEvent) => void;
   onPlayerLeft?: (event: PlayerLeftEvent) => void;
   onOpponentDisconnected?: (event: PlayerLeftEvent) => void;
+  onOpponentReconnected?: (event: PlayerJoinedEvent) => void;
   onGameStateUpdated?: (event: GameStateUpdatedEvent) => void;
   onMoveRejected?: (event: MoveRejectedEvent) => void;
   onGameOver?: (event: GameOverEvent) => void;
   onDrawOffered?: (event: DrawOfferedEvent) => void;
   onMatchFound?: (event: MatchFoundEvent) => void;
+  onOpponentMoved?: (event: OpponentMovedEvent) => void;
+  onOpponentDropMove?: (event: OpponentDropMoveEvent) => void;
+  onOpponentReported?: () => void;
+  onOpponentPieceRemoval?: (event: OpponentPieceRemovalEvent) => void;
   onError?: (message: string) => void;
 }
 
@@ -106,6 +128,14 @@ export interface UseGameHub {
   offerDraw: (roomCode: string) => Promise<void>;
   /** Accept a draw. */
   acceptDraw: (roomCode: string) => Promise<void>;
+  /** Relay a move to the opponent (client-side engine). */
+  sendMove: (roomCode: string, from: string, to: string, promotion?: string) => Promise<void>;
+  /** Relay a drop move to the opponent (client-side engine). */
+  sendDropMove: (roomCode: string, pieceType: string, square: string) => Promise<void>;
+  /** Relay a violation report to the opponent. */
+  sendReport: (roomCode: string) => Promise<void>;
+  /** Relay a piece removal selection to the opponent. */
+  sendPieceRemoval: (roomCode: string, square: string) => Promise<void>;
 }
 
 /** Hub URL – resolved relative to the API base. */
@@ -140,6 +170,10 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     connection.on('GameOver', (e: GameOverEvent) => callbacksRef.current.onGameOver?.(e));
     connection.on('DrawOffered', (e: DrawOfferedEvent) => callbacksRef.current.onDrawOffered?.(e));
     connection.on('MatchFound', (e: MatchFoundEvent) => callbacksRef.current.onMatchFound?.(e));
+    connection.on('OpponentMoved', (e: OpponentMovedEvent) => callbacksRef.current.onOpponentMoved?.(e));
+    connection.on('OpponentDropMove', (e: OpponentDropMoveEvent) => callbacksRef.current.onOpponentDropMove?.(e));
+    connection.on('OpponentReported', () => callbacksRef.current.onOpponentReported?.());
+    connection.on('OpponentPieceRemoval', (e: OpponentPieceRemovalEvent) => callbacksRef.current.onOpponentPieceRemoval?.(e));
     connection.on('Error', (msg: string) => callbacksRef.current.onError?.(msg));
 
     connection.onclose(() => setConnected(false));
@@ -187,6 +221,23 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
   const offerDraw = useCallback((roomCode: string) => invoke('OfferDraw', roomCode), [invoke]);
   const acceptDraw = useCallback((roomCode: string) => invoke('AcceptDraw', roomCode), [invoke]);
 
+  // ── Client-side relay methods ──────────────────────────────────────
+  const sendMove = useCallback(
+    (roomCode: string, from: string, to: string, promotion?: string) =>
+      invoke('SendMove', roomCode, from, to, promotion ?? null),
+    [invoke],
+  );
+  const sendDropMove = useCallback(
+    (roomCode: string, pieceType: string, square: string) =>
+      invoke('SendDropMove', roomCode, pieceType, square),
+    [invoke],
+  );
+  const sendReport = useCallback((roomCode: string) => invoke('SendReport', roomCode), [invoke]);
+  const sendPieceRemoval = useCallback(
+    (roomCode: string, square: string) => invoke('SendPieceRemoval', roomCode, square),
+    [invoke],
+  );
+
   return {
     connected,
     connect,
@@ -200,5 +251,9 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     resignGame,
     offerDraw,
     acceptDraw,
+    sendMove,
+    sendDropMove,
+    sendReport,
+    sendPieceRemoval,
   };
 }

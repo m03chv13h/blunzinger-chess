@@ -50,6 +50,8 @@ public class GameHub(
     {
         var userId = GetUserId();
         var room = await db.MultiplayerRooms
+            .Include(r => r.Host)
+            .Include(r => r.Guest)
             .FirstOrDefaultAsync(r => r.Code == roomCode);
 
         if (room is null)
@@ -68,12 +70,15 @@ public class GameHub(
         ConnectionRooms[Context.ConnectionId] = roomCode;
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomCode));
 
+        var user = room.HostUserId == userId ? room.Host : room.Guest;
         await Clients.Group(RoomGroup(roomCode)).SendAsync("PlayerJoined", new
         {
             userId = userId.ToString(),
+            displayName = user?.DisplayName ?? "Unknown",
             roomCode,
             status = room.Status.ToString(),
             gameState = room.CurrentGameState,
+            matchConfig = room.MatchConfig,
         });
 
         logger.LogInformation("Player {User} joined room {Room}", userId, roomCode);
@@ -274,6 +279,56 @@ public class GameHub(
         {
             reason = "draw",
             detail = "Draw by agreement",
+        });
+    }
+
+    // ── Client-Side Relay (moves applied locally on both clients) ───
+
+    /// <summary>Relay a standard move to the opponent (client-side game engine).</summary>
+    public async Task SendMove(string roomCode, string from, string to, string? promotion)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentMoved", new
+        {
+            from,
+            to,
+            promotion,
+        });
+    }
+
+    /// <summary>Relay a Crazyhouse drop move to the opponent.</summary>
+    public async Task SendDropMove(string roomCode, string pieceType, string square)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentDropMove", new
+        {
+            pieceType,
+            square,
+        });
+    }
+
+    /// <summary>Relay a violation report to the opponent.</summary>
+    public async Task SendReport(string roomCode)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentReported");
+    }
+
+    /// <summary>Relay a piece removal selection to the opponent.</summary>
+    public async Task SendPieceRemoval(string roomCode, string square)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentPieceRemoval", new
+        {
+            square,
         });
     }
 

@@ -43,6 +43,7 @@ public class LobbyController(AppDbContext db) : ControllerBase
         if (userId is null) return Unauthorized();
 
         var room = await db.MultiplayerRooms
+            .Include(r => r.Host)
             .FirstOrDefaultAsync(r => r.Code == request.Code && r.Status == RoomStatus.Waiting);
 
         if (room is null)
@@ -55,7 +56,13 @@ public class LobbyController(AppDbContext db) : ControllerBase
         room.Status = RoomStatus.Playing;
         await db.SaveChangesAsync();
 
-        return Ok(new { roomId = room.Id, code = room.Code });
+        return Ok(new
+        {
+            roomId = room.Id,
+            code = room.Code,
+            matchConfig = room.MatchConfig,
+            hostDisplayName = room.Host?.DisplayName ?? "Unknown",
+        });
     }
 
     /// <summary>List public waiting rooms.</summary>

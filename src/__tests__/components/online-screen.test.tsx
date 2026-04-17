@@ -39,6 +39,10 @@ const mockHub = {
   resignGame: vi.fn().mockResolvedValue(undefined),
   offerDraw: vi.fn().mockResolvedValue(undefined),
   acceptDraw: vi.fn().mockResolvedValue(undefined),
+  sendMove: vi.fn().mockResolvedValue(undefined),
+  sendDropMove: vi.fn().mockResolvedValue(undefined),
+  sendReport: vi.fn().mockResolvedValue(undefined),
+  sendPieceRemoval: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('../../hooks/useLobby', () => ({

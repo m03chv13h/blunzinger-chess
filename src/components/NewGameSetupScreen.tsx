@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
 import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
+import { isConnectedMode } from '../config/deployMode';
 import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
@@ -24,11 +25,12 @@ function formatEngineName(info: EngineInfo): string {
 
 interface NewGameSetupScreenProps {
   initialConfig: GameSetupConfig;
-  onStartGame: (config: GameSetupConfig) => void;
+  onStartGame: (config: GameSetupConfig, isOnline?: boolean) => void;
 }
 
 export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupScreenProps) {
   const [config, setConfig] = useState<GameSetupConfig>(initialConfig);
+  const [isOnline, setIsOnline] = useState(isConnectedMode);
 
   const update = (patch: Partial<GameSetupConfig>) =>
     setConfig((prev) => ({ ...prev, ...patch }));
@@ -42,7 +44,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
   };
 
   const handleStart = () => {
-    onStartGame(config);
+    onStartGame(config, config.mode === 'hvh' && isOnline ? true : undefined);
   };
 
   const activeDef = getVariantModeDefinition(config.variantMode);
@@ -107,6 +109,25 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </select>
           <p className="mode-description">{MODE_DESCRIPTIONS[config.mode]}</p>
         </div>
+
+        {/* ── Play Online ── */}
+        {isConnectedMode && config.mode === 'hvh' && (
+          <div className="setup-group">
+            <label className="setup-checkbox-label">
+              <input
+                type="checkbox"
+                checked={isOnline}
+                onChange={(e) => setIsOnline(e.target.checked)}
+              />
+              Play Online
+            </label>
+            <p className="mode-description">
+              {isOnline
+                ? 'Creates an online room. Share the code with your opponent.'
+                : 'Two players take turns on the same device.'}
+            </p>
+          </div>
+        )}
 
         {(config.mode === 'hvbot' || config.mode === 'botvbot') && (
           <div className="setup-group">
