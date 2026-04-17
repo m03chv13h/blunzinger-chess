@@ -94,6 +94,8 @@
   padding: 12px 16px;
   align-items: flex-start;
   overflow-y: auto;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* ── Controls ── */
@@ -270,4 +272,51 @@
 
 .online-game-leave-btn:hover {
   background: #4a7cde;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .online-game-main {
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+  }
+
+  .online-game-main .left-panel,
+  .online-game-main .right-panel {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .online-game-info-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .online-game-main {
+    padding: 8px 4px;
+    gap: 12px;
+  }
+
+  .online-game-info-bar {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .online-game-room-code {
+    letter-spacing: 0.5px;
+  }
+
+  .online-game-result {
+    padding: 12px;
+  }
+
+  .online-game-result h2 {
+    font-size: 18px;
+  }
 }

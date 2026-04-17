@@ -156,3 +156,20 @@
   background: #f0f0f5;
   color: #333;
 }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .online-lobby-screen {
+    padding: 12px 8px;
+  }
+
+  .online-lobby-card {
+    padding: 20px 16px;
+  }
+
+  .online-lobby-room-code {
+    font-size: 24px;
+    letter-spacing: 2px;
+  }
+}

@@ -264,3 +264,25 @@
   margin-top: 8px;
   text-align: center;
 }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .online-screen {
+    padding: 12px 8px;
+  }
+
+  .online-card {
+    padding: 20px 16px;
+  }
+
+  .online-room-code {
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  .online-room-table th,
+  .online-room-table td {
+    padding: 6px 4px;
+  }
+}
