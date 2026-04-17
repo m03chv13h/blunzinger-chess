@@ -80,6 +80,54 @@
   text-align: center;
 }
 
+.sidebar-badge--offline {
+  background: #6b6b7b;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sidebar-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sidebar-item:disabled:hover {
+  background: none;
+  color: #c0c0d0;
+}
+
+.sidebar-user {
+  border-top: 1px solid #2d2d4a;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-user-name {
+  font-size: 13px;
+  color: #c0c0d0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logout-btn {
+  background: none;
+  border: 1px solid #3a3a5c;
+  color: #c0c0d0;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-logout-btn:hover {
+  background: #3a3a5c;
+  color: #fff;
+}
+
 .sidebar-hamburger {
   display: none;
   position: fixed;
