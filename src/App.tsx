@@ -288,6 +288,16 @@ function App() {
     setScreen({ type: section });
   };
 
+  const handleLogout = useCallback(() => {
+    flushPendingRecord();
+    if (screen.type === 'simulation-running') {
+      simulation.stop();
+      flushSimulationRecords();
+    }
+    auth.logout();
+    setScreen({ type: 'welcome' });
+  }, [auth, flushPendingRecord, flushSimulationRecords, screen.type, simulation]);
+
   const handleContinueAsGuest = () => {
     auth.loginAsGuest();
     setScreen({ type: 'quick-start' });
@@ -321,7 +331,7 @@ function App() {
             gameCount={analyseCount}
             isConnected={isConnectedMode}
             userName={auth.user?.displayName}
-            onLogout={isConnectedMode ? auth.logout : undefined}
+            onLogout={isConnectedMode ? handleLogout : undefined}
           />
           <div className="app-with-sidebar">
             <main className="app-main">
@@ -377,7 +387,7 @@ function App() {
           gameCount={analyseCount}
           isConnected={isConnectedMode}
           userName={auth.user?.displayName}
-          onLogout={isConnectedMode ? auth.logout : undefined}
+          onLogout={isConnectedMode ? handleLogout : undefined}
         />
       <div className="app-with-sidebar">
         <main className="app-main">
