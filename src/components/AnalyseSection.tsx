@@ -226,7 +226,7 @@ export function AnalyseSection({
 
             {hasRemoteGames && (
               <div className="analyse-list">
-                {remoteGames!.map((item) => {
+                {(remoteGames ?? []).map((item) => {
                   const config = parseRemoteConfig(item.matchConfig);
                   const result = parseRemoteResult(item.result);
                   return (

@@ -314,6 +314,10 @@ function App() {
     prevSavedRef.current = true;
   };
 
+  // Ref keeps handleSelectGameForReview always up-to-date for async callbacks.
+  const selectGameForReviewRef = useRef(handleSelectGameForReview);
+  selectGameForReviewRef.current = handleSelectGameForReview;
+
   const handleStartSimulation = (config: GameSetupConfig, count: number) => {
     simulation.start(config, count);
     setScreen({ type: 'simulation-running' });
@@ -371,9 +375,9 @@ function App() {
   const handleSelectRemoteGame = useCallback(async (id: string) => {
     const record = await gameHistoryBackend.fetchGameForReview(id);
     if (record) {
-      handleSelectGameForReview(record);
+      selectGameForReviewRef.current(record);
     }
-  }, [gameHistoryBackend]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameHistoryBackend]);
 
   // Handle deleting a remote saved game.
   const handleDeleteRemoteGame = useCallback(async (id: string) => {
