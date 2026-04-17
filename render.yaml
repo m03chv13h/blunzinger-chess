@@ -15,11 +15,12 @@ services:
     envVars:
       - key: VITE_DEPLOY_MODE
         value: connected
+      # Set this to the public URL of the blunziger-api service
+      # (e.g. https://blunziger-api.onrender.com).  Do NOT use fromService
+      # here — its `host` property returns a private hostname that browsers
+      # cannot resolve.
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: blunziger-api
-          property: host
+        sync: false
 
   # ── .NET API Backend ──────────────────────────────────────────────
   - type: web
@@ -59,11 +60,12 @@ services:
         sync: false
       - key: OAuth__Microsoft__ClientSecret
         sync: false
+      # Set this to the public URL of the blunziger-frontend service
+      # (e.g. https://blunziger-frontend.onrender.com).  Do NOT use
+      # fromService — its `host` property returns a private hostname,
+      # not the public origin the browser sends in CORS requests.
       - key: Cors__AllowedOrigins__0
-        fromService:
-          type: web
-          name: blunziger-frontend
-          property: host
+        sync: false
 
   # ── Node.js Game Engine Worker (Private Service) ──────────────────
   - type: pserv
