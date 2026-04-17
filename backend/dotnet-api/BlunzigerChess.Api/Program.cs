@@ -169,7 +169,7 @@ var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Ge
     ?? ["http://localhost:5173", "http://localhost:4173"])
     .Select(o => o.Trim())
     .Where(o => !string.IsNullOrEmpty(o))
-    .Select(o => o.Contains("://") ? o : $"https://{o}")
+    .Select(o => o.Contains("://", StringComparison.Ordinal) ? o : $"https://{o}")
     .Select(o => o.TrimEnd('/'))
     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -177,7 +177,8 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.SetIsOriginAllowed(origin => allowedOrigins.Contains(origin.TrimEnd('/')))
+        policy.SetIsOriginAllowed(origin =>
+                  !string.IsNullOrEmpty(origin) && allowedOrigins.Contains(origin.TrimEnd('/')))
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
