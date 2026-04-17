@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import './Sidebar.css';
@@ -12,8 +13,8 @@ interface SidebarProps {
   isConnected?: boolean;
   /** Display name of the authenticated user (connected mode). */
   userName?: string;
-  /** Avatar identifier of the authenticated user (connected mode). */
-  userAvatar?: string;
+  /** Avatar display element of the authenticated user (connected mode). */
+  userAvatar?: ReactNode;
   /** Logout handler (connected mode only). */
   onLogout?: () => void;
 }

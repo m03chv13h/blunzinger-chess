@@ -115,7 +115,7 @@ describe('ProfileSettingsScreen', () => {
     });
   });
 
-  it('renders all 8 sausage avatar options', () => {
+  it('renders all 15 sausage avatar options', () => {
     render(<ProfileSettingsScreen userProfile={userProfile} />);
     expect(screen.getByLabelText('Bratwurst')).toBeInTheDocument();
     expect(screen.getByLabelText('Salami')).toBeInTheDocument();
@@ -125,6 +125,13 @@ describe('ProfileSettingsScreen', () => {
     expect(screen.getByLabelText('Chorizo')).toBeInTheDocument();
     expect(screen.getByLabelText('Knackwurst')).toBeInTheDocument();
     expect(screen.getByLabelText('Bockwurst')).toBeInTheDocument();
+    expect(screen.getByLabelText('Krakauer')).toBeInTheDocument();
+    expect(screen.getByLabelText('Blunze')).toBeInTheDocument();
+    expect(screen.getByLabelText('Käsekrainer')).toBeInTheDocument();
+    expect(screen.getByLabelText('Eitrige')).toBeInTheDocument();
+    expect(screen.getByLabelText('Currywurst')).toBeInTheDocument();
+    expect(screen.getByLabelText('Depreziner')).toBeInTheDocument();
+    expect(screen.getByLabelText('Fleischwurst')).toBeInTheDocument();
   });
 
   it('highlights the currently selected avatar', () => {
