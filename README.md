@@ -501,7 +501,7 @@ The **FEN Display** component shows the current board position as a copyable FEN
 
 ### Prerequisites
 
-- Node.js 20+ (22 for backend worker)
+- Node.js 20+ (backend worker requires Node.js 22)
 - npm 9+
 - .NET 10 SDK (backend only)
 - PostgreSQL (backend only, or use Aspire)
