@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { UseUserProfile } from '../hooks/useUserProfile';
 import { AVATAR_PRESETS } from './avatarPresets';
 import './ProfileSettingsScreen.css';
@@ -15,13 +15,15 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
   const [nameSaved, setNameSaved] = useState(false);
   const [avatarSaved, setAvatarSaved] = useState(false);
 
-  // Sync display name when profile loads for the first time.
-  const [syncedId, setSyncedId] = useState<string | null>(null);
-  if (profile && profile.id !== syncedId) {
-    setSyncedId(profile.id);
-    setDisplayName(profile.displayName);
-    setNameEdited(false);
-  }
+  // Sync display name when profile loads or changes user.
+  const syncedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (profile && profile.id !== syncedIdRef.current) {
+      syncedIdRef.current = profile.id;
+      setDisplayName(profile.displayName);
+      setNameEdited(false);
+    }
+  }, [profile]);
 
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setDisplayName(e.target.value);
