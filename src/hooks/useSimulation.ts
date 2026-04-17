@@ -110,6 +110,9 @@ export function useSimulation(): UseSimulationReturn {
       });
     };
 
+    // runNext is async so it can `await` remote API calls in connected mode.
+    // Sequential execution is guaranteed because the next setTimeout is
+    // only scheduled AFTER the current game (including any await) completes.
     const runNext = async () => {
       if (cancelledRef.current || currentGame >= count) {
         runningRef.current = false;
@@ -138,7 +141,8 @@ export function useSimulation(): UseSimulationReturn {
         completeGame(gameIndex, record);
       }
 
-      // Yield to the browser between games so the UI can render updates
+      // Yield to the browser between games so the UI can render updates.
+      // This is scheduled after the await above, ensuring one game at a time.
       setTimeout(runNext, 0);
     };
 

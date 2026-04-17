@@ -60,6 +60,7 @@ describe('runSimulatedGameRemote', () => {
     expect(result.id).toBe('sim-1');
     expect(result.result.winner).toBe('w');
     expect(result.moveCount).toBe(42);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch.mock.calls[0][0]).toBe('/api/simulation/run');
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(config);
@@ -80,6 +81,7 @@ describe('runSimulatedGameRemote', () => {
 
     await runSimulatedGameRemote(config);
 
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     const headers = mockFetch.mock.calls[0][1].headers;
     expect(headers['Authorization']).toBe('Bearer test-jwt');
   });
