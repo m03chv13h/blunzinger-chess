@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { AVATAR_PRESETS, getAvatarEmoji } from '../../components/avatarPresets';
 
 describe('avatarPresets', () => {
-  it('contains 8 sausage-themed presets', () => {
-    expect(AVATAR_PRESETS).toHaveLength(8);
+  it('contains 15 sausage-themed presets', () => {
+    expect(AVATAR_PRESETS).toHaveLength(15);
   });
 
   it('each preset has id, emoji, and label', () => {
@@ -17,6 +17,31 @@ describe('avatarPresets', () => {
   it('has unique IDs', () => {
     const ids = AVATAR_PRESETS.map(p => p.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('includes the new sausage avatar presets', () => {
+    const ids = AVATAR_PRESETS.map(p => p.id);
+    expect(ids).toContain('krakauer');
+    expect(ids).toContain('blunze');
+    expect(ids).toContain('kaesekrainer');
+    expect(ids).toContain('eitrige');
+    expect(ids).toContain('currywurst');
+    expect(ids).toContain('depreziner');
+    expect(ids).toContain('fleischwurst');
+  });
+
+  it('marks sausage SVG avatars with hasSvg flag', () => {
+    const svgPresets = AVATAR_PRESETS.filter(p => p.hasSvg);
+    expect(svgPresets.length).toBe(8);
+    const svgIds = svgPresets.map(p => p.id);
+    expect(svgIds).toContain('bratwurst');
+    expect(svgIds).toContain('krakauer');
+    expect(svgIds).toContain('blunze');
+    expect(svgIds).toContain('kaesekrainer');
+    expect(svgIds).toContain('eitrige');
+    expect(svgIds).toContain('currywurst');
+    expect(svgIds).toContain('depreziner');
+    expect(svgIds).toContain('fleischwurst');
   });
 });
 

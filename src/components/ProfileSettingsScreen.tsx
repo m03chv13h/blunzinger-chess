@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { UseUserProfile } from '../hooks/useUserProfile';
-import { AVATAR_PRESETS } from './avatarPresets';
+import { AVATAR_PRESETS, getAvatarDisplay } from './avatarPresets';
 import './ProfileSettingsScreen.css';
 
 interface ProfileSettingsScreenProps {
@@ -95,7 +95,9 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
 
           {currentAvatar && (
             <div className="profile-current-avatar">
-              <span className="profile-current-avatar-emoji">{currentAvatar.emoji}</span>
+              <span className="profile-current-avatar-emoji">
+                {getAvatarDisplay(currentAvatar.id, '32px')}
+              </span>
               <span className="profile-current-avatar-label">Current: {currentAvatar.label}</span>
             </div>
           )}
@@ -112,7 +114,9 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
                 role="radio"
                 title={preset.label}
               >
-                <span className="profile-avatar-emoji">{preset.emoji}</span>
+                <span className="profile-avatar-emoji">
+                  {getAvatarDisplay(preset.id, '28px')}
+                </span>
                 <span className="profile-avatar-label">{preset.label}</span>
               </button>
             ))}

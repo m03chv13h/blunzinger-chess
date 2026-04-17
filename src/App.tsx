@@ -31,7 +31,7 @@ import { OnlineScreen } from './components/OnlineScreen';
 import { OnlineLobbyScreen } from './components/OnlineLobbyScreen';
 import { OnlineGameScreen } from './components/OnlineGameScreen';
 import { ProfileSettingsScreen } from './components/ProfileSettingsScreen';
-import { getAvatarEmoji } from './components/avatarPresets';
+import { getAvatarDisplay } from './components/avatarPresets';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
@@ -386,7 +386,7 @@ function App() {
             gameCount={analyseCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
-            userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
+            userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
           <div className="app-with-sidebar">
@@ -458,7 +458,7 @@ function App() {
             gameCount={analyseCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
-            userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
+            userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
           <div className="app-with-sidebar">
@@ -487,7 +487,7 @@ function App() {
           gameCount={analyseCount}
           isConnected={isConnectedMode}
           userName={userProfile.profile?.displayName ?? auth.user?.displayName}
-          userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
+          userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
           onLogout={isConnectedMode ? handleLogout : undefined}
         />
       <div className="app-with-sidebar">
