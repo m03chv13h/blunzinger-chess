@@ -177,7 +177,7 @@ builder.Services.AddAuthorization();
 
 // ── gRPC Clients (to Node.js worker) ────────────────────────────────
 
-var nodeWorkerUrl = builder.Configuration["NodeWorker:Url"] ?? "http://localhost:50051";
+var nodeWorkerUrl = GrpcAddressHelper.NormalizeUrl(builder.Configuration["NodeWorker:Url"]);
 
 builder.Services.AddGrpcClient<GameLogicService.GameLogicServiceClient>(o =>
     o.Address = new Uri(nodeWorkerUrl));
