@@ -81,17 +81,10 @@ export function OnlineLobbyScreen({
 
   useEffect(() => {
     // Only start the countdown once the room code is visible
-    const roomCode = lobby.activeRoom?.code ?? roomCodeRef.current;
-    if (!roomCode || opponentName) return;
+    if (!lobby.activeRoom?.code || opponentName) return;
 
     const id = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(id);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown(prev => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(id);
