@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { GameSetupConfig, Square, CrazyhousePieceType, Color } from '../core/blunziger/types';
 import { buildMatchConfig } from '../core/blunziger/types';
 import { useGame } from '../hooks/useGame';
@@ -289,6 +289,30 @@ export function OnlineGameScreen({
 
   const flipped = playerColor === 'b';
 
+  // ── Perspective-aware feedback ─────────────────────────────────────
+  // Report-feedback messages are written from the reporter's perspective
+  // ("Correct! The opponent missed…"). In online mode the losing player
+  // (the violator) shares the same state, so we adjust the message to
+  // make sense from their point of view.
+  const perspectiveState = useMemo(() => {
+    const { lastReportFeedback, result } = game.state;
+    if (
+      lastReportFeedback?.valid &&
+      result &&
+      result.winner !== 'draw' &&
+      result.winner !== playerColor
+    ) {
+      return {
+        ...game.state,
+        lastReportFeedback: {
+          ...lastReportFeedback,
+          message: 'Your opponent correctly reported a rule violation.',
+        },
+      };
+    }
+    return game.state;
+  }, [game.state, playerColor]);
+
   return (
     <div className="online-game-layout">
       {/* ── Opponent Info Bar ── */}
@@ -440,7 +464,7 @@ export function OnlineGameScreen({
           )}
 
           <GameStatus
-            state={game.state}
+            state={perspectiveState}
             onReport={handleReport}
             botThinking={false}
             clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
