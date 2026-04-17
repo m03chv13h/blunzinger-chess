@@ -1,6 +1,6 @@
 # Blunziger Chess ♟
 
-A browser-based chess variant with a **normalized variant architecture** built on top of standard chess.
+A browser-based chess variant application with a **normalized variant architecture**, online multiplayer, and a full backend — built on top of standard chess.
 
 ## What is Blunziger Chess?
 
@@ -237,7 +237,18 @@ Examples of valid setups:
 
 ## Setup UI
 
-The New Game setup screen presents:
+### Quick Start
+
+A simplified game launcher for getting into a game immediately:
+
+- Pre-configured with **Classic Blunzinger + Report Incorrectness**
+- Select player mode (HvH / HvBot / BvB), bot difficulty, and side
+- Optional clock with configurable time and increment
+- **Online toggle** (connected mode) — creates a multiplayer room for HvH games
+
+### New Game
+
+The full New Game setup screen presents:
 
 1. **Variant Mode** selector (4 options)
 2. **Game Type** selector (Report Incorrectness / Penalty on Miss)
@@ -371,21 +382,164 @@ Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.t
 
 Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunziger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
 
+## Deployment Modes
+
+The app supports two deployment modes controlled by the `VITE_DEPLOY_MODE` environment variable:
+
+| Mode | Description |
+|------|-------------|
+| **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. Deployed to GitHub Pages. |
+| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Deployed to Render. |
+
+Features by mode:
+
+| Feature | Static | Connected |
+|---------|:------:|:---------:|
+| Local play (HvH, HvBot, BvB) | ✅ | ✅ |
+| All variant modes & overlays | ✅ | ✅ |
+| Evaluation bar & review | ✅ | ✅ |
+| Authentication | — | ✅ OAuth + Guest |
+| Online multiplayer | — | ✅ SignalR |
+| Game history persistence | In-memory only | ✅ Database |
+| User profiles & avatars | — | ✅ |
+| Server-side simulation | — | ✅ gRPC offloading |
+
+## Online Multiplayer
+
+When running in connected mode, the app supports **real-time online multiplayer** via SignalR WebSocket.
+
+### Lobby System
+
+- **Create Room** — host creates a private room with a short join code and chosen game configuration
+- **Join Room** — guest joins by entering the room code
+- **Browse Rooms** — view available waiting rooms
+- **Matchmaking** — automatic opponent finding via a matchmaking queue
+
+### Online Game Features
+
+- **Real-time move relay** — moves are applied locally first, then relayed to the opponent via the SignalR hub
+- **Host plays White, guest plays Black** — roles assigned at room creation
+- **Draw offers** — either player can offer/accept a draw
+- **Resignations** — immediate game termination
+- **Takeback requests** — request to undo a move (opponent can accept or decline)
+- **Disconnect handling** — opponent disconnection detection with reconnection support
+- **Move validation** — the backend validates moves via the Node.js gRPC worker to prevent tampering
+- **Room expiry** — idle rooms are automatically cleaned up
+
+### Variant Support
+
+Online games support the full range of variant modes, game types, and overlays — the same configuration options available in local play.
+
+## Authentication
+
+Connected mode provides multiple authentication methods:
+
+| Method | Description |
+|--------|-------------|
+| **Guest** | Anonymous JWT — no account required, play immediately |
+| **Google OAuth** | Sign in with Google |
+| **GitHub OAuth** | Sign in with GitHub |
+| **Discord OAuth** | Sign in with Discord |
+| **Microsoft OAuth** | Sign in with Microsoft |
+
+**Flow:**
+1. User chooses a login method on the welcome screen
+2. OAuth providers redirect to the backend, which issues a JWT on success
+3. The JWT is stored in `localStorage` and attached to all API requests
+4. Guest tokens are created via `POST /api/auth/guest`
+
+## User Profiles & Avatars
+
+Authenticated users have a profile with:
+
+- **Display name** — editable, defaults to OAuth provider name or "Guest"
+- **Avatar** — selectable from 15 sausage-themed presets (bratwurst, salami, blutwurst, weisswurst, frankfurter, chorizo, knackwurst, bockwurst, krakauer, blunze, kaesekrainer, eitrige, currywurst, depreziner, fleischwurst)
+- **8 custom SVG avatars** — hand-drawn sausage artwork for select presets
+- **OAuth provider data** — provider display name and avatar URL imported on first login
+- **Game count** — total number of completed games
+
+## Simulation System
+
+The simulation system runs **automated bot-vs-bot games** for analysis:
+
+- **Configure**: choose game count (1–100), variant mode, game type, overlays, and engine selection
+- **Execute**: runs complete games without clocks (deterministic), capped at 600 ply per game
+- **Review**: browse simulation results with standings, then review individual games move-by-move
+
+| Mode | Execution |
+|------|-----------|
+| **Static** | Client-side — bot logic runs in the browser |
+| **Connected** | Server-side — offloaded to the Node.js worker via gRPC for better performance |
+
+Simulation records group multiple game results with aggregate statistics.
+
+## Game History & Persistence
+
+Completed games are recorded as `GameRecord` objects containing:
+- Full configuration, result, and final position
+- Complete position history and move history (for post-game review)
+- Violation reports, missed checks, piece removals, and time reductions
+
+| Mode | Storage |
+|------|---------|
+| **Static** | In-memory only — lost on page reload |
+| **Connected** | Persisted to PostgreSQL via `POST /api/games` — paginated retrieval, deletion |
+
+The **Analyse** section lets users browse completed games and simulation results, expanding simulation groups to review individual games.
+
+## FEN Import & Position Analysis
+
+The **Analyse Position** form allows:
+- Pasting a FEN string with validation
+- Selecting variant mode, game type, and overlays
+- Live FEN preview on a mini board
+- Starting a game from any valid position
+
+The **FEN Display** component shows the current board position as a copyable FEN string during active games.
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+ (22 for backend worker)
 - npm 9+
+- .NET 10 SDK (backend only)
+- PostgreSQL (backend only, or use Aspire)
 
-### Install & Run
+### Frontend (Static Mode)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+Open http://localhost:5173 in your browser. Runs in static mode by default — no backend required.
+
+### Frontend (Connected Mode)
+
+```bash
+VITE_DEPLOY_MODE=connected npm run dev
+```
+
+Requires the backend services to be running. The Vite dev server proxies `/api` and `/hubs` to `localhost:8080`.
+
+### Backend
+
+```bash
+# .NET API (from repository root)
+dotnet run --project backend/dotnet-api/BlunzigerChess.Api/BlunzigerChess.Api.csproj
+
+# Node.js Worker
+cd backend/node-worker
+npm install
+npx tsx src/server.ts
+```
+
+Or use .NET Aspire to orchestrate all backend services:
+
+```bash
+dotnet run --project backend/aspire/BlunzigerChess.AppHost/BlunzigerChess.AppHost.csproj
+```
 
 ### Build for Production
 
@@ -398,16 +552,57 @@ The output is in `dist/` — a fully static site.
 ### Run Tests
 
 ```bash
+# Frontend unit & component tests (Vitest)
 npm test
+
+# Frontend lint
+npm run lint
+
+# System tests (Playwright — requires built frontend)
+npm run test:system:local
+
+# Backend API tests
+dotnet test backend/dotnet-api/BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj
+
+# Node worker type-check
+cd backend/node-worker && npx tsc --noEmit
 ```
 
+## CI/CD
+
+| Workflow | Trigger | Description |
+|----------|---------|-------------|
+| **Deploy to GitHub Pages** (`deploy.yml`) | Push to `main` | Builds frontend in static mode, deploys to GitHub Pages |
+| **Run Unit Tests** (`test.yml`) | Push to `main` | Runs Vitest frontend test suite |
+| **Build Backend** (`backend.yml`) | Push/PR touching `backend/`, `src/core/`, `src/bot/` | Builds .NET API + Aspire, runs API tests, type-checks Node worker |
+| **System Tests** (`system-tests.yml`) | After deploy, or manual trigger | Runs Playwright E2E tests against deployed or local build |
+
+## Deployment
+
+The app deploys to two platforms:
+
+| Platform | Mode | Config |
+|----------|------|--------|
+| **GitHub Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
+| **Render** | Connected | `render.yaml` — frontend static site + .NET API + Node worker + PostgreSQL |
+
+The Render blueprint (`render.yaml`) provisions:
+- **Frontend** — static site with SPA rewrites
+- **.NET API** — Docker web service on port 8080
+- **Node Worker** — private gRPC service on port 50051
+- **PostgreSQL** — managed database
+
 ## Architecture
+
+### Frontend
 
 ```
 src/
 ├── core/blunziger/     # Pure TypeScript — no React/DOM deps
 │   ├── types.ts        # VariantMode, GameType, MatchConfig, OverlayConfig, GameState, setup config
 │   ├── engine.ts       # All pure game logic functions (variant-mode-aware)
+│   ├── atomic.ts       # Atomic Chess explosion and legality logic
+│   ├── chess960.ts     # Chess960 position generation and castling
 │   └── index.ts        # Re-exports
 ├── core/evaluation/    # Pure TypeScript — variant-aware evaluation system
 │   ├── types.ts        # EvaluationResult type
@@ -437,42 +632,130 @@ src/
 │   ├── pieceRemoval.ts # Piece removal decision logic
 │   ├── reportLogic.ts  # Report action decision logic
 │   └── index.ts        # Public API
+├── core/simulation.ts  # Synchronous bot-vs-bot game runner
+├── core/gameRecord.ts  # Game record and simulation record types
 ├── bot/
-│   └── botEngine.ts    # Bot move selection (delegates to Blunznforön when config available)
+│   ├── botEngine.ts    # Bot move selection (delegates to Blunznforön)
+│   └── botWorker.ts    # Web Worker for non-blocking bot computation
+├── config/
+│   ├── deployMode.ts   # Static vs connected mode configuration
+│   └── DeployModeContext.tsx  # React context for deploy mode
+├── services/           # Backend API client layer (connected mode)
+│   ├── apiClient.ts    # Base HTTP client with JWT and error handling
+│   ├── authService.ts  # /api/auth endpoints (OAuth, guest, profile)
+│   ├── lobbyService.ts # /api/lobby endpoints (rooms, matchmaking)
+│   ├── gamesService.ts # /api/games endpoints (save, list, delete)
+│   ├── userService.ts  # /api/user endpoints (profile management)
+│   └── simulationService.ts  # /api/simulation endpoints
+├── hooks/
+│   ├── useGame.ts       # React game state hook (clocks, scores, extra turns, piece removal)
+│   ├── useEvaluation.ts # Memoized evaluation hook
+│   ├── useReview.ts     # Post-game review navigation state hook
+│   ├── useAuth.ts       # Authentication state (JWT, OAuth, guest)
+│   ├── useGameHub.ts    # SignalR multiplayer connection
+│   ├── useLobby.ts      # Room and matchmaking management
+│   ├── useGameHistory.ts # Persistent game record storage
+│   ├── useSimulation.ts # Bot-vs-bot simulation runner
+│   └── useUserProfile.ts # User profile CRUD
 ├── components/
 │   ├── Chessboard.tsx        # Custom board UI (click-to-move, piece removal)
 │   ├── EvaluationBar.tsx     # Optional evaluation bar (variant-aware)
 │   ├── GameStatus.tsx        # Turn, clocks, scores, report, result, piece removal prompt
 │   ├── GameControls.tsx      # New Game button + eval toggle + bot-vs-bot controls
 │   ├── GameSummaryPanel.tsx  # Read-only settings summary during play
-│   ├── NewGameSetupScreen.tsx # Pre-game setup with variant/game-type/overlay selectors
+│   ├── QuickStartScreen.tsx  # Quick game setup (Classic Blunzinger preset)
+│   ├── NewGameSetupScreen.tsx # Full pre-game setup with all configuration
 │   ├── MoveList.tsx          # Move history sidebar (click-to-jump in review mode)
 │   ├── ReviewControls.tsx    # Post-game review navigation (first/prev/next/last)
-│   └── RulesPanel.tsx        # Variant/game-type/overlay rule explanations
-├── hooks/
-│   ├── useGame.ts      # React game state hook (clocks, scores, extra turns, piece removal)
-│   ├── useEvaluation.ts # Memoized evaluation hook
-│   └── useReview.ts    # Post-game review navigation state hook
+│   ├── RulesPanel.tsx        # Variant/game-type/overlay rule explanations
+│   ├── RulesPage.tsx         # Full rules reference page
+│   ├── CrazyhouseReserve.tsx # Crazyhouse piece reserve display
+│   ├── FenDisplay.tsx        # Copyable FEN position display
+│   ├── AnalysePositionForm.tsx # FEN import and position analysis
+│   ├── AnalyseSection.tsx    # Game and simulation history browser
+│   ├── SimulationSetupScreen.tsx # Bot-vs-bot simulation configuration
+│   ├── SimulationView.tsx    # Simulation results and standings
+│   ├── WelcomeScreen.tsx     # Login screen (connected mode)
+│   ├── OnlineScreen.tsx      # Online play screen dispatcher
+│   ├── OnlineLobbyScreen.tsx # Room creation and joining
+│   ├── OnlineGameScreen.tsx  # Live multiplayer game
+│   ├── ProfileSettingsScreen.tsx # User profile and avatar editor
+│   ├── MiniBoard.tsx         # Small board preview (FEN analysis)
+│   ├── Sidebar.tsx           # Navigation sidebar with section routing
+│   ├── avatarPresets.ts      # 15 sausage-themed avatar presets
+│   └── sausageAvatars.tsx    # 8 custom SVG avatar illustrations
 └── __tests__/
-    ├── engine.test.ts    # Core logic tests
-    ├── engine-adapter.test.ts # Engine abstraction layer tests
-    ├── bot.test.ts       # Bot tests
-    ├── modes.test.ts     # Variant mode, game type, overlay, combined penalty tests
-    ├── evaluation.test.ts # Evaluation module tests (base + variant-aware)
-    ├── evaluation-ui.test.tsx # Evaluation bar UI tests
-    ├── review.test.tsx   # Post-game review system tests
-    ├── app-flow.test.tsx # UI flow tests (setup, clock, penalty, game type)
-    └── numeric-input.test.tsx # NumericInput component tests
+    ├── unit/                 # Pure logic tests (15 files)
+    │   ├── engine.test.ts, modes.test.ts, evaluation.test.ts, bot.test.ts
+    │   ├── blunznforon.test.ts, chess960.test.ts, atomic.test.ts, crazyhouse.test.ts
+    │   ├── clock.test.ts, simulation.test.ts, engine-adapter.test.ts
+    │   ├── avatar-presets.test.ts, simulation-record.test.ts
+    │   ├── specific-fen.test.ts, test_position.test.ts
+    ├── components/           # React UI tests (22 files)
+    │   ├── app-flow.test.tsx, game-status.test.tsx, move-list.test.tsx, review.test.tsx
+    │   ├── evaluation-ui.test.tsx, numeric-input.test.tsx, time-input.test.tsx
+    │   ├── fen-display.test.tsx, game-summary-panel.test.tsx, report-issue.test.tsx
+    │   ├── quick-start-online.test.tsx, welcome-screen.test.tsx
+    │   ├── online-screen.test.tsx, online-lobby.test.tsx, online-game-screen.test.tsx
+    │   ├── simulation-ui.test.tsx, analyse-section.test.tsx, analyse-position-form.test.tsx
+    │   ├── profile-settings.test.tsx, crazyhouse-dnd.test.tsx
+    │   ├── error-resilience.test.tsx, logout-redirect.test.tsx
+    └── services/             # API client tests (4 files)
+        ├── apiClient.test.ts, authService.test.ts
+        ├── lobbyService.test.ts, simulationService.test.ts
+```
+
+### Backend
+
+```
+backend/
+├── dotnet-api/BlunzigerChess.Api/
+│   ├── Controllers/        # REST API endpoints
+│   │   ├── AuthController.cs       # OAuth login, guest tokens, JWT
+│   │   ├── GamesController.cs      # Game record CRUD
+│   │   ├── LobbyController.cs      # Room and matchmaking management
+│   │   ├── SimulationController.cs # Backend simulation execution
+│   │   └── UserController.cs       # User profile management
+│   ├── Hubs/
+│   │   └── GameHub.cs      # SignalR hub for real-time multiplayer
+│   ├── Services/
+│   │   ├── AuthService.cs           # OAuth + JWT token generation
+│   │   ├── MatchmakingService.cs    # Opponent matching queue
+│   │   ├── RoomExpiryService.cs     # Background room cleanup
+│   │   └── EnabledOAuthProviders.cs # Runtime OAuth provider discovery
+│   ├── GrpcClients/
+│   │   └── GameEngineClient.cs      # gRPC client to Node.js worker
+│   ├── Data/
+│   │   └── AppDbContext.cs          # Entity Framework Core context
+│   ├── Models/
+│   │   ├── User.cs, Game.cs, MultiplayerRoom.cs, MatchmakingEntry.cs
+│   └── Dockerfile          # Multi-stage .NET 10 build
+├── dotnet-api/BlunzigerChess.Api.Tests/  # Backend unit tests
+├── node-worker/
+│   ├── src/
+│   │   ├── server.ts       # gRPC server entry point
+│   │   └── services/       # Game logic, bot, evaluation, simulation
+│   └── Dockerfile          # Node 22 Alpine build
+├── aspire/                 # .NET Aspire local orchestration
+│   ├── BlunzigerChess.AppHost/
+│   └── BlunzigerChess.ServiceDefaults/
+└── proto/                  # gRPC service definitions
+    ├── common.proto, game_logic.proto, bot.proto
+    ├── evaluation.proto, simulation.proto
 ```
 
 ### Separation of Concerns
 
-- **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Can be reused server-side.
+- **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Reused server-side by the Node.js worker.
 - **`core/evaluation/`**: Pure evaluation functions. Combines base chess evaluation with variant-aware adjustments.
 - **`core/engine/`**: Pluggable engine adapters for evaluation bar and best-move hints. Engines are advisory — game rules stay in `core/blunziger/`.
 - **`bot/`**: Bot logic, depends only on `core/` and `chess.js`.
-- **`components/`**: React UI, depends on `core/` through the `useGame` and `useEvaluation` hooks.
-- **`hooks/`**: Bridges core logic and React state. Manages clocks and evaluation memoization.
+- **`config/`**: Deploy mode configuration and React context.
+- **`services/`**: Backend API client layer — all REST and auth communication.
+- **`hooks/`**: Bridges core logic, backend services, and React state. Manages clocks, auth, multiplayer, and evaluation.
+- **`components/`**: React UI, depends on `core/` through hooks.
+- **`backend/dotnet-api/`**: .NET API — auth, persistence, multiplayer hub, gRPC delegation.
+- **`backend/node-worker/`**: TypeScript gRPC server reusing `src/core/` for server-side logic.
 
 ### Type System
 
@@ -480,8 +763,10 @@ src/
 |------|---------|
 | `VariantMode` | One of 4 variant modes |
 | `GameType` | `'report_incorrectness'` or `'penalty_on_miss'` |
+| `GameMode` | `'hvh'` / `'hvbot'` / `'botvbot'` |
+| `BotLevel` | `'easy'` / `'medium'` / `'hard'` |
 | `MatchConfig` | Full immutable match configuration (variant + game type + overlays + configs) |
-| `OverlayConfig` | Clock, King of the Hill, Double Check Pressure settings |
+| `OverlayConfig` | Clock, King of the Hill, Double Check Pressure, Crazyhouse, Chess960, Atomic settings |
 | `ReportGameTypeConfig` | Invalid report threshold |
 | `PenaltyGameTypeConfig` | Penalty flags and configurable values |
 | `VariantSpecificConfig` | King Hunt ply limit, given-check target |
@@ -492,6 +777,11 @@ src/
 | `EvaluationResult` | Evaluation output with score, normalized bar value, favored side, and explanation |
 | `ViolationRecord` | Detected violation with type, severity, required moves |
 | `PendingPieceRemoval` | State for piece removal penalty (target side, chooser side, removable squares, remaining count) |
+| `GameRecord` | Completed game record with config, result, full history, violations, penalties |
+| `SimulationRecord` | Groups multiple game records with aggregate standings |
+| `CrazyhouseState` | Reserve pieces and drop tracking for Crazyhouse overlay |
+| `Chess960State` | Position index and castling state for Chess960 overlay |
+| `GameResultReason` | Discriminated union of all terminal condition reasons |
 
 ### Pure Functions (core module)
 
@@ -519,15 +809,59 @@ src/
 | `evaluateBasePosition(fen)` | Base chess evaluation (material + mobility) |
 | `evaluateVariantAdjustments(state, whiteMs, blackMs)` | Variant/game-type/overlay evaluation adjustments |
 
+### Backend Architecture
+
+The backend is a multi-tier system deployed to Render:
+
+```
+┌──────────────┐      ┌──────────────────┐      ┌─────────────────────┐
+│   Frontend   │─────▶│   .NET API       │─────▶│   Node.js Worker    │
+│   (Static)   │ REST │   (ASP.NET 10)   │ gRPC │   (TypeScript)      │
+│              │  +   │                  │      │                     │
+│              │  WS  │   PostgreSQL DB  │      │   Port 50051        │
+└──────────────┘      └──────────────────┘      └─────────────────────┘
+```
+
+**.NET API** — ASP.NET 10 web API handling authentication, game persistence, multiplayer coordination, and gRPC delegation.
+
+| Controller | Endpoints | Purpose |
+|-----------|-----------|---------|
+| `AuthController` | `/api/auth/*` | OAuth login, guest tokens, JWT management |
+| `GamesController` | `/api/games/*` | Save, list, fetch, delete game records |
+| `LobbyController` | `/api/lobby/*` | Room creation/joining, matchmaking queue |
+| `SimulationController` | `/api/simulation/*` | Backend simulation execution |
+| `UserController` | `/api/user/*` | Profile management (display name, avatar) |
+
+**SignalR:** `GameHub` at `/hubs/game` for real-time multiplayer game state synchronization.
+
+**Services:** `AuthService` (OAuth + JWT), `MatchmakingService` (queue-based matching), `RoomExpiryService` (idle room cleanup), `EnabledOAuthProviders` (runtime OAuth discovery).
+
+**Database:** Entity Framework Core with PostgreSQL — entities: `User`, `MultiplayerRoom`, `Game`, `MatchmakingEntry`.
+
+**Node.js Worker** — TypeScript gRPC server reusing `src/core/` for server-side logic:
+
+| gRPC Service | Proto | Purpose |
+|---------|-------|---------|
+| `GameLogicService` | `game_logic.proto` | Move validation, rule application |
+| `BotService` | `bot.proto` | Bot move selection |
+| `EvaluationService` | `evaluation.proto` | Position evaluation |
+| `SimulationService` | `simulation.proto` | Bot-vs-bot game simulation |
+
+The worker uses JSON passthrough — the .NET API forwards raw frontend JSON strings, and the Node.js worker parses them natively using the shared TypeScript types from `src/core/`.
+
+**.NET Aspire** — Development orchestration for running all backend services locally with service discovery.
+
 ## Library Choices
 
 | Library | License | Purpose |
 |---------|---------|---------|
-| **React** | MIT | UI framework |
-| **TypeScript** | Apache-2.0 | Type safety |
+| **React 19** | MIT | UI framework |
+| **TypeScript 5.9** | Apache-2.0 | Type safety (strict mode) |
 | **Vite** | MIT | Build tool & dev server |
 | **chess.js** | BSD-2-Clause | Chess move generation & validation |
-| **Vitest** | MIT | Testing framework |
+| **@microsoft/signalr** | MIT | Real-time WebSocket communication (online multiplayer) |
+| **Vitest** | MIT | Unit & component testing framework |
+| **Playwright** | Apache-2.0 | End-to-end system testing |
 
 ### Why No Chessground?
 
@@ -536,20 +870,3 @@ Chessground is GPL-licensed, which would require the entire project to be GPL. I
 ## Licensing
 
 This project uses only MIT/BSD/Apache-licensed dependencies. The custom board UI avoids any GPL contamination.
-
-## Future Backend Plan
-
-The `core/blunziger/` module is designed to be **backend-compatible**:
-
-- Pure TypeScript with no browser APIs
-- All functions are deterministic and stateless
-- `GameState` is serializable (JSON-safe)
-- Move validation is reproducible from state alone
-- `MatchConfig` and `VariantModeDefinition` are portable
-
-A future backend could:
-- Import `core/blunziger/` directly into a Node.js server
-- Add multiplayer via WebSocket
-- Persist games in a database
-- Implement Elo ratings and user accounts
-- Run server-side bot computation
