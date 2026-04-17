@@ -102,7 +102,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Join Online Game</h2>
+          <h2>🌐 Lobby (join online Game)</h2>
           <p className="online-subtitle">Online play is not available in static mode.</p>
           <p className="online-empty">
             This instance is running as a standalone app without a backend connection.
@@ -118,7 +118,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Join Online Game</h2>
+          <h2>🌐 Lobby (join online Game)</h2>
           <p className="online-subtitle">Sign in to play online via WebSocket.</p>
           <p className="online-empty">
             Please sign in or create a guest account to access online play.
@@ -133,7 +133,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     return (
       <div className="online-screen">
         <div className="online-card">
-          <h2>🌐 Join Online Game</h2>
+          <h2>🌐 Lobby (join online Game)</h2>
 
           <div className="online-hub-status">
             <span className={`online-hub-dot ${hub.connected ? 'online-hub-dot--connected' : 'online-hub-dot--disconnected'}`} />
@@ -165,7 +165,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
   return (
     <div className="online-screen">
       <div className="online-card">
-        <h2>🌐 Join Online Game</h2>
+        <h2>🌐 Lobby (join online Game)</h2>
         <p className="online-subtitle">
           Join a room using a code or pick one from the list.
         </p>
