@@ -44,6 +44,13 @@
 
 /* ── Display Name ─────────────────────────────────────────────────── */
 
+.profile-provider-hint {
+  color: #888;
+  font-size: 12px;
+  margin: 0 0 6px 0;
+  font-style: italic;
+}
+
 .profile-name-row {
   display: flex;
   gap: 8px;

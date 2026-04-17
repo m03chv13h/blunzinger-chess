@@ -74,7 +74,7 @@ public class GameHub(
         await Clients.Group(RoomGroup(roomCode)).SendAsync("PlayerJoined", new
         {
             userId = userId.ToString(),
-            displayName = user?.DisplayName ?? "Unknown",
+            displayName = user?.EffectiveDisplayName ?? "Unknown",
             roomCode,
             status = room.Status.ToString(),
             gameState = room.CurrentGameState,

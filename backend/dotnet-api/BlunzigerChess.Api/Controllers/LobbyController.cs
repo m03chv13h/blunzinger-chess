@@ -61,7 +61,7 @@ public class LobbyController(AppDbContext db) : ControllerBase
             roomId = room.Id,
             code = room.Code,
             matchConfig = room.MatchConfig,
-            hostDisplayName = room.Host?.DisplayName ?? "Unknown",
+            hostDisplayName = room.Host?.EffectiveDisplayName ?? "Unknown",
         });
     }
 
@@ -79,7 +79,8 @@ public class LobbyController(AppDbContext db) : ControllerBase
                 r.Code,
                 r.MatchConfig,
                 r.CreatedAt,
-                HostName = r.Host != null ? r.Host.DisplayName : "Unknown",
+                // Cannot use [NotMapped] EffectiveDisplayName inside EF Select (SQL translation).
+                HostName = r.Host != null ? (r.Host.CustomDisplayName ?? r.Host.DisplayName) : "Unknown",
             })
             .ToListAsync();
 

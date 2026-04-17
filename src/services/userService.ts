@@ -17,6 +17,10 @@ export interface UserProfileDetail {
   isGuest: boolean;
   gameCount: number;
   createdAt: string;
+  /** Display name sourced from the OAuth provider (or generated for guests). */
+  providerDisplayName?: string;
+  /** Avatar URL sourced from the OAuth provider. */
+  providerAvatarUrl?: string;
 }
 
 export interface UpdateProfileRequest {
