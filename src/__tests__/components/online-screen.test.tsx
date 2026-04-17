@@ -68,23 +68,27 @@ beforeEach(() => {
 describe('OnlineScreen (unauthenticated)', () => {
   it('shows sign-in prompt when not authenticated', () => {
     render(<OnlineScreen authenticated={false} />);
-    expect(screen.getByText(/Play Online/)).toBeInTheDocument();
+    expect(screen.getByText(/Join Online Game/)).toBeInTheDocument();
     expect(screen.getByText(/Sign in to play online/)).toBeInTheDocument();
   });
 
-  it('does not show create or join controls when unauthenticated', () => {
+  it('does not show join controls when unauthenticated', () => {
     render(<OnlineScreen authenticated={false} />);
-    expect(screen.queryByText('Create a Room')).not.toBeInTheDocument();
     expect(screen.queryByText('Join a Room')).not.toBeInTheDocument();
   });
 });
 
 describe('OnlineScreen (authenticated, lobby view)', () => {
-  it('renders create room and join room sections', () => {
+  it('renders join room section and open rooms', () => {
     render(<OnlineScreen authenticated={true} />);
-    expect(screen.getByText('Create a Room')).toBeInTheDocument();
     expect(screen.getByText('Join a Room')).toBeInTheDocument();
     expect(screen.getByText('Open Rooms')).toBeInTheDocument();
+  });
+
+  it('does not render create room section', () => {
+    render(<OnlineScreen authenticated={true} />);
+    expect(screen.queryByText('Create a Room')).not.toBeInTheDocument();
+    expect(screen.queryByText('➕ Create Room')).not.toBeInTheDocument();
   });
 
   it('shows connection status', () => {
@@ -96,25 +100,6 @@ describe('OnlineScreen (authenticated, lobby view)', () => {
     mockHub.connected = false;
     render(<OnlineScreen authenticated={true} />);
     expect(screen.getByText('Connecting…')).toBeInTheDocument();
-  });
-
-  it('calls createRoom on create button click', () => {
-    mockLobby.createRoom.mockResolvedValue({ roomId: 'r1', code: 'ABC123' });
-    render(<OnlineScreen authenticated={true} />);
-    fireEvent.click(screen.getByText('➕ Create Room'));
-    expect(mockLobby.createRoom).toHaveBeenCalledWith('{}');
-  });
-
-  it('disables create button when loading', () => {
-    mockLobby.loading = true;
-    render(<OnlineScreen authenticated={true} />);
-    expect(screen.getByText('Creating…')).toBeDisabled();
-  });
-
-  it('disables create button when hub is disconnected', () => {
-    mockHub.connected = false;
-    render(<OnlineScreen authenticated={true} />);
-    expect(screen.getByText('➕ Create Room')).toBeDisabled();
   });
 
   it('has a room code input field', () => {
