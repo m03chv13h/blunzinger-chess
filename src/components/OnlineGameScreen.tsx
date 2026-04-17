@@ -22,6 +22,7 @@ import { EvaluationBar } from './EvaluationBar';
 import { ReviewControls } from './ReviewControls';
 import { CrazyhouseReserves } from './CrazyhouseReserve';
 import { FenDisplay } from './FenDisplay';
+import { ReportIssue } from './ReportIssue';
 import './OnlineGameScreen.css';
 
 interface OnlineGameScreenProps {
@@ -317,6 +318,7 @@ export function OnlineGameScreen({
         <aside className="left-panel">
           <GameSummaryPanel config={config} />
           <RulesPanel variantMode={config.variantMode} gameType={config.gameType} />
+          <ReportIssue config={config} fen={displayFen} moveHistory={game.state.moveHistory} />
 
           {/* Online game controls */}
           {!gameIsOver && (
