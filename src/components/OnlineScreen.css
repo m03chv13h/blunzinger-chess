@@ -1,0 +1,290 @@
+.online-screen {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.online-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.online-card h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.online-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+/* ── Sections ─────────────────────────────────────────────────────── */
+
+.online-section {
+  margin-bottom: 18px;
+}
+
+.online-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  margin: 0 0 8px 0;
+}
+
+/* ── Create Room ──────────────────────────────────────────────────── */
+
+.online-create-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s;
+}
+
+.online-create-btn:hover {
+  background: #218838;
+}
+
+.online-create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Join Room ────────────────────────────────────────────────────── */
+
+.online-join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.online-join-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.online-join-btn {
+  background: #5b8def;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.online-join-btn:hover {
+  background: #4a7cde;
+}
+
+.online-join-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Active Room / Waiting ────────────────────────────────────────── */
+
+.online-active-room {
+  border: 2px solid #5b8def;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  background: #f0f4ff;
+}
+
+.online-room-code {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #1a1a2e;
+  margin: 8px 0;
+  font-family: monospace;
+}
+
+.online-room-status {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 12px 0;
+}
+
+.online-waiting-spinner {
+  display: inline-block;
+  animation: online-pulse 1.2s ease-in-out infinite;
+  margin-right: 4px;
+}
+
+@keyframes online-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.online-leave-btn {
+  background: none;
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.online-leave-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+/* ── Room List ────────────────────────────────────────────────────── */
+
+.online-room-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.online-room-list-header h3 {
+  margin: 0;
+}
+
+.online-refresh-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.online-refresh-btn:hover {
+  background: #f0f0f5;
+}
+
+.online-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.online-room-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.online-room-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 2px solid #ddd;
+  color: #666;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.online-room-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.online-room-table .online-join-list-btn {
+  background: #5b8def;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.online-room-table .online-join-list-btn:hover {
+  background: #4a7cde;
+}
+
+.online-room-table .online-join-list-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.online-empty {
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+/* ── Hub Connection Status ────────────────────────────────────────── */
+
+.online-hub-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 14px;
+}
+
+.online-hub-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-hub-dot--connected {
+  background: #28a745;
+}
+
+.online-hub-dot--disconnected {
+  background: #d32f2f;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────── */
+
+.online-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: #999;
+  font-size: 12px;
+}
+
+.online-divider::before,
+.online-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #ddd;
+}
+
+/* ── Error ────────────────────────────────────────────────────────── */
+
+.online-error {
+  color: #d32f2f;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: center;
+}
