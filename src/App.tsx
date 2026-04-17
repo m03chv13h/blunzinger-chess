@@ -385,7 +385,7 @@ function App() {
             onNavigate={handleNavigate}
             gameCount={analyseCount}
             isConnected={isConnectedMode}
-            userName={auth.user?.displayName}
+            userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
@@ -457,7 +457,7 @@ function App() {
             onNavigate={handleNavigate}
             gameCount={analyseCount}
             isConnected={isConnectedMode}
-            userName={auth.user?.displayName}
+            userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
           />
@@ -486,7 +486,7 @@ function App() {
           onNavigate={handleNavigate}
           gameCount={analyseCount}
           isConnected={isConnectedMode}
-          userName={auth.user?.displayName}
+          userName={userProfile.profile?.displayName ?? auth.user?.displayName}
           userAvatar={getAvatarEmoji(userProfile.profile?.avatarUrl)}
           onLogout={isConnectedMode ? handleLogout : undefined}
         />
