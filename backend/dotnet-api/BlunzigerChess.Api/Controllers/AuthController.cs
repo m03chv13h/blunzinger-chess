@@ -83,7 +83,7 @@ public class AuthController(AuthService authService, EnabledOAuthProviders enabl
     {
         var user = await authService.CreateGuestUserAsync();
         var token = authService.GenerateJwtToken(user);
-        return Ok(new { token, userId = user.Id, displayName = user.DisplayName });
+        return Ok(new { token, userId = user.Id, displayName = user.EffectiveDisplayName });
     }
 
     /// <summary>Get the currently authenticated user's profile.</summary>

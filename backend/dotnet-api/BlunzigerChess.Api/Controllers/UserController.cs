@@ -26,13 +26,15 @@ public class UserController(AppDbContext db) : ControllerBase
         return Ok(new
         {
             user.Id,
-            user.DisplayName,
+            DisplayName = user.EffectiveDisplayName,
             user.Email,
-            user.AvatarUrl,
+            AvatarUrl = user.EffectiveAvatarUrl,
             user.Provider,
             user.IsGuest,
             user.CreatedAt,
             GameCount = gameCount,
+            ProviderDisplayName = user.DisplayName,
+            ProviderAvatarUrl = user.AvatarUrl,
         });
     }
 
@@ -47,14 +49,14 @@ public class UserController(AppDbContext db) : ControllerBase
         if (user is null) return NotFound();
 
         if (!string.IsNullOrWhiteSpace(request.DisplayName))
-            user.DisplayName = request.DisplayName.Trim();
+            user.CustomDisplayName = request.DisplayName.Trim();
 
         if (request.AvatarUrl is not null)
-            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+            user.CustomAvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
 
         await db.SaveChangesAsync();
 
-        return Ok(new { user.Id, user.DisplayName, user.AvatarUrl });
+        return Ok(new { user.Id, DisplayName = user.EffectiveDisplayName, AvatarUrl = user.EffectiveAvatarUrl });
     }
 
     private Guid? GetUserId()

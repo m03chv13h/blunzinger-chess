@@ -92,7 +92,7 @@ public class AuthService(AppDbContext db, IConfiguration config)
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.DisplayName),
+            new(ClaimTypes.Name, user.EffectiveDisplayName),
             new("is_guest", user.IsGuest.ToString().ToLowerInvariant()),
             new("provider", user.Provider),
         };

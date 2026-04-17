@@ -58,6 +58,11 @@ export function ProfileSettingsScreen({ userProfile }: ProfileSettingsScreenProp
         {/* ── Display Name ──────────────────────────────────────── */}
         <div className="profile-section">
           <h3>Display Name</h3>
+          {profile?.providerDisplayName && profile.providerDisplayName !== profile.displayName && (
+            <p className="profile-provider-hint">
+              Provider name: {profile.providerDisplayName}
+            </p>
+          )}
           <div className="profile-name-row">
             <input
               className="profile-name-input"
