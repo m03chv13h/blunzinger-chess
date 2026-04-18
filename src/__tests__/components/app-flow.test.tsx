@@ -24,6 +24,11 @@ function goToNewGame() {
   fireEvent.click(screen.getByRole('button', { name: /New Game/i }));
 }
 
+/** Expand the collapsed left panel to access settings during active play. */
+function expandDetails() {
+  fireEvent.click(screen.getByText(/Show details/));
+}
+
 describe('App game flow', () => {
   beforeEach(() => {
     render(<App />);
@@ -130,6 +135,7 @@ describe('App game flow', () => {
 
       expect(screen.queryByText('♟ New Game Setup')).not.toBeInTheDocument();
       expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+      expandDetails();
       expect(screen.getByText('🔄 New Game')).toBeInTheDocument();
     });
 
@@ -137,6 +143,7 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByLabelText('King of the Hill'));
 
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('Human vs Human')).toBeInTheDocument();
@@ -162,6 +169,7 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
       expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
 
+      expandDetails();
       fireEvent.click(screen.getByText('🔄 New Game'));
 
       expect(screen.getByText('♟ New Game Setup')).toBeInTheDocument();
@@ -174,6 +182,7 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByLabelText('King of the Hill'));
 
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       fireEvent.click(screen.getByText('🔄 New Game'));
 
       expect((screen.getByLabelText('Player Mode') as HTMLSelectElement).value).toBe('hvbot');
@@ -183,12 +192,14 @@ describe('App game flow', () => {
 
     it('allows editing settings before starting a new game', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       fireEvent.click(screen.getByText('🔄 New Game'));
 
       fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'botvbot' } });
       expect((screen.getByLabelText('Player Mode') as HTMLSelectElement).value).toBe('botvbot');
 
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('Bot vs Bot')).toBeInTheDocument();
     });
@@ -203,6 +214,7 @@ describe('App game flow', () => {
       fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'hvbot' } });
       fireEvent.change(screen.getByLabelText('Bot Difficulty'), { target: { value: 'medium' } });
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('Human vs Bot')).toBeInTheDocument();
@@ -211,6 +223,7 @@ describe('App game flow', () => {
 
     it('shows King of the Hill as Off by default in summary', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       // Both KOTH and DCP show "Off" by default; verify at least one exists
@@ -223,6 +236,7 @@ describe('App game flow', () => {
     it('shows engine name in summary for Human vs Bot game', () => {
       fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'hvbot' } });
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('Engine')).toBeInTheDocument();
@@ -232,6 +246,7 @@ describe('App game flow', () => {
     it('shows per-side engine names in summary for Bot vs Bot game', () => {
       fireEvent.change(screen.getByLabelText('Player Mode'), { target: { value: 'botvbot' } });
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('Engine (White)')).toBeInTheDocument();
@@ -240,6 +255,7 @@ describe('App game flow', () => {
 
     it('does not show engine name in summary for Human vs Human game', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).queryByText('Engine')).not.toBeInTheDocument();
@@ -279,6 +295,7 @@ describe('App game flow', () => {
     it('clock summary shows chosen time during play', () => {
       fireEvent.click(screen.getByLabelText('Clock'));
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText('05:00')).toBeInTheDocument();
@@ -437,6 +454,7 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByLabelText('Additional move'));
       fireEvent.click(screen.getByLabelText('Piece removal'));
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summary).getByText(/Additional move/)).toBeInTheDocument();
@@ -451,11 +469,13 @@ describe('App game flow', () => {
 
     it('shows restart button during active play', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       expect(screen.getByText('🔁 Restart')).toBeInTheDocument();
     });
 
     it('does not restart when user cancels the confirmation', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
       fireEvent.click(screen.getByText('🔁 Restart'));
       // Still on the playing screen with the board visible
@@ -464,6 +484,7 @@ describe('App game flow', () => {
 
     it('restarts the game when user confirms', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
       fireEvent.click(screen.getByText('🔁 Restart'));
       // Still on the playing screen (not setup)
@@ -474,6 +495,7 @@ describe('App game flow', () => {
     it('preserves game settings after restart', () => {
       fireEvent.click(screen.getByLabelText('King of the Hill'));
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
 
       const summaryBefore = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summaryBefore).getByText('On')).toBeInTheDocument();
@@ -481,15 +503,92 @@ describe('App game flow', () => {
       vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
       fireEvent.click(screen.getByText('🔁 Restart'));
 
+      // Panel should be collapsed again after restart
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expandDetails();
+
       const summaryAfter = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
       expect(within(summaryAfter).getByText('On')).toBeInTheDocument();
     });
 
     it('asks for confirmation with a dialog', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
       fireEvent.click(screen.getByText('🔁 Restart'));
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to restart the game?');
+    });
+  });
+
+  describe('COLLAPSED PANELS DURING GAMEPLAY', () => {
+    beforeEach(() => {
+      goToNewGame();
+    });
+
+    it('collapses left panel by default when game starts', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('🔄 New Game')).not.toBeInTheDocument();
+      expect(screen.queryByText('🔁 Restart')).not.toBeInTheDocument();
+    });
+
+    it('shows essential gameplay elements when collapsed', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+      expect(screen.getByText(/to move/)).toBeInTheDocument();
+      expect(screen.getByText('🚨 Report Violation')).toBeInTheDocument();
+    });
+
+    it('expands left panel when toggle is clicked', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+
+      expect(screen.getByText(/Hide details/)).toBeInTheDocument();
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+      expect(screen.getByText('🔄 New Game')).toBeInTheDocument();
+      expect(screen.getByText('🔁 Restart')).toBeInTheDocument();
+    });
+
+    it('collapses left panel when toggle is clicked again', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+      fireEvent.click(screen.getByText(/Hide details/));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
+    });
+
+    it('hides FEN display when panel is collapsed', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.queryByLabelText('Current FEN')).not.toBeInTheDocument();
+    });
+
+    it('shows FEN display when panel is expanded', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+
+      expect(screen.getByLabelText('Current FEN')).toBeInTheDocument();
+    });
+
+    it('collapses move list by default during active play', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Moves/)).toBeInTheDocument();
+      expect(screen.queryByText('#')).not.toBeInTheDocument();
+    });
+
+    it('resets collapsed state on new game', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+      fireEvent.click(screen.getByText('🔄 New Game'));
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
     });
   });
 });

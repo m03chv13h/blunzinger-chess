@@ -28,6 +28,7 @@ describe('Evaluation bar UI', () => {
   it('should show "Show evaluation bar" toggle in game controls', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
     const toggle = screen.getByLabelText('Show evaluation bar');
     expect(toggle).toBeInTheDocument();
     expect((toggle as HTMLInputElement).checked).toBe(false);
@@ -36,6 +37,7 @@ describe('Evaluation bar UI', () => {
   it('should show evaluation bar when toggle is enabled', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
     const toggle = screen.getByLabelText('Show evaluation bar');
     fireEvent.click(toggle);
     // The evaluation bar should now be visible.
@@ -45,6 +47,7 @@ describe('Evaluation bar UI', () => {
   it('should hide evaluation bar when toggle is disabled', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
     const toggle = screen.getByLabelText('Show evaluation bar');
     // Enable.
     fireEvent.click(toggle);
@@ -57,6 +60,7 @@ describe('Evaluation bar UI', () => {
   it('should show evaluation bar with score label', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
     const toggle = screen.getByLabelText('Show evaluation bar');
     fireEvent.click(toggle);
     const bar = document.querySelector('.eval-bar');
@@ -70,6 +74,7 @@ describe('Evaluation bar UI', () => {
   it('should not show best move hint squares during active play even when eval bar is enabled', () => {
     render(<App />);
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
     const toggle = screen.getByLabelText('Show evaluation bar');
     fireEvent.click(toggle);
     // Best move hints should only show during game analysis (review mode), not during active play.

@@ -65,6 +65,7 @@ function App() {
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
   const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
+  const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
 
   // Backend-connected hooks (no-ops in static mode).
   const gameHistoryBackend = useGameHistory();
@@ -198,6 +199,7 @@ function App() {
       return;
     }
     setScreen({ type: 'playing', config });
+    setLeftPanelExpanded(false);
     const mc = buildMatchConfig(config);
     game.resetGame(
       config.mode,
@@ -509,6 +511,8 @@ function App() {
     );
   }
 
+  const showDetails = gameIsOver || review.isReviewing || leftPanelExpanded;
+
   // Playing screen
   return (
     <DeployModeProvider>
@@ -525,20 +529,32 @@ function App() {
       <div className="app-with-sidebar">
         <main className="app-main">
           <aside className="left-panel">
-            <GameSummaryPanel config={screen.config} />
-            <GameControls
-              onNewGame={handleNewGame}
-              onRestart={handleRestartGame}
-              paused={game.paused}
-              onPauseToggle={game.setPaused}
-              moveDelay={game.moveDelay}
-              onMoveDelayChange={game.setMoveDelay}
-              isBotvBot={screen.config.mode === 'botvbot'}
-              showEvalBar={showEvalBar}
-              onShowEvalBarChange={setShowEvalBar}
-            />
-            <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
-            <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
+            {!gameIsOver && !review.isReviewing && (
+              <button
+                className="panel-collapse-toggle"
+                onClick={() => setLeftPanelExpanded(e => !e)}
+              >
+                {leftPanelExpanded ? '▴ Hide details' : '▾ Show details'}
+              </button>
+            )}
+            {showDetails && (
+              <>
+                <GameSummaryPanel config={screen.config} />
+                <GameControls
+                  onNewGame={handleNewGame}
+                  onRestart={handleRestartGame}
+                  paused={game.paused}
+                  onPauseToggle={game.setPaused}
+                  moveDelay={game.moveDelay}
+                  onMoveDelayChange={game.setMoveDelay}
+                  isBotvBot={screen.config.mode === 'botvbot'}
+                  showEvalBar={showEvalBar}
+                  onShowEvalBarChange={setShowEvalBar}
+                />
+                <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
+                <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
+              </>
+            )}
           </aside>
 
           <section className="board-section">
@@ -577,7 +593,7 @@ function App() {
                 onReserveDrop={!review.isReviewing ? handleReserveDrop : undefined}
               />
             </div>
-            <FenDisplay fen={displayFen} />
+            {showDetails && <FenDisplay fen={displayFen} />}
           </section>
 
           <aside className="right-panel">
@@ -607,6 +623,7 @@ function App() {
               gameOver={game.state.result !== null}
               pieceRemovals={game.state.pieceRemovals}
               timeReductions={game.state.timeReductions}
+              defaultCollapsed={!gameIsOver && !review.isReviewing}
             />
           </aside>
         </main>

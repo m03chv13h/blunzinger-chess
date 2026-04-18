@@ -178,6 +178,7 @@ describe('Setup screen numeric input editing', () => {
 
     fireEvent.change(input, { target: { value: '4' } });
     fireEvent.click(screen.getByText('▶ Start Game'));
+    fireEvent.click(screen.getByText(/Show details/));
 
     // The summary should show the entered value
     const summary = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
