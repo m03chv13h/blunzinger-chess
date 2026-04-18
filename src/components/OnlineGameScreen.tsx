@@ -87,16 +87,20 @@ export function OnlineGameScreen({
     game.selectPieceForRemoval(event.square as Square);
   }, [game]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handlePlayerJoined = useCallback((_event: PlayerJoinedEvent) => {
-    setOpponentOnline(true);
-    // Cancel any disconnect countdown when opponent reconnects
+  // Helper: clear any pending disconnect countdown interval.
+  const clearDisconnectTimer = useCallback(() => {
     if (disconnectTimerRef.current) {
       clearInterval(disconnectTimerRef.current);
       disconnectTimerRef.current = null;
     }
     setDisconnectCountdown(null);
   }, []);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handlePlayerJoined = useCallback((_event: PlayerJoinedEvent) => {
+    setOpponentOnline(true);
+    clearDisconnectTimer();
+  }, [clearDisconnectTimer]);
 
   const handleOpponentDisconnected = useCallback((event: OpponentDisconnectedEvent) => {
     setOpponentOnline(false);
@@ -105,7 +109,7 @@ export function OnlineGameScreen({
     if (event.timeoutSeconds > 0) {
       setDisconnectCountdown(event.timeoutSeconds);
 
-      // Clear any existing timer
+      // Clear any existing timer before starting a new one
       if (disconnectTimerRef.current) {
         clearInterval(disconnectTimerRef.current);
       }
@@ -128,12 +132,8 @@ export function OnlineGameScreen({
   // Handle opponent reconnection event (cancels countdown)
   const handleOpponentReconnected = useCallback(() => {
     setOpponentOnline(true);
-    if (disconnectTimerRef.current) {
-      clearInterval(disconnectTimerRef.current);
-      disconnectTimerRef.current = null;
-    }
-    setDisconnectCountdown(null);
-  }, []);
+    clearDisconnectTimer();
+  }, [clearDisconnectTimer]);
 
   // Clean up disconnect timer on unmount
   useEffect(() => {
@@ -155,14 +155,9 @@ export function OnlineGameScreen({
     } else if (event.reason === 'disconnection' && event.disconnectedSide) {
       const winner: Color = event.disconnectedSide === 'white' ? 'b' : 'w';
       game.setResult({ winner, reason: 'disconnection', detail: event.detail });
-      // Clear any remaining countdown
-      if (disconnectTimerRef.current) {
-        clearInterval(disconnectTimerRef.current);
-        disconnectTimerRef.current = null;
-      }
-      setDisconnectCountdown(null);
+      clearDisconnectTimer();
     }
-  }, [game]);
+  }, [game, clearDisconnectTimer]);
 
   const handleDrawOffered = useCallback(() => {
     setDrawOffered(true);

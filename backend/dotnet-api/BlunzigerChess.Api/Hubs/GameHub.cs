@@ -24,6 +24,9 @@ public class GameHub(
     /// <summary>Maps room codes to group names for SignalR.</summary>
     private static string RoomGroup(string code) => $"room_{code}";
 
+    /// <summary>Builds the key for disconnect timer tracking.</summary>
+    private static string TimerKey(string roomCode, Guid userId) => $"{roomCode}_{userId}";
+
     /// <summary>Track active room connections: connectionId → roomCode.</summary>
     private static readonly ConcurrentDictionary<string, string> ConnectionRooms = new();
 
@@ -66,9 +69,9 @@ public class GameHub(
 
                 // Start a disconnect timer
                 var cts = new CancellationTokenSource();
-                DisconnectTimers[roomCode + "_" + userId] = cts;
+                DisconnectTimers[TimerKey(roomCode, userId)] = cts;
 
-                _ = RunDisconnectTimerAsync(roomCode, userId, disconnectedSide, cts.Token);
+                _ = Task.Run(() => RunDisconnectTimerAsync(roomCode, userId, disconnectedSide, cts.Token));
             }
             else
             {
@@ -99,7 +102,7 @@ public class GameHub(
         }
 
         // Timer expired — player did not reconnect in time
-        DisconnectTimers.TryRemove(roomCode + "_" + disconnectedUserId, out _);
+        DisconnectTimers.TryRemove(TimerKey(roomCode, disconnectedUserId), out _);
 
         try
         {
@@ -156,7 +159,7 @@ public class GameHub(
         }
 
         // Cancel any pending disconnect timer for this user/room
-        var timerKey = roomCode + "_" + userId;
+        var timerKey = TimerKey(roomCode, userId);
         if (DisconnectTimers.TryRemove(timerKey, out var cts))
         {
             await cts.CancelAsync();
