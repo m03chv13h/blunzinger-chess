@@ -5,6 +5,7 @@ import {
   listRooms,
   joinMatchmaking,
   cancelMatchmaking,
+  getActiveRoom,
 } from '../../services/lobbyService';
 
 // ── Mocks ────────────────────────────────────────────────────────────
@@ -126,5 +127,49 @@ describe('cancelMatchmaking', () => {
 
     expect(mockFetch.mock.calls[0][0]).toBe('/api/lobby/matchmaking');
     expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
+  });
+});
+
+// ── getActiveRoom ────────────────────────────────────────────────────
+
+describe('getActiveRoom', () => {
+  it('sends GET /api/lobby/rooms/active', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        active: true,
+        roomCode: 'ABC123',
+        playerColor: 'w',
+        opponentName: 'Bob',
+        matchConfig: '{}',
+      }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getActiveRoom();
+
+    expect(result.active).toBe(true);
+    expect(result.roomCode).toBe('ABC123');
+    expect(result.playerColor).toBe('w');
+    expect(result.opponentName).toBe('Bob');
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/lobby/rooms/active');
+    expect(mockFetch.mock.calls[0][1].method).toBe('GET');
+  });
+
+  it('returns active=false when no active game', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ active: false }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getActiveRoom();
+
+    expect(result.active).toBe(false);
+    expect(result.roomCode).toBeUndefined();
   });
 });

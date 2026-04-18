@@ -18,6 +18,7 @@ namespace BlunzigerChess.Api.Hubs;
 public class GameHub(
     AppDbContext db,
     GameEngineClient engineClient,
+    IServiceScopeFactory scopeFactory,
     ILogger<GameHub> logger) : Hub
 {
     /// <summary>Maps room codes to group names for SignalR.</summary>
@@ -102,7 +103,7 @@ public class GameHub(
 
         try
         {
-            using var scope = db.Database.GetService<IServiceScopeFactory>().CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var scopedDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             var room = await scopedDb.MultiplayerRooms

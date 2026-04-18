@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineGameScreen } from '../../components/OnlineGameScreen';
@@ -312,5 +312,201 @@ describe('OnlineGameScreen – resignation and draw via GameOver event', () => {
     });
 
     expect(mockSetResult).not.toHaveBeenCalled();
+  });
+});
+
+describe('OnlineGameScreen – disconnection handling', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockSetResult.mockClear();
+    capturedCallbacks = {};
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('shows disconnect countdown banner when opponent disconnects with timeout', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('20s')).toBeInTheDocument();
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+  });
+
+  it('counts down the disconnect timer each second', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    expect(screen.getByText('20s')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.getByText('17s')).toBeInTheDocument();
+  });
+
+  it('clears disconnect countdown when opponent reconnects via OpponentReconnected', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    act(() => {
+      capturedCallbacks.onOpponentReconnected?.({ userId: 'opp-id' });
+    });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Online')).toBeInTheDocument();
+  });
+
+  it('clears disconnect countdown when opponent reconnects via PlayerJoined', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    act(() => {
+      capturedCallbacks.onPlayerJoined?.({
+        userId: 'opp-id',
+        roomCode: 'TEST',
+        status: 'Playing',
+        gameState: null,
+      });
+    });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Online')).toBeInTheDocument();
+  });
+
+  it('sets disconnection result when GameOver with disconnection reason is received', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({
+        reason: 'disconnection',
+        disconnectedSide: 'black',
+        detail: 'Black disconnected and did not reconnect within 20 seconds.',
+      });
+    });
+
+    expect(mockSetResult).toHaveBeenCalledWith({
+      winner: 'w',
+      reason: 'disconnection',
+      detail: 'Black disconnected and did not reconnect within 20 seconds.',
+    });
+  });
+
+  it('sets disconnection result for white disconnect (black wins)', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({
+        reason: 'disconnection',
+        disconnectedSide: 'white',
+        detail: 'White disconnected and did not reconnect within 20 seconds.',
+      });
+    });
+
+    expect(mockSetResult).toHaveBeenCalledWith({
+      winner: 'b',
+      reason: 'disconnection',
+      detail: 'White disconnected and did not reconnect within 20 seconds.',
+    });
+  });
+
+  it('does not show countdown banner when no timeoutSeconds provided', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 0 });
+    });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
   });
 });
