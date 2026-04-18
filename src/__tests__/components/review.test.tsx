@@ -298,6 +298,7 @@ describe('Post-game review system', () => {
     it('evaluation bar toggle works during game', () => {
       render(<App />);
       fireEvent.click(screen.getByText('▶ Start Game'));
+      fireEvent.click(screen.getByText(/Show details/));
       const toggle = screen.getByLabelText('Show evaluation bar');
       fireEvent.click(toggle);
       expect(document.querySelector('.eval-bar')).toBeInTheDocument();

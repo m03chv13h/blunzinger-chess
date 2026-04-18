@@ -46,6 +46,7 @@ export function OnlineGameScreen({
   const [drawOffered, setDrawOffered] = useState(false);
   const [drawPending, setDrawPending] = useState(false);
   const [resignConfirm, setResignConfirm] = useState(false);
+  const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
 
   const matchConfig = buildMatchConfig(config);
 
@@ -288,6 +289,7 @@ export function OnlineGameScreen({
     : null;
 
   const flipped = playerColor === 'b';
+  const showDetails = gameIsOver || review.isReviewing || leftPanelExpanded;
 
   // ── Perspective-aware feedback ─────────────────────────────────────
   // Report-feedback messages are written from the reporter's perspective
@@ -363,21 +365,35 @@ export function OnlineGameScreen({
       <div className="online-game-main">
         {/* ── Left Panel ── */}
         <aside className="left-panel">
-          <GameSummaryPanel config={config} />
-          <RulesPanel variantMode={config.variantMode} gameType={config.gameType} />
-          <ReportIssue config={config} fen={displayFen} moveHistory={game.state.moveHistory} />
+          {!gameIsOver && !review.isReviewing && (
+            <button
+              className="panel-collapse-toggle"
+              onClick={() => setLeftPanelExpanded(e => !e)}
+            >
+              {leftPanelExpanded ? '▴ Hide details' : '▾ Show details'}
+            </button>
+          )}
+          {showDetails && (
+            <>
+              <GameSummaryPanel config={config} />
+              <RulesPanel variantMode={config.variantMode} gameType={config.gameType} />
+              <ReportIssue config={config} fen={displayFen} moveHistory={game.state.moveHistory} />
+            </>
+          )}
 
-          {/* Online game controls */}
+          {/* Online game controls — always visible during active play */}
           {!gameIsOver && (
             <div className="online-game-controls">
-              <label className="online-game-eval-toggle">
-                <input
-                  type="checkbox"
-                  checked={showEvalBar}
-                  onChange={(e) => setShowEvalBar(e.target.checked)}
-                />
-                Show evaluation bar
-              </label>
+              {showDetails && (
+                <label className="online-game-eval-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showEvalBar}
+                    onChange={(e) => setShowEvalBar(e.target.checked)}
+                  />
+                  Show evaluation bar
+                </label>
+              )}
 
               <button
                 className="online-game-resign-btn"
@@ -459,7 +475,7 @@ export function OnlineGameScreen({
               onReserveDrop={canInteract ? handleReserveDrop : undefined}
             />
           </div>
-          <FenDisplay fen={displayFen} />
+          {showDetails && <FenDisplay fen={displayFen} />}
         </section>
 
         {/* ── Right Panel ── */}
@@ -512,6 +528,7 @@ export function OnlineGameScreen({
             gameOver={gameIsOver}
             pieceRemovals={game.state.pieceRemovals}
             timeReductions={game.state.timeReductions}
+            defaultCollapsed={!gameIsOver && !review.isReviewing}
           />
         </aside>
       </div>

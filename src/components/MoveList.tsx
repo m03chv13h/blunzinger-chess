@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import { formatCategorizedMoves } from './formatViolation';
@@ -19,6 +20,8 @@ interface MoveListProps {
   pieceRemovals?: PieceRemovalEntry[];
   /** Time reductions applied as penalty, shown as clock icons next to the offending move. */
   timeReductions?: TimeReductionEntry[];
+  /** When true, the move list starts collapsed and shows only the header. */
+  defaultCollapsed?: boolean;
 }
 
 interface MoveEntry {
@@ -33,7 +36,8 @@ interface MoveRow {
   black?: MoveEntry;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [] }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], defaultCollapsed = false }: MoveListProps) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
   for (const r of violationReports) {
@@ -184,22 +188,30 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
 
   return (
     <div className="move-list">
-      <h3>Moves</h3>
-      <div className="move-list-content">
-        <div className="move-pair move-header" role="row">
-          <span className="move-number">#</span>
-          <span className="move-white">White</span>
-          <span className="move-black">Black</span>
-        </div>
-        {rows.length === 0 && <p className="no-moves">No moves yet</p>}
-        {rows.map((row) => (
-          <div key={`${row.number}-${row.white?.moveIndex ?? 'x'}-${row.black?.moveIndex ?? 'x'}`} className="move-pair">
-            <span className="move-number">{row.number}.</span>
-            {renderMoveCell(row.white, 'move-white')}
-            {renderMoveCell(row.black, 'move-black')}
+      <h3
+        className="move-list-header"
+        onClick={() => defaultCollapsed && setCollapsed(c => !c)}
+        style={defaultCollapsed ? { cursor: 'pointer' } : undefined}
+      >
+        Moves {defaultCollapsed && (collapsed ? '▸' : '▾')}
+      </h3>
+      {!collapsed && (
+        <div className="move-list-content">
+          <div className="move-pair move-header" role="row">
+            <span className="move-number">#</span>
+            <span className="move-white">White</span>
+            <span className="move-black">Black</span>
           </div>
-        ))}
-      </div>
+          {rows.length === 0 && <p className="no-moves">No moves yet</p>}
+          {rows.map((row) => (
+            <div key={`${row.number}-${row.white?.moveIndex ?? 'x'}-${row.black?.moveIndex ?? 'x'}`} className="move-pair">
+              <span className="move-number">{row.number}.</span>
+              {renderMoveCell(row.white, 'move-white')}
+              {renderMoveCell(row.black, 'move-black')}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

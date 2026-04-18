@@ -16,6 +16,10 @@
   padding-bottom: 4px;
 }
 
+.move-list-header {
+  user-select: none;
+}
+
 .move-header {
   font-weight: 600;
   font-size: 12px;
