@@ -227,4 +227,51 @@ describe('OnlineLobbyScreen', () => {
     );
     expect(screen.queryByText(/Room closes in/)).not.toBeInTheDocument();
   });
+
+  // ── Autopair tests ────────────────────────────────────────────────
+
+  it('immediately transitions to game when autopaired', async () => {
+    mockLobby.createRoom.mockResolvedValue({
+      roomId: 'r1',
+      code: 'PAIR01',
+      paired: true,
+      hostDisplayName: 'Alice',
+    });
+
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+
+    await vi.waitFor(() => {
+      expect(onGameReady).toHaveBeenCalledWith('PAIR01', 'b', 'Alice');
+    });
+  });
+
+  it('does not call onGameReady when not autopaired', async () => {
+    mockLobby.createRoom.mockResolvedValue({
+      roomId: 'r2',
+      code: 'WAIT01',
+      paired: false,
+    });
+
+    render(
+      <OnlineLobbyScreen
+        config={config}
+        authenticated={true}
+        onGameReady={onGameReady}
+        onCancel={onCancel}
+      />,
+    );
+
+    // Give the async effect time to complete
+    await vi.waitFor(() => {
+      expect(mockHub.joinRoom).toHaveBeenCalledWith('WAIT01');
+    });
+    expect(onGameReady).not.toHaveBeenCalled();
+  });
 });
