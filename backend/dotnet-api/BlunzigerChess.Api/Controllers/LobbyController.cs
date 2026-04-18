@@ -12,12 +12,35 @@ namespace BlunzigerChess.Api.Controllers;
 [Authorize]
 public class LobbyController(AppDbContext db) : ControllerBase
 {
-    /// <summary>Create a new private multiplayer room.</summary>
+    /// <summary>Create a new private multiplayer room, or autopair with an existing waiting room that has the same config.</summary>
     [HttpPost("rooms")]
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
+
+        // Autopair: look for an existing waiting room with the same config from a different user.
+        var existingRoom = await db.MultiplayerRooms
+            .Include(r => r.Host)
+            .FirstOrDefaultAsync(r =>
+                r.Status == RoomStatus.Waiting &&
+                r.HostUserId != userId.Value &&
+                r.MatchConfig == request.MatchConfig);
+
+        if (existingRoom is not null)
+        {
+            existingRoom.GuestUserId = userId.Value;
+            existingRoom.Status = RoomStatus.Playing;
+            await db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                roomId = existingRoom.Id,
+                code = existingRoom.Code,
+                paired = true,
+                hostDisplayName = existingRoom.Host?.EffectiveDisplayName ?? "Unknown",
+            });
+        }
 
         var room = new MultiplayerRoom
         {
@@ -32,7 +55,7 @@ public class LobbyController(AppDbContext db) : ControllerBase
         db.MultiplayerRooms.Add(room);
         await db.SaveChangesAsync();
 
-        return Ok(new { roomId = room.Id, code = room.Code });
+        return Ok(new { roomId = room.Id, code = room.Code, paired = false });
     }
 
     /// <summary>Join a private room by code.</summary>

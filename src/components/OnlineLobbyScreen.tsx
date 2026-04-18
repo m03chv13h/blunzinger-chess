@@ -77,6 +77,12 @@ export function OnlineLobbyScreen({
 
         // Join the SignalR room group
         await hub.joinRoom(res.code);
+
+        // Autopair: the server paired us with an existing room as guest (black)
+        if (res.paired) {
+          onGameReady(res.code, 'b', res.hostDisplayName ?? 'Opponent');
+          return;
+        }
       } catch {
         setHubError('Failed to create room');
       }

@@ -14,6 +14,10 @@ import { apiFetch } from './apiClient';
 export interface CreateRoomResponse {
   roomId: string;
   code: string;
+  /** True when the server autopaired this player with an existing waiting room. */
+  paired?: boolean;
+  /** Host display name — present when autopaired as guest. */
+  hostDisplayName?: string;
 }
 
 export interface JoinRoomResponse {
