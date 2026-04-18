@@ -95,11 +95,16 @@ export function OnlineGameScreen({
     setOpponentOnline(false);
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleGameOver = useCallback((_event: GameOverEvent) => {
+  const handleGameOver = useCallback((event: GameOverEvent) => {
     // Game over from server (resignation, draw agreement)
     // The local game engine handles checkmate/stalemate already
-  }, []);
+    if (event.reason === 'resignation' && event.resigningSide) {
+      const winner: Color = event.resigningSide === 'white' ? 'b' : 'w';
+      game.setResult({ winner, reason: 'resignation' });
+    } else if (event.reason === 'draw') {
+      game.setResult({ winner: 'draw', reason: 'draw', detail: event.detail });
+    }
+  }, [game]);
 
   const handleDrawOffered = useCallback(() => {
     setDrawOffered(true);

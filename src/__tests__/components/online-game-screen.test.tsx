@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineGameScreen } from '../../components/OnlineGameScreen';
 import { createInitialState } from '../../core/blunziger/engine';
 import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
 import type { GameState, GameSetupConfig } from '../../core/blunziger/types';
+import type { GameHubCallbacks } from '../../hooks/useGameHub';
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
@@ -31,8 +32,13 @@ const mockHub = {
   acceptDraw: vi.fn().mockResolvedValue(undefined),
 };
 
+let capturedCallbacks: GameHubCallbacks = {};
+
 vi.mock('../../hooks/useGameHub', () => ({
-  useGameHub: () => mockHub,
+  useGameHub: (callbacks: GameHubCallbacks) => {
+    capturedCallbacks = callbacks;
+    return mockHub;
+  },
 }));
 
 vi.mock('../../hooks/useEvaluation', () => ({
@@ -40,6 +46,7 @@ vi.mock('../../hooks/useEvaluation', () => ({
 }));
 
 let mockGameState: GameState;
+const mockSetResult = vi.fn();
 
 vi.mock('../../hooks/useGame', () => ({
   useGame: () => ({
@@ -63,6 +70,7 @@ vi.mock('../../hooks/useGame', () => ({
     pendingPieceRemoval: false,
     removableSquares: [],
     loadGameForReview: vi.fn(),
+    setResult: mockSetResult,
   }),
 }));
 
@@ -206,5 +214,103 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
 
     expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
     expect(screen.getByText('Your opponent correctly reported a rule violation.')).toBeInTheDocument();
+  });
+});
+
+describe('OnlineGameScreen – resignation and draw via GameOver event', () => {
+  beforeEach(() => {
+    mockSetResult.mockClear();
+    capturedCallbacks = {};
+  });
+
+  it('sets resignation result when white resigns', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Simulate the server sending a GameOver event for resignation
+    act(() => {
+      capturedCallbacks.onGameOver?.({ reason: 'resignation', resigningSide: 'white' });
+    });
+
+    expect(mockSetResult).toHaveBeenCalledWith({
+      winner: 'b',
+      reason: 'resignation',
+    });
+  });
+
+  it('sets resignation result when black resigns', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({ reason: 'resignation', resigningSide: 'black' });
+    });
+
+    expect(mockSetResult).toHaveBeenCalledWith({
+      winner: 'w',
+      reason: 'resignation',
+    });
+  });
+
+  it('sets draw result when draw is agreed', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({ reason: 'draw', detail: 'Draw by agreement' });
+    });
+
+    expect(mockSetResult).toHaveBeenCalledWith({
+      winner: 'draw',
+      reason: 'draw',
+      detail: 'Draw by agreement',
+    });
+  });
+
+  it('ignores unknown GameOver reasons', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({ reason: 'unknown_reason' });
+    });
+
+    expect(mockSetResult).not.toHaveBeenCalled();
   });
 });
