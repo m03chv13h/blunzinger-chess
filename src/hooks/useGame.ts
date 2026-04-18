@@ -69,6 +69,8 @@ export interface UseGameReturn {
   loadGameForReview: (record: GameRecord) => void;
   /** Set the game result externally (e.g. from server resignation/draw events). */
   setResult: (result: GameResult) => void;
+  /** Mark a side as disconnected so their clock keeps running even when it's not their turn. */
+  setDisconnectedSide: (side: Color | null) => void;
 }
 
 export function useGame(
@@ -131,6 +133,25 @@ export function useGame(
   // penalties, resets, and other state-committed events.
   const clockCommittedRef = useRef<{ whiteMs: number; blackMs: number } | null>(null);
 
+  // ── Disconnected side (online games) ───────────────────────────────
+  // When a side is marked as disconnected, their clock keeps running even
+  // when it is not their turn.  This is standard online-chess behaviour:
+  // the disconnected player is penalised by having their time drain.
+  const disconnectedSideRef = useRef<Color | null>(null);
+  const disconnectedStartRef = useRef<number | null>(null);
+  const disconnectedCommittedRef = useRef<number | null>(null);
+  const setDisconnectedSide = useCallback((side: Color | null) => {
+    disconnectedSideRef.current = side;
+    if (side && clockCommittedRef.current) {
+      const key = side === 'w' ? 'whiteMs' : 'blackMs';
+      disconnectedCommittedRef.current = clockCommittedRef.current[key];
+      disconnectedStartRef.current = Date.now();
+    } else {
+      disconnectedCommittedRef.current = null;
+      disconnectedStartRef.current = null;
+    }
+  }, []);
+
   // Sync display clocks and committed ref from state whenever state.clocks changes.
   // When lastTimestamp is null (fresh game), fall back to Date.now() so the
   // clock tick interval starts counting immediately.
@@ -186,6 +207,42 @@ export function useGame(
 
       if (side === 'w') setClockWhiteMs(remaining);
       else setClockBlackMs(remaining);
+
+      // ── Disconnected-side clock drain ──────────────────────────────
+      // When the opponent is disconnected and it is NOT their turn, also
+      // drain their clock.  This is standard online-chess behaviour.
+      const dcSide = disconnectedSideRef.current;
+      if (dcSide && dcSide !== side && disconnectedCommittedRef.current !== null && disconnectedStartRef.current !== null) {
+        const dcKey = dcSide === 'w' ? 'whiteMs' : 'blackMs';
+        const dcElapsed = now - disconnectedStartRef.current;
+        const dcRemaining = Math.max(0, disconnectedCommittedRef.current - dcElapsed);
+
+        if (dcSide === 'w') setClockWhiteMs(dcRemaining);
+        else setClockBlackMs(dcRemaining);
+
+        // Also keep the committed ref in sync so that when a move is made
+        // and the normal clock logic takes over, it starts from the
+        // drained value rather than the pre-disconnect value.
+        clockCommittedRef.current[dcKey] = dcRemaining;
+
+        if (dcRemaining <= 0) {
+          disconnectedSideRef.current = null;
+          disconnectedCommittedRef.current = null;
+          disconnectedStartRef.current = null;
+          setState((prev) => {
+            if (prev.result) return prev;
+            return applyTimeout(
+              {
+                ...prev,
+                clocks: prev.clocks
+                  ? { ...prev.clocks, [dcKey]: 0, lastTimestamp: now }
+                  : { whiteMs: 0, blackMs: 0, lastTimestamp: now },
+              },
+              dcSide,
+            );
+          });
+        }
+      }
 
       if (remaining <= 0) {
         setState((prev) => {
@@ -660,5 +717,6 @@ export function useGame(
     removableSquares: state.pendingPieceRemoval?.removableSquares ?? [],
     loadGameForReview,
     setResult,
+    setDisconnectedSide,
   };
 }
