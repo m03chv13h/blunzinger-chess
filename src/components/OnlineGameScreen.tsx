@@ -100,10 +100,15 @@ export function OnlineGameScreen({
   const handlePlayerJoined = useCallback((_event: PlayerJoinedEvent) => {
     setOpponentOnline(true);
     clearDisconnectTimer();
-  }, [clearDisconnectTimer]);
+    game.setDisconnectedSide(null);
+  }, [clearDisconnectTimer, game]);
 
   const handleOpponentDisconnected = useCallback((event: OpponentDisconnectedEvent) => {
     setOpponentOnline(false);
+
+    // Start draining the opponent's chess clock while they are away.
+    const opponentColor: Color = playerColor === 'w' ? 'b' : 'w';
+    game.setDisconnectedSide(opponentColor);
 
     // Start disconnect countdown if timeout is provided and game is active
     if (event.timeoutSeconds > 0) {
@@ -127,13 +132,14 @@ export function OnlineGameScreen({
         });
       }, 1000);
     }
-  }, []);
+  }, [playerColor, game]);
 
   // Handle opponent reconnection event (cancels countdown)
   const handleOpponentReconnected = useCallback(() => {
     setOpponentOnline(true);
     clearDisconnectTimer();
-  }, [clearDisconnectTimer]);
+    game.setDisconnectedSide(null);
+  }, [clearDisconnectTimer, game]);
 
   // Clean up disconnect timer on unmount
   useEffect(() => {
@@ -157,6 +163,7 @@ export function OnlineGameScreen({
       game.setResult({ winner, reason: 'disconnection', detail: event.detail });
       clearDisconnectTimer();
     }
+    game.setDisconnectedSide(null);
   }, [game, clearDisconnectTimer]);
 
   const handleDrawOffered = useCallback(() => {

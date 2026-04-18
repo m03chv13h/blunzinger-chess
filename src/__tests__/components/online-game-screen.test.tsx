@@ -48,6 +48,7 @@ vi.mock('../../hooks/useEvaluation', () => ({
 
 let mockGameState: GameState;
 const mockSetResult = vi.fn();
+const mockSetDisconnectedSide = vi.fn();
 
 vi.mock('../../hooks/useGame', () => ({
   useGame: () => ({
@@ -72,6 +73,7 @@ vi.mock('../../hooks/useGame', () => ({
     removableSquares: [],
     loadGameForReview: vi.fn(),
     setResult: mockSetResult,
+    setDisconnectedSide: mockSetDisconnectedSide,
   }),
 }));
 
@@ -320,6 +322,7 @@ describe('OnlineGameScreen – disconnection handling', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockSetResult.mockClear();
+    mockSetDisconnectedSide.mockClear();
     capturedCallbacks = {};
   });
 
@@ -509,6 +512,107 @@ describe('OnlineGameScreen – disconnection handling', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText('Disconnected')).toBeInTheDocument();
+  });
+
+  it('calls setDisconnectedSide with opponent color on disconnect', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    expect(mockSetDisconnectedSide).toHaveBeenCalledWith('b');
+  });
+
+  it('clears disconnectedSide when opponent reconnects', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    act(() => {
+      capturedCallbacks.onOpponentReconnected?.({ userId: 'opp-id' });
+    });
+
+    expect(mockSetDisconnectedSide).toHaveBeenLastCalledWith(null);
+  });
+
+  it('clears disconnectedSide on game over', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    act(() => {
+      capturedCallbacks.onGameOver?.({
+        reason: 'disconnection',
+        disconnectedSide: 'black',
+        detail: 'Black disconnected.',
+      });
+    });
+
+    expect(mockSetDisconnectedSide).toHaveBeenLastCalledWith(null);
+  });
+
+  it('clears disconnectedSide when opponent reconnects via PlayerJoined', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      capturedCallbacks.onOpponentDisconnected?.({ userId: 'opp-id', timeoutSeconds: 20 });
+    });
+
+    act(() => {
+      capturedCallbacks.onPlayerJoined?.({
+        userId: 'opp-id',
+        roomCode: 'TEST',
+        status: 'Playing',
+        gameState: null,
+      });
+    });
+
+    expect(mockSetDisconnectedSide).toHaveBeenLastCalledWith(null);
   });
 });
 
