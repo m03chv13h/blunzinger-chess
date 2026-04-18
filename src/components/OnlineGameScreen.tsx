@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { GameSetupConfig, Square, CrazyhousePieceType, Color } from '../core/blunziger/types';
+import type { GameSetupConfig, Square, CrazyhousePieceType, Color, GameResult } from '../core/blunziger/types';
 import { buildMatchConfig } from '../core/blunziger/types';
 import { useGame } from '../hooks/useGame';
 import { useGameHub } from '../hooks/useGameHub';
@@ -95,11 +95,20 @@ export function OnlineGameScreen({
     setOpponentOnline(false);
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleGameOver = useCallback((_event: GameOverEvent) => {
+  const handleGameOver = useCallback((event: GameOverEvent) => {
     // Game over from server (resignation, draw agreement)
     // The local game engine handles checkmate/stalemate already
-  }, []);
+    let result: GameResult;
+    if (event.reason === 'resignation' && event.resigningSide) {
+      const winner: Color = event.resigningSide === 'white' ? 'b' : 'w';
+      result = { winner, reason: 'resignation' };
+    } else if (event.reason === 'draw') {
+      result = { winner: 'draw', reason: 'draw', detail: event.detail };
+    } else {
+      return;
+    }
+    game.setResult(result);
+  }, [game]);
 
   const handleDrawOffered = useCallback(() => {
     setDrawOffered(true);

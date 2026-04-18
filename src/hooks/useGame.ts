@@ -3,6 +3,7 @@ import type {
   Color,
   GameState,
   GameMode,
+  GameResult,
   BotLevel,
   MatchConfig,
   Square,
@@ -66,6 +67,8 @@ export interface UseGameReturn {
   removableSquares: Square[];
   /** Load a completed game record for review/analysis. */
   loadGameForReview: (record: GameRecord) => void;
+  /** Set the game result externally (e.g. from server resignation/draw events). */
+  setResult: (result: GameResult) => void;
 }
 
 export function useGame(
@@ -413,6 +416,13 @@ export function useGame(
     setClockBlackMs(0);
   }, []);
 
+  const setResult = useCallback((result: GameResult) => {
+    setState((prev) => {
+      if (prev.result) return prev;
+      return { ...prev, result };
+    });
+  }, []);
+
   const canReportNow = canReport(state, state.sideToMove);
 
   const legalMovesFrom = useCallback(
@@ -649,5 +659,6 @@ export function useGame(
     pendingPieceRemoval: !!state.pendingPieceRemoval,
     removableSquares: state.pendingPieceRemoval?.removableSquares ?? [],
     loadGameForReview,
+    setResult,
   };
 }
