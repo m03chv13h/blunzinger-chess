@@ -63,6 +63,11 @@
   border-color: #bbb;
 }
 
+.provider-icon {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
 .welcome-btn--primary {
   background: #1a1a2e;
   color: #fff;
