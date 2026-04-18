@@ -30,6 +30,7 @@ const mockHub = {
   resignGame: vi.fn().mockResolvedValue(undefined),
   offerDraw: vi.fn().mockResolvedValue(undefined),
   acceptDraw: vi.fn().mockResolvedValue(undefined),
+  endGame: vi.fn().mockResolvedValue(undefined),
 };
 
 let capturedCallbacks: GameHubCallbacks = {};
@@ -508,5 +509,45 @@ describe('OnlineGameScreen – disconnection handling', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText('Disconnected')).toBeInTheDocument();
+  });
+});
+
+describe('OnlineGameScreen – end game notification', () => {
+  beforeEach(() => {
+    mockHub.endGame.mockClear();
+  });
+
+  it('calls hub.endGame when the game ends with a result', () => {
+    mockGameState = makeGameState({
+      result: { winner: 'w', reason: 'checkmate' },
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="ROOM42"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    expect(mockHub.endGame).toHaveBeenCalledWith('ROOM42');
+  });
+
+  it('does not call hub.endGame when the game is still in progress', () => {
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="ROOM42"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    expect(mockHub.endGame).not.toHaveBeenCalled();
   });
 });

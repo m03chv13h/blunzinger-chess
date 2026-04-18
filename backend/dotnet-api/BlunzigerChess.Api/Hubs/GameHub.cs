@@ -194,6 +194,26 @@ public class GameHub(
         logger.LogInformation("Player {User} joined room {Room}", userId, roomCode);
     }
 
+    /// <summary>
+    /// Notify the server that the game has ended (checkmate, stalemate, etc.).
+    /// Called by the client when the client-side engine detects a game-over condition.
+    /// This ensures the room status is updated so stale rooms are not offered for reconnection.
+    /// </summary>
+    public async Task EndGame(string roomCode)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        if (room.Status == RoomStatus.Playing)
+        {
+            room.Status = RoomStatus.Finished;
+            await db.SaveChangesAsync();
+
+            logger.LogInformation("Room {Room} marked as finished by player {User}",
+                roomCode, GetUserId());
+        }
+    }
+
     /// <summary>Leave the current room.</summary>
     public async Task LeaveRoom()
     {
