@@ -309,9 +309,9 @@ function App() {
     if (screen.type === 'simulation-running') {
       flushSimulationRecords();
     }
-    const fromAnalyse = screen.type === 'analyse';
+    const isFromAnalyse = screen.type === 'analyse';
     setLastConfig(record.config);
-    setScreen(fromAnalyse
+    setScreen(isFromAnalyse
       ? { type: 'analyse-review', config: record.config }
       : { type: 'playing', config: record.config }
     );
