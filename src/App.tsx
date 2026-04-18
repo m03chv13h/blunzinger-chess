@@ -49,6 +49,7 @@ type AppScreen =
   | { type: 'online-lobby'; config: GameSetupConfig }
   | { type: 'online-playing'; config: GameSetupConfig; roomCode: string; playerColor: Color; opponentName: string }
   | { type: 'analyse' }
+  | { type: 'analyse-review'; config: GameSetupConfig }
   | { type: 'simulate' }
   | { type: 'simulation-running' }
   | { type: 'rules' }
@@ -89,7 +90,7 @@ function App() {
 
   const simulation = useSimulation();
 
-  const activeConfig = screen.type === 'playing' ? screen.config : lastConfig;
+  const activeConfig = (screen.type === 'playing' || screen.type === 'analyse-review') ? screen.config : lastConfig;
   const matchConfig = buildMatchConfig(activeConfig);
 
   const game = useGame(
@@ -265,7 +266,7 @@ function App() {
 
   // ── Crazyhouse drop state ──
   const [selectedDropPiece, setSelectedDropPiece] = useState<CrazyhousePieceType | null>(null);
-  const crazyhouseEnabled = screen.type === 'playing' && screen.config.enableCrazyhouse;
+  const crazyhouseEnabled = (screen.type === 'playing' || screen.type === 'analyse-review') && screen.config.enableCrazyhouse;
   const crazyhouse = game.state.crazyhouse;
 
   const handleDropSquareClick = useCallback((square: Square): boolean => {
@@ -308,8 +309,12 @@ function App() {
     if (screen.type === 'simulation-running') {
       flushSimulationRecords();
     }
+    const fromAnalyse = screen.type === 'analyse';
     setLastConfig(record.config);
-    setScreen({ type: 'playing', config: record.config });
+    setScreen(fromAnalyse
+      ? { type: 'analyse-review', config: record.config }
+      : { type: 'playing', config: record.config }
+    );
     game.loadGameForReview(record);
     reviewLoadedRef.current = true;
     // Prevent saving a duplicate record for the loaded game.
@@ -336,6 +341,7 @@ function App() {
     : screen.type === 'online-playing' ? 'playing'
     : screen.type === 'online-lobby' ? 'online'
     : screen.type === 'simulation-running' ? 'simulate'
+    : screen.type === 'analyse-review' ? 'analyse'
     : screen.type === 'welcome' ? 'quick-start'
     : screen.type;
 
@@ -348,6 +354,10 @@ function App() {
     }
     setScreen({ type: section });
   };
+
+  const handleBackToAnalyse = useCallback(() => {
+    setScreen({ type: 'analyse' });
+  }, []);
 
   const handleLogout = useCallback(() => {
     flushPendingRecord();
@@ -402,7 +412,7 @@ function App() {
   }
 
   // Render setup screens (non-playing)
-  if (screen.type !== 'playing' && screen.type !== 'online-playing') {
+  if (screen.type !== 'playing' && screen.type !== 'online-playing' && screen.type !== 'analyse-review') {
     return (
       <DeployModeProvider>
         <div className="app-layout">
@@ -529,7 +539,15 @@ function App() {
       <div className="app-with-sidebar">
         <main className="app-main">
           <aside className="left-panel">
-            {!gameIsOver && !review.isReviewing && (
+            {screen.type === 'analyse-review' && (
+              <button
+                className="analyse-back-btn"
+                onClick={handleBackToAnalyse}
+              >
+                ← Back to Analyse
+              </button>
+            )}
+            {screen.type !== 'analyse-review' && !gameIsOver && !review.isReviewing && (
               <button
                 className="panel-collapse-toggle"
                 onClick={() => setLeftPanelExpanded(e => !e)}
@@ -540,19 +558,23 @@ function App() {
             {showDetails && (
               <>
                 <GameSummaryPanel config={screen.config} />
-                <GameControls
-                  onNewGame={handleNewGame}
-                  onRestart={handleRestartGame}
-                  paused={game.paused}
-                  onPauseToggle={game.setPaused}
-                  moveDelay={game.moveDelay}
-                  onMoveDelayChange={game.setMoveDelay}
-                  isBotvBot={screen.config.mode === 'botvbot'}
-                  showEvalBar={showEvalBar}
-                  onShowEvalBarChange={setShowEvalBar}
-                />
+                {screen.type !== 'analyse-review' && (
+                  <GameControls
+                    onNewGame={handleNewGame}
+                    onRestart={handleRestartGame}
+                    paused={game.paused}
+                    onPauseToggle={game.setPaused}
+                    moveDelay={game.moveDelay}
+                    onMoveDelayChange={game.setMoveDelay}
+                    isBotvBot={screen.config.mode === 'botvbot'}
+                    showEvalBar={showEvalBar}
+                    onShowEvalBarChange={setShowEvalBar}
+                  />
+                )}
                 <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
-                <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
+                {screen.type !== 'analyse-review' && (
+                  <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
+                )}
               </>
             )}
           </aside>

@@ -591,4 +591,88 @@ describe('App game flow', () => {
       expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
     });
   });
+
+  describe('ANALYSE REVIEW', () => {
+    /** Play fool's mate (1. f3 e5 2. g4 Qh4#) by clicking squares. */
+    function playFoolsMate() {
+      fireEvent.click(screen.getByRole('gridcell', { name: 'f2' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'f3' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'e7' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'e5' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'g2' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'g4' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'd8' }));
+      fireEvent.click(screen.getByRole('gridcell', { name: 'h4' }));
+    }
+
+    function completeGameAndGoToAnalyse() {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      playFoolsMate();
+      // Navigate to Analyse — this flushes the completed game into history
+      fireEvent.click(screen.getByRole('button', { name: /Analyse/i }));
+    }
+
+    it('shows played game in analyse section after completing a game', () => {
+      completeGameAndGoToAnalyse();
+      expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
+    });
+
+    it('shows board with Back to Analyse button when reviewing from analyse', () => {
+      completeGameAndGoToAnalyse();
+      // Click the played game to review it
+      fireEvent.click(screen.getByText('Black wins'));
+      // Should show the board in analyse-review mode
+      expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+      expect(screen.getByText('← Back to Analyse')).toBeInTheDocument();
+    });
+
+    it('highlights Analyse in sidebar during analyse-review', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      // The Analyse sidebar button should have the active class
+      const nav = screen.getByRole('navigation');
+      const analyseBtn = within(nav).getByRole('button', { name: /Analyse/i });
+      expect(analyseBtn.className).toContain('sidebar-item--active');
+    });
+
+    it('does not show game controls in analyse-review mode', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      // Game controls like New Game, Restart should not be shown
+      expect(screen.queryByText('🔄 New Game')).not.toBeInTheDocument();
+      expect(screen.queryByText('🔁 Restart')).not.toBeInTheDocument();
+    });
+
+    it('does not show panel collapse toggle in analyse-review mode', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      expect(screen.queryByText(/Show details/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Hide details/)).not.toBeInTheDocument();
+    });
+
+    it('shows game summary and rules panel in analyse-review', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+    });
+
+    it('returns to analyse list when Back to Analyse is clicked', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      expect(screen.getByText('← Back to Analyse')).toBeInTheDocument();
+      // Click back
+      fireEvent.click(screen.getByText('← Back to Analyse'));
+      // Should be back in the analyse section
+      expect(screen.getByText('📊 Analyse')).toBeInTheDocument();
+      expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
+    });
+
+    it('shows review controls with move navigation', () => {
+      completeGameAndGoToAnalyse();
+      fireEvent.click(screen.getByText('Black wins'));
+      // Review controls should be visible (the game is in review mode)
+      expect(screen.getByText('📖 Review Mode')).toBeInTheDocument();
+    });
+  });
 });
