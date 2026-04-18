@@ -33,6 +33,18 @@ async function ensureLocalPlay(page: import('@playwright/test').Page) {
   }
 }
 
+/**
+ * Expand the collapsed left panel during active gameplay.
+ * During a game the left panel (GameSummaryPanel, GameControls, etc.)
+ * is collapsed behind a "Show details" toggle.
+ */
+async function expandLeftPanel(page: import('@playwright/test').Page) {
+  const toggle = page.getByText(/Show details/);
+  if (await toggle.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await toggle.click();
+  }
+}
+
 // ── 1. Smoke Test ────────────────────────────────────────────────────
 
 test.describe('Smoke', () => {
@@ -96,6 +108,29 @@ test.describe('Quick Start Screen', () => {
     await ensureLocalPlay(page);
     await page.getByRole('button', { name: /Start Game/i }).click();
     await expect(page.getByRole('grid', { name: /Chess board/i })).toBeVisible();
+  });
+
+  test('switching to HvBot shows bot difficulty selector', async ({ page }) => {
+    await page.locator('#qs-mode-select').selectOption('hvbot');
+    const botLevel = page.locator('#qs-bot-level-select');
+    await expect(botLevel).toBeVisible();
+    await expect(botLevel).toHaveValue('easy');
+  });
+
+  test('switching to HvBot shows Play As selector', async ({ page }) => {
+    await page.locator('#qs-mode-select').selectOption('hvbot');
+    const playAs = page.locator('#qs-play-as-select');
+    await expect(playAs).toBeVisible();
+    await expect(playAs).toHaveValue('w');
+  });
+
+  test('shows clock settings with enable toggle', async ({ page }) => {
+    await expect(page.getByText('Clock', { exact: true })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Enable clock/i })).toBeVisible();
+  });
+
+  test('shows mode description text', async ({ page }) => {
+    await expect(page.getByText('Two players take turns on the same device.')).toBeVisible();
   });
 });
 
@@ -170,6 +205,36 @@ test.describe('New Game Setup', () => {
     await expect(select).toHaveValue('hvh');
   });
 
+  test('shows overlays fieldset with checkboxes', async ({ page }) => {
+    await expect(page.getByText('Overlays / Options')).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /King of the Hill/i })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Double Check Pressure/i })).toBeVisible();
+  });
+
+  test('switching to HvBot mode shows bot difficulty', async ({ page }) => {
+    await page.locator('#mode-select').selectOption('hvbot');
+    const botLevel = page.locator('#bot-level-select');
+    await expect(botLevel).toBeVisible();
+    await expect(botLevel).toHaveValue('easy');
+  });
+
+  test('switching to Penalty on Miss shows penalty checkboxes', async ({ page }) => {
+    await page.locator('#game-type-select').selectOption('penalty_on_miss');
+    await expect(page.getByText('Penalties on missed move')).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Additional move/i })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Piece removal/i })).toBeVisible();
+  });
+
+  test('selecting King Hunt Move Limit shows ply limit input', async ({ page }) => {
+    await page.locator('#variant-mode-select').selectOption('classic_king_hunt_move_limit');
+    await expect(page.getByLabel('Ply Limit')).toBeVisible();
+  });
+
+  test('selecting King Hunt Given Check Limit shows check target input', async ({ page }) => {
+    await page.locator('#variant-mode-select').selectOption('classic_king_hunt_given_check_limit');
+    await expect(page.getByText('Given Check Target')).toBeVisible();
+  });
+
   test('can start a game from the new game screen', async ({ page }) => {
     await ensureLocalPlay(page);
     await page.getByRole('button', { name: /Start Game/i }).click();
@@ -197,6 +262,30 @@ test.describe('Rules Page', () => {
   test('shows game types section', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Game Types/i })).toBeVisible();
   });
+
+  test('shows overlays / options section', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Overlays \/ Options/i })).toBeVisible();
+  });
+
+  test('shows player modes section', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Player Modes/i })).toBeVisible();
+  });
+
+  test('shows individual variant mode names', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Classic Blunzinger/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Reverse Blunzinger/i })).toBeVisible();
+  });
+
+  test('shows individual game type names', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Report Incorrectness/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Penalty on Miss/i })).toBeVisible();
+  });
+
+  test('shows overlay details', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /King of the Hill/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Clock/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Chess960/i })).toBeVisible();
+  });
 });
 
 // ── 8. Playing a Game ────────────────────────────────────────────────
@@ -220,16 +309,27 @@ test.describe('Playing a Game', () => {
     await expect(page.locator('.game-status')).toBeVisible();
   });
 
-  test('shows game controls with New Game and Restart buttons', async ({ page }) => {
+  test('shows turn indicator in game status', async ({ page }) => {
+    await expect(page.getByText(/to move/i)).toBeVisible();
+  });
+
+  test('shows report violation button', async ({ page }) => {
+    await expect(page.getByText(/Report Violation/i)).toBeVisible();
+  });
+
+  test('shows game controls after expanding left panel', async ({ page }) => {
+    await expandLeftPanel(page);
     await expect(page.locator('.new-game-btn')).toBeVisible();
     await expect(page.getByRole('button', { name: /Restart/i })).toBeVisible();
   });
 
-  test('shows the FEN display', async ({ page }) => {
+  test('shows the FEN display after expanding left panel', async ({ page }) => {
+    await expandLeftPanel(page);
     await expect(page.getByLabel('Current FEN')).toBeVisible();
   });
 
-  test('shows rules panel toggle', async ({ page }) => {
+  test('shows rules panel toggle after expanding left panel', async ({ page }) => {
+    await expandLeftPanel(page);
     await expect(page.getByRole('button', { name: /Show Rules/i })).toBeVisible();
   });
 
@@ -238,15 +338,28 @@ test.describe('Playing a Game', () => {
     await page.locator('[data-square="e2"]').click();
     await page.locator('[data-square="e4"]').click();
 
-    // After the move, the FEN should have changed (no longer the initial FEN).
-    const fenInput = page.getByRole('textbox', { name: /FEN/i });
-    await expect(fenInput).not.toHaveValue(
-      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    );
+    // After the move, the turn should switch to Black.
+    await expect(page.getByText(/Black to move/i)).toBeVisible();
   });
 
-  test('shows the game summary panel', async ({ page }) => {
+  test('shows the game summary panel after expanding left panel', async ({ page }) => {
+    await expandLeftPanel(page);
     await expect(page.locator('.game-summary')).toBeVisible();
+  });
+
+  test('left panel is collapsed by default during gameplay', async ({ page }) => {
+    await expect(page.getByText(/Show details/i)).toBeVisible();
+  });
+
+  test('left panel toggle switches between show and hide', async ({ page }) => {
+    await page.getByText(/Show details/i).click();
+    await expect(page.getByText(/Hide details/i)).toBeVisible();
+    await page.getByText(/Hide details/i).click();
+    await expect(page.getByText(/Show details/i)).toBeVisible();
+  });
+
+  test('shows move list header', async ({ page }) => {
+    await expect(page.locator('.move-list-header')).toBeVisible();
   });
 });
 
@@ -265,5 +378,53 @@ test.describe('Simulation Setup', () => {
 
   test('shows start simulation button', async ({ page }) => {
     await expect(page.getByText('▶ Start Simulation')).toBeVisible();
+  });
+
+  test('shows number of games input', async ({ page }) => {
+    await expect(page.getByLabel('Number of Games')).toBeVisible();
+  });
+
+  test('shows bot difficulty selectors for both sides', async ({ page }) => {
+    await expect(page.locator('#sim-bot-level-white')).toBeVisible();
+    await expect(page.locator('#sim-bot-level-black')).toBeVisible();
+  });
+
+  test('shows variant mode selector', async ({ page }) => {
+    const select = page.locator('#sim-variant-mode');
+    await expect(select).toBeVisible();
+    await expect(select).toHaveValue('classic_blunzinger');
+  });
+
+  test('shows game type selector', async ({ page }) => {
+    const select = page.locator('#sim-game-type');
+    await expect(select).toBeVisible();
+    await expect(select).toHaveValue('report_incorrectness');
+  });
+
+  test('switching to Penalty on Miss shows penalty fieldset', async ({ page }) => {
+    await page.locator('#sim-game-type').selectOption('penalty_on_miss');
+    await expect(page.getByText('Penalties on missed move')).toBeVisible();
+  });
+});
+
+// ── 10. Analyse Section ─────────────────────────────────────────────
+
+test.describe('Analyse Section', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await skipWelcome(page);
+    await page.getByRole('button', { name: /Analyse/i }).click();
+  });
+
+  test('shows analyse heading', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: '📊 Analyse' })).toBeVisible();
+  });
+
+  test('shows empty state message when no games played', async ({ page }) => {
+    await expect(page.getByText(/No games played yet/i)).toBeVisible();
+  });
+
+  test('shows analyse position form', async ({ page }) => {
+    await expect(page.getByText(/Analyse Position/i)).toBeVisible();
   });
 });
