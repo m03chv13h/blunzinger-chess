@@ -186,14 +186,16 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     );
   };
 
+  const isCollapsible = defaultCollapsed;
+  const handleHeaderClick = isCollapsible ? () => setCollapsed(c => !c) : undefined;
+
   return (
     <div className="move-list">
       <h3
-        className="move-list-header"
-        onClick={() => defaultCollapsed && setCollapsed(c => !c)}
-        style={defaultCollapsed ? { cursor: 'pointer' } : undefined}
+        className={`move-list-header${isCollapsible ? ' move-list-header--collapsible' : ''}`}
+        onClick={handleHeaderClick}
       >
-        Moves {defaultCollapsed && (collapsed ? '▸' : '▾')}
+        Moves {isCollapsible && (collapsed ? '▸' : '▾')}
       </h3>
       {!collapsed && (
         <div className="move-list-content">

@@ -20,6 +20,10 @@
   user-select: none;
 }
 
+.move-list-header--collapsible {
+  cursor: pointer;
+}
+
 .move-header {
   font-weight: 600;
   font-size: 12px;

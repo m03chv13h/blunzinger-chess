@@ -502,6 +502,9 @@ describe('App game flow', () => {
 
       vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
       fireEvent.click(screen.getByText('🔁 Restart'));
+
+      // Panel should be collapsed again after restart
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
       expandDetails();
 
       const summaryAfter = screen.getByText('Game Settings').closest('.game-summary') as HTMLElement;
@@ -514,6 +517,78 @@ describe('App game flow', () => {
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
       fireEvent.click(screen.getByText('🔁 Restart'));
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to restart the game?');
+    });
+  });
+
+  describe('COLLAPSED PANELS DURING GAMEPLAY', () => {
+    beforeEach(() => {
+      goToNewGame();
+    });
+
+    it('collapses left panel by default when game starts', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('🔄 New Game')).not.toBeInTheDocument();
+      expect(screen.queryByText('🔁 Restart')).not.toBeInTheDocument();
+    });
+
+    it('shows essential gameplay elements when collapsed', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
+      expect(screen.getByText(/to move/)).toBeInTheDocument();
+      expect(screen.getByText('🚨 Report Violation')).toBeInTheDocument();
+    });
+
+    it('expands left panel when toggle is clicked', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+
+      expect(screen.getByText(/Hide details/)).toBeInTheDocument();
+      expect(screen.getByText('Game Settings')).toBeInTheDocument();
+      expect(screen.getByText('🔄 New Game')).toBeInTheDocument();
+      expect(screen.getByText('🔁 Restart')).toBeInTheDocument();
+    });
+
+    it('collapses left panel when toggle is clicked again', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+      fireEvent.click(screen.getByText(/Hide details/));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
+    });
+
+    it('hides FEN display when panel is collapsed', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.queryByLabelText('Current FEN')).not.toBeInTheDocument();
+    });
+
+    it('shows FEN display when panel is expanded', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+
+      expect(screen.getByLabelText('Current FEN')).toBeInTheDocument();
+    });
+
+    it('collapses move list by default during active play', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Moves/)).toBeInTheDocument();
+      expect(screen.queryByText('#')).not.toBeInTheDocument();
+    });
+
+    it('resets collapsed state on new game', () => {
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      expandDetails();
+      fireEvent.click(screen.getByText('🔄 New Game'));
+      fireEvent.click(screen.getByText('▶ Start Game'));
+
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
     });
   });
 });
