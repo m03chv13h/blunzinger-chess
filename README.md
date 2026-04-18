@@ -685,12 +685,12 @@ src/
 │   ├── avatarPresets.ts      # 15 sausage-themed avatar presets
 │   └── sausageAvatars.tsx    # 8 custom SVG avatar illustrations
 └── __tests__/
-    ├── unit/                 # Pure logic tests (15 files)
+    ├── unit/                 # Pure logic tests (16 files)
     │   ├── engine.test.ts, modes.test.ts, evaluation.test.ts, bot.test.ts
     │   ├── blunznforon.test.ts, chess960.test.ts, atomic.test.ts, crazyhouse.test.ts
     │   ├── clock.test.ts, simulation.test.ts, engine-adapter.test.ts
     │   ├── avatar-presets.test.ts, simulation-record.test.ts
-    │   ├── specific-fen.test.ts, test_position.test.ts
+    │   ├── gameDetailToRecord.test.ts, specific-fen.test.ts, test_position.test.ts
     ├── components/           # React UI tests (22 files)
     │   ├── app-flow.test.tsx, game-status.test.tsx, move-list.test.tsx, review.test.tsx
     │   ├── evaluation-ui.test.tsx, numeric-input.test.tsx, time-input.test.tsx

@@ -115,6 +115,30 @@ export function RulesPage() {
               <li>Combinable with all variant modes and game types</li>
             </ul>
           </div>
+
+          <div className="rules-mode-block">
+            <h4>Crazyhouse</h4>
+            <p>Captured pieces go into the capturing player's reserve and can be dropped back on the board instead of making a normal move.</p>
+            <ul>
+              <li>Captured pieces change color and join the captor's reserve</li>
+              <li>A player may drop a reserve piece onto any empty square instead of moving</li>
+              <li>Pawns cannot be dropped on the 1st or 8th rank</li>
+              <li>A drop must not leave the dropping player's king in check</li>
+              <li>Drop moves are included in checking/non-checking move detection for variant rules</li>
+            </ul>
+          </div>
+
+          <div className="rules-mode-block">
+            <h4>Atomic Chess</h4>
+            <p>Every capture triggers an explosion on the destination square, destroying the capturing piece, the captured piece, and all non-pawn pieces on adjacent squares.</p>
+            <ul>
+              <li>Kings may never capture (the capturing king would be destroyed)</li>
+              <li>A move is illegal if the explosion would destroy the moving side's own king</li>
+              <li>Exploding the opponent's king wins immediately</li>
+              <li>Kings may stand adjacent since kings cannot capture</li>
+              <li>Pawns are immune to adjacency explosions but are destroyed when directly captured</li>
+            </ul>
+          </div>
         </section>
 
         {/* Player Modes */}
