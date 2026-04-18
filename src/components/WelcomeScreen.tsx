@@ -1,5 +1,6 @@
 import type { OAuthProvider } from '../services/authService';
 import { BlutwurstIcon } from './BlutwurstIcon';
+import { ProviderIcon } from './ProviderIcons';
 import './WelcomeScreen.css';
 
 interface WelcomeScreenProps {
@@ -14,13 +15,6 @@ interface WelcomeScreenProps {
   /** Continue without an account (local play). */
   onContinueAsGuest: () => void;
 }
-
-const PROVIDER_LABELS: Record<OAuthProvider, string> = {
-  Google: '🔵 Sign in with Google',
-  GitHub: '⚫ Sign in with GitHub',
-  Discord: '🟣 Sign in with Discord',
-  Microsoft: '🟦 Sign in with Microsoft',
-};
 
 export function WelcomeScreen({
   availableProviders,
@@ -48,7 +42,7 @@ export function WelcomeScreen({
                 onClick={() => onLoginWithProvider(provider)}
                 disabled={loading}
               >
-                {PROVIDER_LABELS[provider]}
+                <ProviderIcon provider={provider} /> Sign in with {provider}
               </button>
             ))}
           </div>

@@ -59,8 +59,8 @@ describe('WelcomeScreen', () => {
         availableProviders={['Google', 'GitHub']}
       />,
     );
-    expect(screen.getByText('🔵 Sign in with Google')).toBeInTheDocument();
-    expect(screen.getByText('⚫ Sign in with GitHub')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in with Google/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in with GitHub/ })).toBeInTheDocument();
   });
 
   it('calls onLoginWithProvider with the correct provider', () => {
@@ -72,7 +72,7 @@ describe('WelcomeScreen', () => {
         onLoginWithProvider={onLogin}
       />,
     );
-    fireEvent.click(screen.getByText('⚫ Sign in with GitHub'));
+    fireEvent.click(screen.getByRole('button', { name: /Sign in with GitHub/ }));
     expect(onLogin).toHaveBeenCalledWith('GitHub');
   });
 
@@ -98,7 +98,7 @@ describe('WelcomeScreen', () => {
       />,
     );
     expect(screen.getByText('▶ Continue as Guest')).toBeDisabled();
-    expect(screen.getByText('🔵 Sign in with Google')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Sign in with Google/ })).toBeDisabled();
   });
 
   it('shows loading message when loading', () => {
