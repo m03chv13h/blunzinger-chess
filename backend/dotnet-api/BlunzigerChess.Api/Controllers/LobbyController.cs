@@ -65,6 +65,39 @@ public class LobbyController(AppDbContext db) : ControllerBase
         });
     }
 
+    /// <summary>Check if the user has an active (Playing) game to reconnect to.</summary>
+    [HttpGet("rooms/active")]
+    public async Task<IActionResult> GetActiveRoom()
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var room = await db.MultiplayerRooms
+            .Include(r => r.Host)
+            .Include(r => r.Guest)
+            .Where(r => r.Status == RoomStatus.Playing &&
+                        (r.HostUserId == userId.Value || r.GuestUserId == userId.Value))
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (room is null)
+            return Ok(new { active = false });
+
+        var isHost = room.HostUserId == userId.Value;
+        var opponentName = isHost
+            ? (room.Guest != null ? (room.Guest.CustomDisplayName ?? room.Guest.DisplayName) : "Opponent")
+            : (room.Host != null ? (room.Host.CustomDisplayName ?? room.Host.DisplayName) : "Opponent");
+
+        return Ok(new
+        {
+            active = true,
+            roomCode = room.Code,
+            playerColor = isHost ? "w" : "b",
+            opponentName,
+            matchConfig = room.MatchConfig,
+        });
+    }
+
     /// <summary>List public waiting rooms.</summary>
     [HttpGet("rooms")]
     public async Task<IActionResult> ListRooms()

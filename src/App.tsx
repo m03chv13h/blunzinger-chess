@@ -7,6 +7,7 @@ import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
 import { DeployModeProvider } from './config/DeployModeContext';
+import { getActiveRoom } from './services/lobbyService';
 import { Sidebar } from './components/Sidebar';
 import type { NavSection } from './components/Sidebar';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -77,6 +78,7 @@ function App() {
 
   // If the user is already authenticated (e.g. returning with a stored token),
   // skip the welcome screen automatically (connected mode only).
+  // Also check for an active game to reconnect to.
   const skippedWelcomeRef = useRef(false);
   useEffect(() => {
     if (
@@ -84,7 +86,28 @@ function App() {
       !auth.loading && auth.user && screen.type === 'welcome' && !skippedWelcomeRef.current
     ) {
       skippedWelcomeRef.current = true;
-      setScreen({ type: 'quick-start' });
+
+      // Check for active game to reconnect to
+      getActiveRoom().then((res) => {
+        if (res.active && res.roomCode && res.playerColor && res.matchConfig) {
+          try {
+            const parsedConfig = JSON.parse(res.matchConfig) as GameSetupConfig;
+            setScreen({
+              type: 'online-playing',
+              config: parsedConfig,
+              roomCode: res.roomCode,
+              playerColor: res.playerColor as Color,
+              opponentName: res.opponentName ?? 'Opponent',
+            });
+          } catch {
+            setScreen({ type: 'quick-start' });
+          }
+        } else {
+          setScreen({ type: 'quick-start' });
+        }
+      }).catch(() => {
+        setScreen({ type: 'quick-start' });
+      });
     }
   }, [auth.loading, auth.user, screen.type]);
 
