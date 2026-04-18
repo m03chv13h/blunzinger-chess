@@ -135,8 +135,8 @@ export function useGame(
 
   // ── Disconnected side (online games) ───────────────────────────────
   // When a side is marked as disconnected, their clock keeps running even
-  // when it is not their turn.  This is standard online-chess behaviour:
-  // the disconnected player is penalised by having their time drain.
+  // when it is not their turn.  This is standard online-chess behavior:
+  // the disconnected player is penalized by having their time drain.
   const disconnectedSideRef = useRef<Color | null>(null);
   const disconnectedStartRef = useRef<number | null>(null);
   const disconnectedCommittedRef = useRef<number | null>(null);
@@ -210,7 +210,7 @@ export function useGame(
 
       // ── Disconnected-side clock drain ──────────────────────────────
       // When the opponent is disconnected and it is NOT their turn, also
-      // drain their clock.  This is standard online-chess behaviour.
+      // drain their clock.  This is standard online-chess behavior.
       const dcSide = disconnectedSideRef.current;
       if (dcSide && dcSide !== side && disconnectedCommittedRef.current !== null && disconnectedStartRef.current !== null) {
         const dcKey = dcSide === 'w' ? 'whiteMs' : 'blackMs';
