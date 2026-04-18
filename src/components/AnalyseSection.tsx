@@ -1,23 +1,66 @@
 import { useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
 import type { SimulationRecord } from '../core/gameRecord';
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig, GameResult } from '../core/blunziger/types';
+import type { GameListItem } from '../services/gamesService';
 import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
 import { AnalysePositionForm } from './AnalysePositionForm';
 import './AnalyseSection.css';
+
+/** Safely parse a JSON-encoded GameSetupConfig from a remote game. */
+function parseRemoteConfig(json: string): GameSetupConfig | null {
+  try {
+    return JSON.parse(json) as GameSetupConfig;
+  } catch {
+    return null;
+  }
+}
+
+/** Safely parse a JSON-encoded GameResult from a remote game. */
+function parseRemoteResult(json?: string): GameResult | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json) as GameResult;
+  } catch {
+    return null;
+  }
+}
 
 interface AnalyseSectionProps {
   games: GameRecord[];
   simulations: SimulationRecord[];
   onSelectGame: (game: GameRecord) => void;
   onStartAnalysis: (config: GameSetupConfig) => void;
+  /** Remote saved games from the backend (connected mode). */
+  remoteGames?: GameListItem[];
+  remoteTotal?: number;
+  remotePage?: number;
+  remoteLoading?: boolean;
+  remoteError?: string | null;
+  onFetchRemotePage?: (page: number) => void;
+  onSelectRemoteGame?: (id: string) => void;
+  onDeleteRemoteGame?: (id: string) => void;
 }
 
-export function AnalyseSection({ games, simulations, onSelectGame, onStartAnalysis }: AnalyseSectionProps) {
+export function AnalyseSection({
+  games,
+  simulations,
+  onSelectGame,
+  onStartAnalysis,
+  remoteGames,
+  remoteTotal,
+  remotePage,
+  remoteLoading,
+  remoteError,
+  onFetchRemotePage,
+  onSelectRemoteGame,
+  onDeleteRemoteGame,
+}: AnalyseSectionProps) {
   const [expandedSimulation, setExpandedSimulation] = useState<string | null>(null);
 
-  const isEmpty = games.length === 0 && simulations.length === 0;
+  const hasRemoteGames = (remoteGames?.length ?? 0) > 0;
+  const isEmpty = games.length === 0 && simulations.length === 0 && !hasRemoteGames && !remoteLoading && !remoteError;
 
   if (isEmpty) {
     return (
@@ -165,6 +208,100 @@ export function AnalyseSection({ games, simulations, onSelectGame, onStartAnalys
                 </button>
               ))}
             </div>
+          </>
+        )}
+
+        {/* ── Saved Games (remote / connected mode) ── */}
+        {(hasRemoteGames || remoteLoading || remoteError) && (
+          <>
+            <h3 className="analyse-section-heading">☁️ Saved Games</h3>
+
+            {remoteError && (
+              <p className="analyse-remote-error">{remoteError}</p>
+            )}
+
+            {remoteLoading && !hasRemoteGames && (
+              <p className="analyse-remote-loading">Loading saved games…</p>
+            )}
+
+            {hasRemoteGames && (
+              <div className="analyse-list">
+                {(remoteGames ?? []).map((item) => {
+                  const config = parseRemoteConfig(item.matchConfig);
+                  const result = parseRemoteResult(item.result);
+                  return (
+                    <div key={item.id} className="analyse-remote-row">
+                      <button
+                        className="analyse-game-item analyse-game-item--remote"
+                        onClick={() => onSelectRemoteGame?.(item.id)}
+                        disabled={remoteLoading}
+                      >
+                        {item.finalFen && <MiniBoard fen={item.finalFen} />}
+                        <div className="analyse-game-info">
+                          {config && (
+                            <div className="analyse-game-meta">
+                              <span className="analyse-variant">{getVariantLabel(config.variantMode)}</span>
+                              <span className="analyse-separator">·</span>
+                              <span className="analyse-gametype">{getGameTypeLabel(config.gameType)}</span>
+                            </div>
+                          )}
+                          {config && (
+                            <div className="analyse-game-mode">
+                              {getGameModeLabel(config.mode)}
+                            </div>
+                          )}
+                          {result && (
+                            <div className={`analyse-game-result ${result.winner === 'draw' ? 'result-draw' : result.winner === 'w' ? 'result-white' : 'result-black'}`}>
+                              {getResultLabel(result)}
+                              <span className="analyse-reason"> — {result.reason.replace(/_/g, ' ')}</span>
+                            </div>
+                          )}
+                          <div className="analyse-game-details">
+                            {item.moveCount} moves
+                            {item.completedAt && <> · {new Date(item.completedAt).toLocaleString()}</>}
+                          </div>
+                        </div>
+                      </button>
+                      {onDeleteRemoteGame && (
+                        <button
+                          className="analyse-remote-delete"
+                          title="Delete saved game"
+                          onClick={() => onDeleteRemoteGame(item.id)}
+                          disabled={remoteLoading}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {remoteTotal != null && remoteTotal > 20 && onFetchRemotePage && remotePage != null && (
+              <div className="analyse-pagination">
+                <button
+                  disabled={remotePage <= 1 || remoteLoading}
+                  onClick={() => onFetchRemotePage(remotePage - 1)}
+                >
+                  ← Prev
+                </button>
+                <span className="analyse-page-info">
+                  Page {remotePage} of {Math.ceil(remoteTotal / 20)}
+                </span>
+                <button
+                  disabled={remotePage >= Math.ceil(remoteTotal / 20) || remoteLoading}
+                  onClick={() => onFetchRemotePage(remotePage + 1)}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+
+            {remoteLoading && hasRemoteGames && (
+              <p className="analyse-remote-loading">Loading…</p>
+            )}
           </>
         )}
       </div>
