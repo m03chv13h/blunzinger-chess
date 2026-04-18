@@ -144,6 +144,8 @@ export interface UseGameHub {
   offerDraw: (roomCode: string) => Promise<void>;
   /** Accept a draw. */
   acceptDraw: (roomCode: string) => Promise<void>;
+  /** Notify the server the game has ended (client-side detection). */
+  endGame: (roomCode: string) => Promise<void>;
   /** Relay a move to the opponent (client-side engine). */
   sendMove: (roomCode: string, from: string, to: string, promotion?: string) => Promise<void>;
   /** Relay a drop move to the opponent (client-side engine). */
@@ -238,6 +240,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
   const resignGame = useCallback((roomCode: string) => invoke('ResignGame', roomCode), [invoke]);
   const offerDraw = useCallback((roomCode: string) => invoke('OfferDraw', roomCode), [invoke]);
   const acceptDraw = useCallback((roomCode: string) => invoke('AcceptDraw', roomCode), [invoke]);
+  const endGame = useCallback((roomCode: string) => invoke('EndGame', roomCode), [invoke]);
 
   // ── Client-side relay methods ──────────────────────────────────────
   const sendMove = useCallback(
@@ -269,6 +272,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     resignGame,
     offerDraw,
     acceptDraw,
+    endGame,
     sendMove,
     sendDropMove,
     sendReport,

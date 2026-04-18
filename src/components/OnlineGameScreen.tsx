@@ -206,6 +206,20 @@ export function OnlineGameScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Notify the server when the game ends (client-side detection: checkmate,
+  // stalemate, rule violations, etc.) so the room status is updated to
+  // Finished and won't be offered for auto-reconnect later.
+  const endGameNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (gameIsOver && !endGameNotifiedRef.current) {
+      endGameNotifiedRef.current = true;
+      hub.endGame(roomCode).catch(() => {
+        // Best-effort: if the server can't be reached, the room will
+        // eventually be cleaned up by the expiry service.
+      });
+    }
+  }, [gameIsOver, hub, roomCode]);
+
   // ── Move handling ──────────────────────────────────────────────────
 
   const isMyTurn = game.state.sideToMove === playerColor && !gameIsOver;
