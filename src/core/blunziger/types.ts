@@ -143,6 +143,7 @@ export type GameResultReason =
   | 'valid-report'
   | 'invalid-report-threshold'
   | 'resignation'
+  | 'disconnection'
   | 'insufficient-material'
   | 'threefold-repetition'
   | 'fifty-move-rule'

@@ -8,7 +8,7 @@ import type {
   OpponentDropMoveEvent,
   OpponentPieceRemovalEvent,
   PlayerJoinedEvent,
-  PlayerLeftEvent,
+  OpponentDisconnectedEvent,
   GameOverEvent,
 } from '../hooks/useGameHub';
 import { useEvaluation } from '../hooks/useEvaluation';
@@ -47,6 +47,8 @@ export function OnlineGameScreen({
   const [drawPending, setDrawPending] = useState(false);
   const [resignConfirm, setResignConfirm] = useState(false);
   const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
+  const [disconnectCountdown, setDisconnectCountdown] = useState<number | null>(null);
+  const disconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const matchConfig = buildMatchConfig(config);
 
@@ -85,26 +87,77 @@ export function OnlineGameScreen({
     game.selectPieceForRemoval(event.square as Square);
   }, [game]);
 
+  // Helper: clear any pending disconnect countdown interval.
+  const clearDisconnectTimer = useCallback(() => {
+    if (disconnectTimerRef.current) {
+      clearInterval(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    }
+    setDisconnectCountdown(null);
+  }, []);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePlayerJoined = useCallback((_event: PlayerJoinedEvent) => {
     setOpponentOnline(true);
+    clearDisconnectTimer();
+  }, [clearDisconnectTimer]);
+
+  const handleOpponentDisconnected = useCallback((event: OpponentDisconnectedEvent) => {
+    setOpponentOnline(false);
+
+    // Start disconnect countdown if timeout is provided and game is active
+    if (event.timeoutSeconds > 0) {
+      setDisconnectCountdown(event.timeoutSeconds);
+
+      // Clear any existing timer before starting a new one
+      if (disconnectTimerRef.current) {
+        clearInterval(disconnectTimerRef.current);
+      }
+
+      disconnectTimerRef.current = setInterval(() => {
+        setDisconnectCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            if (disconnectTimerRef.current) {
+              clearInterval(disconnectTimerRef.current);
+              disconnectTimerRef.current = null;
+            }
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleOpponentDisconnected = useCallback((_event: PlayerLeftEvent) => {
-    setOpponentOnline(false);
+  // Handle opponent reconnection event (cancels countdown)
+  const handleOpponentReconnected = useCallback(() => {
+    setOpponentOnline(true);
+    clearDisconnectTimer();
+  }, [clearDisconnectTimer]);
+
+  // Clean up disconnect timer on unmount
+  useEffect(() => {
+    return () => {
+      if (disconnectTimerRef.current) {
+        clearInterval(disconnectTimerRef.current);
+      }
+    };
   }, []);
 
   const handleGameOver = useCallback((event: GameOverEvent) => {
-    // Game over from server (resignation, draw agreement)
+    // Game over from server (resignation, draw agreement, disconnection)
     // The local game engine handles checkmate/stalemate already
     if (event.reason === 'resignation' && event.resigningSide) {
       const winner: Color = event.resigningSide === 'white' ? 'b' : 'w';
       game.setResult({ winner, reason: 'resignation' });
     } else if (event.reason === 'draw') {
       game.setResult({ winner: 'draw', reason: 'draw', detail: event.detail });
+    } else if (event.reason === 'disconnection' && event.disconnectedSide) {
+      const winner: Color = event.disconnectedSide === 'white' ? 'b' : 'w';
+      game.setResult({ winner, reason: 'disconnection', detail: event.detail });
+      clearDisconnectTimer();
     }
-  }, [game]);
+  }, [game, clearDisconnectTimer]);
 
   const handleDrawOffered = useCallback(() => {
     setDrawOffered(true);
@@ -121,7 +174,7 @@ export function OnlineGameScreen({
     onOpponentPieceRemoval: handleOpponentPieceRemoval,
     onPlayerJoined: handlePlayerJoined,
     onOpponentDisconnected: handleOpponentDisconnected,
-    onOpponentReconnected: handlePlayerJoined,
+    onOpponentReconnected: handleOpponentReconnected,
     onGameOver: handleGameOver,
     onDrawOffered: handleDrawOffered,
     onError: handleError,
@@ -354,6 +407,15 @@ export function OnlineGameScreen({
             {opponentOnline ? 'Online' : 'Disconnected'}
           </span>
         </div>
+        {disconnectCountdown !== null && !gameIsOver && (
+          <div className="online-game-disconnect-banner" role="alert">
+            <span className="online-game-disconnect-icon">⚠️</span>
+            <span>
+              Opponent disconnected — reconnect timeout in{' '}
+              <strong className="online-game-countdown">{disconnectCountdown}s</strong>
+            </span>
+          </div>
+        )}
         <div className="online-game-room-info">
           <span className="online-game-room-label">Room:</span>
           <span className="online-game-room-code">{roomCode}</span>
@@ -554,6 +616,7 @@ function formatResultReason(reason: string): string {
     case 'king_of_the_hill': return 'King of the Hill';
     case 'timeout': return 'Timeout';
     case 'resignation': return 'Resignation';
+    case 'disconnection': return 'Opponent disconnected';
     case 'atomic_king_explosion': return 'King exploded (Atomic)';
     default: return reason;
   }

@@ -39,6 +39,7 @@ export interface GameOverEvent {
   reason: string;
   detail?: string;
   resigningSide?: string;
+  disconnectedSide?: string;
 }
 
 export interface DrawOfferedEvent {
@@ -51,6 +52,15 @@ export interface MatchFoundEvent {
 }
 
 export interface PlayerLeftEvent {
+  userId: string;
+}
+
+export interface OpponentDisconnectedEvent {
+  userId: string;
+  timeoutSeconds: number;
+}
+
+export interface OpponentReconnectedEvent {
   userId: string;
 }
 
@@ -92,8 +102,8 @@ export interface DropMove {
 export interface GameHubCallbacks {
   onPlayerJoined?: (event: PlayerJoinedEvent) => void;
   onPlayerLeft?: (event: PlayerLeftEvent) => void;
-  onOpponentDisconnected?: (event: PlayerLeftEvent) => void;
-  onOpponentReconnected?: (event: PlayerJoinedEvent) => void;
+  onOpponentDisconnected?: (event: OpponentDisconnectedEvent) => void;
+  onOpponentReconnected?: (event: OpponentReconnectedEvent) => void;
   onGameStateUpdated?: (event: GameStateUpdatedEvent) => void;
   onMoveRejected?: (event: MoveRejectedEvent) => void;
   onGameOver?: (event: GameOverEvent) => void;
@@ -170,7 +180,8 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     // Register event handlers – delegate to latest callbacks via ref.
     connection.on('PlayerJoined', (e: PlayerJoinedEvent) => callbacksRef.current.onPlayerJoined?.(e));
     connection.on('PlayerLeft', (e: PlayerLeftEvent) => callbacksRef.current.onPlayerLeft?.(e));
-    connection.on('OpponentDisconnected', (e: PlayerLeftEvent) => callbacksRef.current.onOpponentDisconnected?.(e));
+    connection.on('OpponentDisconnected', (e: OpponentDisconnectedEvent) => callbacksRef.current.onOpponentDisconnected?.(e));
+    connection.on('OpponentReconnected', (e: OpponentReconnectedEvent) => callbacksRef.current.onOpponentReconnected?.(e));
     connection.on('GameStateUpdated', (e: GameStateUpdatedEvent) => callbacksRef.current.onGameStateUpdated?.(e));
     connection.on('MoveRejected', (e: MoveRejectedEvent) => callbacksRef.current.onMoveRejected?.(e));
     connection.on('GameOver', (e: GameOverEvent) => callbacksRef.current.onGameOver?.(e));

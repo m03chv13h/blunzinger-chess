@@ -39,6 +39,14 @@ export interface JoinMatchmakingResponse {
   entryId: string;
 }
 
+export interface ActiveRoomResponse {
+  active: boolean;
+  roomCode?: string;
+  playerColor?: string;
+  opponentName?: string;
+  matchConfig?: string;
+}
+
 // ── API calls ────────────────────────────────────────────────────────
 
 /** Create a new private multiplayer room. */
@@ -73,4 +81,9 @@ export async function joinMatchmaking(preferredConfig: string): Promise<JoinMatc
 /** Cancel active matchmaking. */
 export async function cancelMatchmaking(): Promise<void> {
   return apiFetch<void>('/api/lobby/matchmaking', { method: 'DELETE' });
+}
+
+/** Check if the user has an active game to reconnect to. */
+export async function getActiveRoom(): Promise<ActiveRoomResponse> {
+  return apiFetch<ActiveRoomResponse>('/api/lobby/rooms/active');
 }

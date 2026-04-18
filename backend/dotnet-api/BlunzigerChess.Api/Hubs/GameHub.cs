@@ -18,13 +18,26 @@ namespace BlunzigerChess.Api.Hubs;
 public class GameHub(
     AppDbContext db,
     GameEngineClient engineClient,
+    IServiceScopeFactory scopeFactory,
     ILogger<GameHub> logger) : Hub
 {
     /// <summary>Maps room codes to group names for SignalR.</summary>
     private static string RoomGroup(string code) => $"room_{code}";
 
+    /// <summary>Builds the key for disconnect timer tracking.</summary>
+    private static string TimerKey(string roomCode, Guid userId) => $"{roomCode}_{userId}";
+
     /// <summary>Track active room connections: connectionId → roomCode.</summary>
     private static readonly ConcurrentDictionary<string, string> ConnectionRooms = new();
+
+    /// <summary>Track userId → roomCode for reconnection lookup.</summary>
+    private static readonly ConcurrentDictionary<Guid, string> UserRooms = new();
+
+    /// <summary>Track pending disconnect timers: roomCode → CancellationTokenSource.</summary>
+    private static readonly ConcurrentDictionary<string, CancellationTokenSource> DisconnectTimers = new();
+
+    /// <summary>Seconds before a disconnected player forfeits.</summary>
+    private const int DisconnectTimeoutSeconds = 20;
 
     // ── Connection Lifecycle ─────────────────────────────────────────
 
@@ -32,15 +45,94 @@ public class GameHub(
     {
         if (ConnectionRooms.TryRemove(Context.ConnectionId, out var roomCode))
         {
+            var userId = GetUserId();
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomCode));
-            await Clients.Group(RoomGroup(roomCode)).SendAsync("OpponentDisconnected", new
+
+            // Check if the room has an active game (Playing status)
+            var room = await db.MultiplayerRooms
+                .FirstOrDefaultAsync(r => r.Code == roomCode);
+
+            if (room is not null && room.Status == RoomStatus.Playing)
             {
-                userId = GetUserId().ToString(),
-            });
-            logger.LogInformation("Player {User} disconnected from room {Room}",
-                GetUserId(), roomCode);
+                var disconnectedSide = room.HostUserId == userId ? "white" : "black";
+
+                // Notify the opponent about the disconnect with countdown info
+                await Clients.Group(RoomGroup(roomCode)).SendAsync("OpponentDisconnected", new
+                {
+                    userId = userId.ToString(),
+                    timeoutSeconds = DisconnectTimeoutSeconds,
+                });
+
+                logger.LogInformation(
+                    "Player {User} disconnected from active game in room {Room}. Starting {Timeout}s reconnect timer",
+                    userId, roomCode, DisconnectTimeoutSeconds);
+
+                // Start a disconnect timer
+                var cts = new CancellationTokenSource();
+                DisconnectTimers[TimerKey(roomCode, userId)] = cts;
+
+                _ = Task.Run(() => RunDisconnectTimerAsync(roomCode, userId, disconnectedSide, cts.Token));
+            }
+            else
+            {
+                await Clients.Group(RoomGroup(roomCode)).SendAsync("OpponentDisconnected", new
+                {
+                    userId = userId.ToString(),
+                    timeoutSeconds = 0,
+                });
+
+                logger.LogInformation("Player {User} disconnected from room {Room}",
+                    userId, roomCode);
+            }
         }
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>Runs the disconnect countdown timer. If not cancelled within the timeout, ends the game.</summary>
+    private async Task RunDisconnectTimerAsync(string roomCode, Guid disconnectedUserId, string disconnectedSide, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(DisconnectTimeoutSeconds), ct);
+        }
+        catch (TaskCanceledException)
+        {
+            // Player reconnected — timer cancelled
+            return;
+        }
+
+        // Timer expired — player did not reconnect in time
+        DisconnectTimers.TryRemove(TimerKey(roomCode, disconnectedUserId), out _);
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var scopedDb = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var room = await scopedDb.MultiplayerRooms
+                .FirstOrDefaultAsync(r => r.Code == roomCode);
+
+            if (room is not null && room.Status == RoomStatus.Playing)
+            {
+                room.Status = RoomStatus.Finished;
+                await scopedDb.SaveChangesAsync();
+
+                await Clients.Group(RoomGroup(roomCode)).SendAsync("GameOver", new
+                {
+                    reason = "disconnection",
+                    disconnectedSide,
+                    detail = $"{(disconnectedSide == "white" ? "White" : "Black")} disconnected and did not reconnect within {DisconnectTimeoutSeconds} seconds.",
+                });
+
+                logger.LogInformation(
+                    "Game in room {Room} ended: {Side} failed to reconnect within {Timeout}s",
+                    roomCode, disconnectedSide, DisconnectTimeoutSeconds);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error ending game due to disconnect timeout in room {Room}", roomCode);
+        }
     }
 
     // ── Room Management ──────────────────────────────────────────────
@@ -66,8 +158,26 @@ public class GameHub(
             return;
         }
 
+        // Cancel any pending disconnect timer for this user/room
+        var timerKey = TimerKey(roomCode, userId);
+        if (DisconnectTimers.TryRemove(timerKey, out var cts))
+        {
+            await cts.CancelAsync();
+            cts.Dispose();
+
+            logger.LogInformation("Player {User} reconnected to room {Room} — disconnect timer cancelled",
+                userId, roomCode);
+
+            // Notify the opponent that the player reconnected
+            await Clients.Group(RoomGroup(roomCode)).SendAsync("OpponentReconnected", new
+            {
+                userId = userId.ToString(),
+            });
+        }
+
         // Track connection → room mapping
         ConnectionRooms[Context.ConnectionId] = roomCode;
+        UserRooms[userId] = roomCode;
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomCode));
 
         var user = room.HostUserId == userId ? room.Host : room.Guest;
