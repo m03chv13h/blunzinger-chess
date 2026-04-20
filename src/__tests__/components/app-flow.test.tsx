@@ -674,5 +674,27 @@ describe('App game flow', () => {
       // Review controls should be visible (the game is in review mode)
       expect(screen.getByText('📖 Review Mode')).toBeInTheDocument();
     });
+
+    it('saves game to history after restart and completing another game', () => {
+      // Play first game
+      fireEvent.click(screen.getByText('▶ Start Game'));
+      playFoolsMate();
+
+      // After game ends, the panel is auto-expanded (game over + review mode).
+      // Restart the game (flushes the first record into history).
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+      fireEvent.click(screen.getByText('🔁 Restart'));
+
+      // Play second game
+      playFoolsMate();
+
+      // Navigate to Games section — should show both games
+      fireEvent.click(screen.getByRole('button', { name: /Games/i }));
+      expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
+
+      // Both games should be displayed (two "Defeat" cards)
+      const defeatCards = screen.getAllByText('Defeat');
+      expect(defeatCards.length).toBe(2);
+    });
   });
 });

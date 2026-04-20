@@ -13,6 +13,8 @@ import type {
 } from '../hooks/useGameHub';
 import { useEvaluation } from '../hooks/useEvaluation';
 import { useReview } from '../hooks/useReview';
+import type { GameRecord } from '../core/gameRecord';
+import { createGameRecord } from '../core/gameRecord';
 import { Chessboard } from './Chessboard';
 import { MoveList } from './MoveList';
 import { GameStatus } from './GameStatus';
@@ -31,6 +33,7 @@ interface OnlineGameScreenProps {
   playerColor: Color;
   opponentName: string;
   onLeaveGame: () => void;
+  onGameComplete?: (record: GameRecord) => void;
 }
 
 export function OnlineGameScreen({
@@ -39,6 +42,7 @@ export function OnlineGameScreen({
   playerColor,
   opponentName,
   onLeaveGame,
+  onGameComplete,
 }: OnlineGameScreenProps) {
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [opponentOnline, setOpponentOnline] = useState(true);
@@ -69,6 +73,28 @@ export function OnlineGameScreen({
       enterReview();
     }
   }, [gameIsOver, enterReview]);
+
+  // Save completed online game to history.
+  const gameSavedRef = useRef(false);
+  useEffect(() => {
+    if (gameIsOver && !gameSavedRef.current && game.state.result) {
+      gameSavedRef.current = true;
+      const record = createGameRecord(
+        config,
+        game.state.result,
+        game.state.fen,
+        game.state.moveHistory.length,
+        game.state.scores,
+        game.state.positionHistory,
+        game.state.moveHistory,
+        game.state.violationReports,
+        game.state.missedChecks,
+        game.state.pieceRemovals,
+        game.state.timeReductions,
+      );
+      onGameComplete?.(record);
+    }
+  }, [gameIsOver, game.state, config, onGameComplete]);
 
   // Hub callbacks
   const handleOpponentMoved = useCallback((event: OpponentMovedEvent) => {

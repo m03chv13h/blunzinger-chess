@@ -655,3 +655,54 @@ describe('OnlineGameScreen – end game notification', () => {
     expect(mockHub.endGame).not.toHaveBeenCalled();
   });
 });
+
+describe('OnlineGameScreen – game completion callback', () => {
+  it('calls onGameComplete with a GameRecord when game ends', () => {
+    const onGameComplete = vi.fn();
+    mockGameState = makeGameState({
+      result: { winner: 'w', reason: 'checkmate' },
+      fen: 'rnb1kbnr/pppp1ppp/4p3/8/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3',
+      moveHistory: [
+        { from: 'f2', to: 'f3' },
+        { from: 'e7', to: 'e5' },
+        { from: 'g2', to: 'g4' },
+        { from: 'd8', to: 'h4' },
+      ] as never[],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="ROOM42"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+        onGameComplete={onGameComplete}
+      />,
+    );
+
+    expect(onGameComplete).toHaveBeenCalledTimes(1);
+    const record = onGameComplete.mock.calls[0][0];
+    expect(record.result).toEqual({ winner: 'w', reason: 'checkmate' });
+    expect(record.moveCount).toBe(4);
+    expect(record.config).toEqual(reportConfig);
+  });
+
+  it('does not call onGameComplete when game is still in progress', () => {
+    const onGameComplete = vi.fn();
+    mockGameState = makeGameState();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="ROOM42"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+        onGameComplete={onGameComplete}
+      />,
+    );
+
+    expect(onGameComplete).not.toHaveBeenCalled();
+  });
+});
