@@ -218,6 +218,9 @@ function App() {
       }
       pendingRecordRef.current = null;
     }
+    // Reset so subsequent games on the same 'playing' screen are also saved
+    // (e.g. after restart).
+    prevSavedRef.current = false;
   }, [saveGameToBackend]);
 
   // The state used for evaluation: reviewed state when reviewing, otherwise live state.
@@ -309,6 +312,13 @@ function App() {
   const handleLeaveOnlineGame = useCallback(() => {
     setScreen({ type: 'online' });
   }, []);
+
+  const handleOnlineGameComplete = useCallback((record: GameRecord) => {
+    setGameHistory(prev => [record, ...prev]);
+    if (isConnectedMode) {
+      saveGameToBackend(record);
+    }
+  }, [saveGameToBackend]);
 
   const handleCancelOnlineLobby = useCallback(() => {
     setScreen({ type: 'quick-start' });
@@ -629,6 +639,7 @@ function App() {
                 playerColor={screen.playerColor}
                 opponentName={screen.opponentName}
                 onLeaveGame={handleLeaveOnlineGame}
+                onGameComplete={handleOnlineGameComplete}
               />
             </main>
           </div>
