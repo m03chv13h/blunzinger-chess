@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { GameSetupConfig } from '../core/blunziger/types';
-import type { GameRecord } from '../core/gameRecord';
+import type { GameRecord, SimulationRecord } from '../core/gameRecord';
 import { getResultLabel } from '../core/gameRecord';
 import { runSimulatedGame } from '../core/simulation';
 import { isConnectedMode } from '../config/deployMode';
-import { runSimulatedGameRemote } from '../services/simulationService';
+import { runBatchSimulationRemote } from '../services/simulationService';
 
 export interface SimulationGameEntry {
   /** 1-based game number. */
@@ -42,12 +42,15 @@ export interface UseSimulationReturn {
   stop: () => void;
   /** All completed game records for analysis. */
   completedRecords: GameRecord[];
+  /** The saved SimulationRecord returned by the backend (connected mode only). */
+  savedSimulationRecord: SimulationRecord | null;
 }
 
 export function useSimulation(): UseSimulationReturn {
   const [running, setRunning] = useState(false);
   const [games, setGames] = useState<SimulationGameEntry[]>([]);
   const [config, setConfig] = useState<GameSetupConfig | null>(null);
+  const [savedSimulationRecord, setSavedSimulationRecord] = useState<SimulationRecord | null>(null);
   const cancelledRef = useRef(false);
 
   const standing: SimulationStanding = {
@@ -69,6 +72,7 @@ export function useSimulation(): UseSimulationReturn {
   const start = useCallback((cfg: GameSetupConfig, count: number) => {
     cancelledRef.current = false;
     setConfig(cfg);
+    setSavedSimulationRecord(null);
     const initialGames: SimulationGameEntry[] = Array.from({ length: count }, (_, i) => ({
       index: i + 1,
       moveCount: 0,
@@ -84,8 +88,9 @@ export function useSimulation(): UseSimulationReturn {
     setRunning(false);
   }, []);
 
-  // Run simulation games one at a time using setTimeout for non-blocking execution.
-  // In connected mode, games are offloaded to the backend Node worker via the API.
+  // Run simulation games.
+  // In connected mode, all games are run as a single batch on the backend.
+  // In static mode, games run locally one at a time.
   useEffect(() => {
     if (!running || !pendingRef.current) return;
     if (runningRef.current) return;
@@ -94,61 +99,89 @@ export function useSimulation(): UseSimulationReturn {
     pendingRef.current = null;
     runningRef.current = true;
 
-    let currentGame = 0;
-
-    const completeGame = (gameIndex: number, record: GameRecord) => {
-      setGames((prev) => {
-        const updated = [...prev];
-        updated[gameIndex] = {
-          index: gameIndex + 1,
-          moveCount: record.moveCount,
-          finished: true,
-          resultLabel: getResultLabel(record.result),
-          record,
-        };
-        return updated;
-      });
-    };
-
-    // runNext is async so it can `await` remote API calls in connected mode.
-    // Sequential execution is guaranteed because the next setTimeout is
-    // only scheduled AFTER the current game (including any await) completes.
-    const runNext = async () => {
-      if (cancelledRef.current || currentGame >= count) {
+    if (isConnectedMode) {
+      // Batch offload to the backend Node worker via the API.
+      // The backend runs all games, saves them, and returns the full result.
+      const runBatch = async () => {
+        try {
+          const simRecord = await runBatchSimulationRemote(simConfig, count);
+          if (cancelledRef.current) {
+            runningRef.current = false;
+            return;
+          }
+          // Populate all game entries from the returned records
+          const finishedGames: SimulationGameEntry[] = simRecord.games.map((record, i) => ({
+            index: i + 1,
+            moveCount: record.moveCount,
+            finished: true,
+            resultLabel: getResultLabel(record.result),
+            record,
+          }));
+          setGames(finishedGames);
+          setSavedSimulationRecord(simRecord);
+        } catch {
+          if (cancelledRef.current) {
+            runningRef.current = false;
+            return;
+          }
+          // Fall back to local simulation if the backend call fails
+          const records: GameRecord[] = [];
+          for (let i = 0; i < count; i++) {
+            if (cancelledRef.current) break;
+            records.push(runSimulatedGame(simConfig));
+          }
+          const finishedGames: SimulationGameEntry[] = records.map((record, i) => ({
+            index: i + 1,
+            moveCount: record.moveCount,
+            finished: true,
+            resultLabel: getResultLabel(record.result),
+            record,
+          }));
+          setGames(finishedGames);
+        }
         runningRef.current = false;
         setRunning(false);
-        return;
-      }
+      };
+      runBatch();
+    } else {
+      // Static mode: run games locally one at a time
+      let currentGame = 0;
 
-      const gameIndex = currentGame;
-      currentGame++;
+      const completeGame = (gameIndex: number, record: GameRecord) => {
+        setGames((prev) => {
+          const updated = [...prev];
+          updated[gameIndex] = {
+            index: gameIndex + 1,
+            moveCount: record.moveCount,
+            finished: true,
+            resultLabel: getResultLabel(record.result),
+            record,
+          };
+          return updated;
+        });
+      };
 
-      if (isConnectedMode) {
-        // Offload to the backend Node worker via the API
-        try {
-          const record = await runSimulatedGameRemote(simConfig);
-          if (cancelledRef.current) return;
-          completeGame(gameIndex, record);
-        } catch {
-          if (cancelledRef.current) return;
-          // Fall back to local simulation if the backend call fails
-          const record = runSimulatedGame(simConfig);
-          completeGame(gameIndex, record);
+      const runNext = () => {
+        if (cancelledRef.current || currentGame >= count) {
+          runningRef.current = false;
+          setRunning(false);
+          return;
         }
-      } else {
-        // Run locally (each game is fast for easy/medium bots)
+
+        const gameIndex = currentGame;
+        currentGame++;
+
         const record = runSimulatedGame(simConfig);
         completeGame(gameIndex, record);
-      }
 
-      // Yield to the browser between games so the UI can render updates.
-      // This is scheduled after the await above, ensuring one game at a time.
+        // Yield to the browser between games via setTimeout chaining
+        // so the UI can render updates between synchronous game runs.
+        setTimeout(runNext, 0);
+      };
+
+      // Kick off the first game on the next microtask
       setTimeout(runNext, 0);
-    };
-
-    // Kick off the first game on the next microtask to allow the React
-    // state update (game list initialisation) to render first.
-    setTimeout(runNext, 0);
+    }
 
     return () => {
       cancelledRef.current = true;
@@ -163,5 +196,6 @@ export function useSimulation(): UseSimulationReturn {
     start,
     stop,
     completedRecords,
+    savedSimulationRecord,
   };
 }
