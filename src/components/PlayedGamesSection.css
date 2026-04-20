@@ -79,6 +79,7 @@
 
 .timeline-bar {
   width: 100%;
+  height: 100%;
   border-radius: 2px;
   overflow: hidden;
   display: flex;
@@ -101,13 +102,9 @@
   background: #f44336;
 }
 
-.timeline-white {
+.timeline-neutral {
   background: #ffffff;
   box-shadow: inset 0 0 0 1px #ccc;
-}
-
-.timeline-black {
-  background: #333333;
 }
 
 /* ── Month/Date Groupings ── */

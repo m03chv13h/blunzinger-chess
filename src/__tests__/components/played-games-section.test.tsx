@@ -105,7 +105,7 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText('Activity (last year)')).toBeInTheDocument();
     });
 
-    it('renders botvbot games by outcome: white win as white segment', () => {
+    it('renders botvbot games as neutral (white) segment regardless of outcome', () => {
       const game = makeGameRecord({
         config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
         result: { winner: 'w', reason: 'checkmate' },
@@ -113,13 +113,14 @@ describe('PlayedGamesSection', () => {
       const { container } = render(
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
-      const whiteSegment = container.querySelector('.timeline-white');
-      expect(whiteSegment).toBeInTheDocument();
-      // No black segment when only white wins
-      expect(container.querySelector('.timeline-black')).not.toBeInTheDocument();
+      const neutralSegment = container.querySelector('.timeline-neutral');
+      expect(neutralSegment).toBeInTheDocument();
+      // No win/loss segments for botvbot
+      expect(container.querySelector('.timeline-win')).not.toBeInTheDocument();
+      expect(container.querySelector('.timeline-loss')).not.toBeInTheDocument();
     });
 
-    it('renders botvbot games by outcome: black win as black segment', () => {
+    it('renders botvbot black win as neutral segment too', () => {
       const game = makeGameRecord({
         config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
         result: { winner: 'b', reason: 'checkmate' },
@@ -127,13 +128,14 @@ describe('PlayedGamesSection', () => {
       const { container } = render(
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
-      const blackSegment = container.querySelector('.timeline-black');
-      expect(blackSegment).toBeInTheDocument();
-      // No white segment when only black wins
-      expect(container.querySelector('.timeline-white')).not.toBeInTheDocument();
+      const neutralSegment = container.querySelector('.timeline-neutral');
+      expect(neutralSegment).toBeInTheDocument();
+      // No win/loss segments for botvbot
+      expect(container.querySelector('.timeline-win')).not.toBeInTheDocument();
+      expect(container.querySelector('.timeline-loss')).not.toBeInTheDocument();
     });
 
-    it('renders hvh games by outcome with proportional segments', () => {
+    it('renders hvh games as neutral (white) segment', () => {
       const whiteWin = makeGameRecord({
         config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
         result: { winner: 'w', reason: 'checkmate' },
@@ -149,16 +151,16 @@ describe('PlayedGamesSection', () => {
       const { container } = render(
         <PlayedGamesSection games={[whiteWin, blackWin, draw]} onAnalyseGame={() => {}} />,
       );
-      // Should have white, black, and draw segments
-      expect(container.querySelector('.timeline-white')).toBeInTheDocument();
-      expect(container.querySelector('.timeline-black')).toBeInTheDocument();
-      expect(container.querySelector('.timeline-draw')).toBeInTheDocument();
+      // All hvh games should be neutral (white)
+      expect(container.querySelector('.timeline-neutral')).toBeInTheDocument();
       // Should NOT have user-perspective win/loss segments
       expect(container.querySelector('.timeline-win')).not.toBeInTheDocument();
       expect(container.querySelector('.timeline-loss')).not.toBeInTheDocument();
+      // No draw segment either since hvh draws are also neutral
+      expect(container.querySelector('.timeline-draw')).not.toBeInTheDocument();
     });
 
-    it('renders hvbot games as win/loss segments (not white)', () => {
+    it('renders hvbot games as win/loss segments (not neutral)', () => {
       const game = makeGameRecord({
         config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
         result: { winner: 'w', reason: 'checkmate' },
@@ -167,7 +169,7 @@ describe('PlayedGamesSection', () => {
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
       expect(container.querySelector('.timeline-win')).toBeInTheDocument();
-      expect(container.querySelector('.timeline-white')).not.toBeInTheDocument();
+      expect(container.querySelector('.timeline-neutral')).not.toBeInTheDocument();
     });
 
     it('clicking a timeline bar scrolls the corresponding date group into view', () => {
