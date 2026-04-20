@@ -39,22 +39,22 @@ describe('getUserOutcome', () => {
   });
 
   describe('hvh mode', () => {
-    it('assumes user is white — returns win when white wins', () => {
+    it('returns null (spectator, no user perspective) when white wins', () => {
       const config = { ...baseConfig, mode: 'hvh' as const };
       const result: GameResult = { winner: 'w', reason: 'checkmate' };
-      expect(getUserOutcome(result, config)).toBe('win');
+      expect(getUserOutcome(result, config)).toBeNull();
     });
 
-    it('assumes user is white — returns loss when black wins', () => {
+    it('returns null (spectator, no user perspective) when black wins', () => {
       const config = { ...baseConfig, mode: 'hvh' as const };
       const result: GameResult = { winner: 'b', reason: 'checkmate' };
-      expect(getUserOutcome(result, config)).toBe('loss');
+      expect(getUserOutcome(result, config)).toBeNull();
     });
 
-    it('returns draw for drawn game', () => {
+    it('returns null (spectator, no user perspective) for drawn game', () => {
       const config = { ...baseConfig, mode: 'hvh' as const };
       const result: GameResult = { winner: 'draw', reason: 'stalemate' };
-      expect(getUserOutcome(result, config)).toBe('draw');
+      expect(getUserOutcome(result, config)).toBeNull();
     });
   });
 
@@ -65,11 +65,10 @@ describe('getUserOutcome', () => {
       expect(getUserOutcome(result, config)).toBeNull();
     });
 
-    it('returns draw (draw is detected before mode check)', () => {
+    it('returns null for drawn game too (spectator mode)', () => {
       const config = { ...baseConfig, mode: 'botvbot' as const };
       const result: GameResult = { winner: 'draw', reason: 'stalemate' };
-      // Draw is detected before mode check
-      expect(getUserOutcome(result, config)).toBe('draw');
+      expect(getUserOutcome(result, config)).toBeNull();
     });
   });
 
@@ -77,7 +76,7 @@ describe('getUserOutcome', () => {
     it('uses playerColor over config inference', () => {
       const config = { ...baseConfig, mode: 'hvh' as const };
       const result: GameResult = { winner: 'b', reason: 'checkmate' };
-      // Without playerColor, hvh assumes white -> this would be loss
+      // Without playerColor, hvh returns null (spectator)
       // With playerColor='b', user is black -> this is a win
       expect(getUserOutcome(result, config, 'b')).toBe('win');
     });

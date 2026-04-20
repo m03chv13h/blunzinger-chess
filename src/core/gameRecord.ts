@@ -103,7 +103,7 @@ export type UserOutcome = 'win' | 'loss' | 'draw';
  * Determine the game outcome from the logged-in user's perspective.
  *
  * - hvbot: user plays opposite of botSide
- * - hvh: user is assumed to be white
+ * - hvh: spectator – returns null (no user perspective)
  * - botvbot: spectator – returns null (no user perspective)
  *
  * An explicit playerColor overrides the config-based inference (used for
@@ -114,10 +114,10 @@ export function getUserOutcome(
   config: GameSetupConfig,
   playerColor?: Color | null,
 ): UserOutcome | null {
-  if (result.winner === 'draw') return 'draw';
+  // botvbot and offline hvh are spectator mode – no user outcome
+  if ((config.mode === 'botvbot' || config.mode === 'hvh') && !playerColor) return null;
 
-  // botvbot is spectator mode – no user outcome
-  if (config.mode === 'botvbot' && !playerColor) return null;
+  if (result.winner === 'draw') return 'draw';
 
   let userColor: Color;
   if (playerColor) {
@@ -125,7 +125,7 @@ export function getUserOutcome(
   } else if (config.mode === 'hvbot') {
     userColor = config.botSide === 'w' ? 'b' : 'w';
   } else {
-    // hvh: assume user is white
+    // Unreachable: hvh/botvbot without playerColor returned null above
     userColor = 'w';
   }
 
