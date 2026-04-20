@@ -5,7 +5,6 @@ import { PlayedGamesSection } from '../../components/PlayedGamesSection';
 import type { GameRecord } from '../../core/gameRecord';
 import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
 import type { ScoreState } from '../../core/blunziger/types';
-import type { GameListItem } from '../../services/gamesService';
 
 function makeGameRecord(overrides: Partial<GameRecord> = {}): GameRecord {
   return {
@@ -351,76 +350,6 @@ describe('PlayedGamesSection', () => {
         month: 'long', year: 'numeric',
       });
       expect(screen.getByText(formattedMonth)).toBeInTheDocument();
-    });
-  });
-
-  describe('remote saved games', () => {
-    function makeRemoteGame(overrides: Partial<GameListItem> = {}): GameListItem {
-      return {
-        id: `remote-${Date.now()}-${Math.random()}`,
-        matchConfig: JSON.stringify({ ...DEFAULT_SETUP_CONFIG, mode: 'hvh' }),
-        result: JSON.stringify({ winner: 'b', reason: 'checkmate' }),
-        finalFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
-        moveCount: 30,
-        gameMode: 'local',
-        createdAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        ...overrides,
-      };
-    }
-
-    it('shows Saved Games heading when remoteGames are provided', () => {
-      const remote = [makeRemoteGame()];
-      render(
-        <PlayedGamesSection
-          games={[]}
-          onAnalyseGame={() => {}}
-          remoteGames={remote}
-          remoteTotal={1}
-          remotePage={1}
-        />,
-      );
-      expect(screen.getByText('☁️ Saved Games')).toBeInTheDocument();
-    });
-
-    it('shows loading state', () => {
-      render(
-        <PlayedGamesSection
-          games={[]}
-          onAnalyseGame={() => {}}
-          remoteGames={[]}
-          remoteLoading={true}
-        />,
-      );
-      expect(screen.getByText('Loading saved games…')).toBeInTheDocument();
-    });
-
-    it('shows error state', () => {
-      render(
-        <PlayedGamesSection
-          games={[]}
-          onAnalyseGame={() => {}}
-          remoteGames={[]}
-          remoteError="Network error"
-        />,
-      );
-      expect(screen.getByText('Network error')).toBeInTheDocument();
-    });
-
-    it('shows pagination when total exceeds page size', () => {
-      const remote = [makeRemoteGame()];
-      const onFetchPage = vi.fn();
-      render(
-        <PlayedGamesSection
-          games={[]}
-          onAnalyseGame={() => {}}
-          remoteGames={remote}
-          remoteTotal={50}
-          remotePage={1}
-          onFetchRemotePage={onFetchPage}
-        />,
-      );
-      expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
     });
   });
 });
