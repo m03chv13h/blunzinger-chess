@@ -65,13 +65,35 @@ export function useAuth(): UseAuth {
     async function init() {
       // 1. Check for ?token=… from OAuth redirect
       const params = new URLSearchParams(window.location.search);
-      const urlToken = params.get('token');
+      let urlToken = params.get('token');
+
+      // Fallback: check hash fragment for token (handles case where returnUrl
+      // contained a hash and the backend appended ?token= after it).
+      if (!urlToken && window.location.hash.includes('token=')) {
+        const hashQuery = window.location.hash.split('?')[1];
+        if (hashQuery) {
+          const hashParams = new URLSearchParams(hashQuery);
+          urlToken = hashParams.get('token');
+        }
+      }
+
       if (urlToken) {
         setToken(urlToken);
         // Clean the URL so the token doesn't linger.
         const url = new URL(window.location.href);
         url.searchParams.delete('token');
-        window.history.replaceState({}, '', url.pathname + url.search);
+        // Preserve the hash path but remove any token from it.
+        let cleanHash = url.hash;
+        if (cleanHash.includes('token=')) {
+          const [hashPath, hashQuery] = cleanHash.split('?');
+          if (hashQuery) {
+            const hashParams = new URLSearchParams(hashQuery);
+            hashParams.delete('token');
+            const remaining = hashParams.toString();
+            cleanHash = remaining ? `${hashPath}?${remaining}` : hashPath;
+          }
+        }
+        window.history.replaceState({}, '', url.pathname + url.search + cleanHash);
       }
 
       // 2. If we have a token, fetch profile.
@@ -124,7 +146,12 @@ export function useAuth(): UseAuth {
   }, []);
 
   const loginWithProvider = useCallback((provider: OAuthProvider, returnUrl?: string) => {
-    window.location.href = getOAuthLoginUrl(provider, returnUrl ?? window.location.href);
+    // Strip hash fragment from the return URL — hash-based routing fragments
+    // would cause the backend to append ?token= after the #, placing the token
+    // inside the fragment where window.location.search can't find it.
+    const effectiveUrl = returnUrl ?? window.location.href;
+    const urlWithoutHash = effectiveUrl.split('#')[0] || effectiveUrl;
+    window.location.href = getOAuthLoginUrl(provider, urlWithoutHash);
   }, []);
 
   const logout = useCallback(() => {
