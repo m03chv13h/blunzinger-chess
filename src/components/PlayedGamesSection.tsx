@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig, GameResult } from '../core/blunziger/types';
 import type { GameListItem } from '../services/gamesService';
@@ -130,7 +130,7 @@ function buildTimeline(games: GameRecord[]): TimelineDay[] {
   return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function GameTimeline({ games }: { games: GameRecord[] }) {
+function GameTimeline({ games, onBarClick }: { games: GameRecord[]; onBarClick?: (date: string) => void }) {
   const timeline = buildTimeline(games);
 
   if (timeline.length === 0) {
@@ -163,6 +163,7 @@ function GameTimeline({ games }: { games: GameRecord[] }) {
               key={day.date}
               className="timeline-bar-wrapper"
               title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L${day.white ? ` ${day.white}⚪` : ''}`}
+              onClick={() => onBarClick?.(day.date)}
             >
               <div className="timeline-bar" style={{ height: `${height}%` }}>
                 {whitePct > 0 && (
@@ -283,6 +284,8 @@ export function PlayedGamesSection({
   onFetchRemotePage,
   onSelectRemoteGame,
 }: PlayedGamesSectionProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Sort games by completedAt descending (most recent first)
   const sortedGames = [...games].sort((a, b) => b.completedAt - a.completedAt);
 
@@ -293,13 +296,20 @@ export function PlayedGamesSection({
   const monthGroups = groupDatesByMonth(dateKeys);
   const monthKeys = Array.from(monthGroups.keys()).sort((a, b) => b.localeCompare(a));
 
+  function handleTimelineBarClick(date: string) {
+    const target = containerRef.current?.querySelector(`[data-date="${date}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   return (
-    <div className="played-games-section">
+    <div className="played-games-section" ref={containerRef}>
       <div className="played-games-card">
         <h2>🎮 Played Games</h2>
 
         {/* Timeline – always visible */}
-        <GameTimeline games={sortedGames} />
+        <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />
 
         {/* Empty message when no games */}
         {sortedGames.length === 0 && !hasRemoteGames && !remoteLoading && !remoteError && (
@@ -314,7 +324,7 @@ export function PlayedGamesSection({
           <div key={monthKey} className="games-month-group">
             <h3 className="games-month-heading">{formatMonth(monthKey)}</h3>
             {(monthGroups.get(monthKey) ?? []).map((dateKey) => (
-              <div key={dateKey} className="games-date-group">
+              <div key={dateKey} className="games-date-group" data-date={dateKey}>
                 <h4 className="games-date-heading">{formatDate(dateKey)}</h4>
                 <div className="games-list">
                   {(dateGroups.get(dateKey) ?? []).map((game) => (

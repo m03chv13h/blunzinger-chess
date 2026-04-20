@@ -146,6 +146,50 @@ describe('PlayedGamesSection', () => {
       expect(container.querySelector('.timeline-win')).toBeInTheDocument();
       expect(container.querySelector('.timeline-white')).not.toBeInTheDocument();
     });
+
+    it('clicking a timeline bar scrolls the corresponding date group into view', () => {
+      const today = new Date();
+      const todayKey = today.toISOString().split('T')[0];
+      const game = makeGameRecord({ completedAt: today.getTime() });
+
+      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+      try {
+        const { container } = render(
+          <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+        );
+
+        // Click the timeline bar
+        const bar = container.querySelector('.timeline-bar-wrapper');
+        expect(bar).not.toBeNull();
+        fireEvent.click(bar!);
+
+        // Should have called scrollIntoView on the date group
+        expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+
+        // Verify data-date attribute exists on the date group
+        const dateGroup = container.querySelector(`[data-date="${todayKey}"]`);
+        expect(dateGroup).toBeInTheDocument();
+      } finally {
+        Element.prototype.scrollIntoView = originalScrollIntoView;
+      }
+    });
+
+    it('date groups have data-date attributes for scroll targeting', () => {
+      const today = new Date();
+      const todayKey = today.toISOString().split('T')[0];
+      const game = makeGameRecord({ completedAt: today.getTime() });
+
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+
+      const dateGroup = container.querySelector(`[data-date="${todayKey}"]`);
+      expect(dateGroup).toBeInTheDocument();
+      expect(dateGroup?.classList.contains('games-date-group')).toBe(true);
+    });
   });
 
   describe('expandable details', () => {
