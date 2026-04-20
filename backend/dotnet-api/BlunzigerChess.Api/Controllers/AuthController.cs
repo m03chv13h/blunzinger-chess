@@ -72,9 +72,22 @@ public class AuthController(AuthService authService, EnabledOAuthProviders enabl
         var token = authService.GenerateJwtToken(user);
         var returnUrl = result.Properties?.Items["returnUrl"] ?? "/";
 
-        // Redirect to frontend with token
-        var separator = returnUrl.Contains('?') ? "&" : "?";
-        return Redirect($"{returnUrl}{separator}token={token}");
+        // Redirect to frontend with token — insert before any hash fragment
+        // so the token ends up in the query string, not the fragment.
+        var hashIndex = returnUrl.IndexOf('#');
+        string baseUrl, fragment;
+        if (hashIndex >= 0)
+        {
+            baseUrl = returnUrl[..hashIndex];
+            fragment = returnUrl[hashIndex..];
+        }
+        else
+        {
+            baseUrl = returnUrl;
+            fragment = "";
+        }
+        var separator = baseUrl.Contains('?') ? "&" : "?";
+        return Redirect($"{baseUrl}{separator}token={token}{fragment}");
     }
 
     /// <summary>Get a guest JWT for anonymous play.</summary>
