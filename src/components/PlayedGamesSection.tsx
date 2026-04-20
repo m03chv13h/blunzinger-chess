@@ -122,7 +122,16 @@ function buildTimeline(games: GameRecord[]): TimelineDay[] {
 function GameTimeline({ games }: { games: GameRecord[] }) {
   const timeline = buildTimeline(games);
 
-  if (timeline.length === 0) return null;
+  if (timeline.length === 0) {
+    return (
+      <div className="games-timeline">
+        <h3 className="games-timeline-title">Activity (last year)</h3>
+        <div className="games-timeline-chart games-timeline-empty">
+          <span className="games-timeline-empty-text">No activity yet</span>
+        </div>
+      </div>
+    );
+  }
 
   const maxGames = Math.max(...timeline.map((d) => d.wins + d.draws + d.losses), 1);
 
@@ -254,21 +263,6 @@ export function PlayedGamesSection({
   const sortedGames = [...games].sort((a, b) => b.completedAt - a.completedAt);
 
   const hasRemoteGames = (remoteGames?.length ?? 0) > 0;
-  const isEmpty = games.length === 0 && !hasRemoteGames && !remoteLoading && !remoteError;
-
-  if (isEmpty) {
-    return (
-      <div className="played-games-section">
-        <div className="played-games-card">
-          <h2>🎮 Played Games</h2>
-          <p className="played-games-empty">
-            No games played yet. Start a game from <strong>Quick Start</strong> or{' '}
-            <strong>New Game</strong> and complete it to see it here.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const dateGroups = groupByDate(sortedGames);
   const dateKeys = Array.from(dateGroups.keys()).sort((a, b) => b.localeCompare(a));
@@ -280,8 +274,16 @@ export function PlayedGamesSection({
       <div className="played-games-card">
         <h2>🎮 Played Games</h2>
 
-        {/* Timeline */}
-        {sortedGames.length > 0 && <GameTimeline games={sortedGames} />}
+        {/* Timeline – always visible */}
+        <GameTimeline games={sortedGames} />
+
+        {/* Empty message when no games */}
+        {sortedGames.length === 0 && !hasRemoteGames && !remoteLoading && !remoteError && (
+          <p className="played-games-empty">
+            No games played yet. Start a game from <strong>Quick Start</strong> or{' '}
+            <strong>New Game</strong> and complete it to see it here.
+          </p>
+        )}
 
         {/* Games grouped by month and date */}
         {monthKeys.map((monthKey) => (
