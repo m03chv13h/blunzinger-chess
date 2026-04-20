@@ -127,10 +127,9 @@ describe('OAuth redirect token detection', () => {
       writable: true,
     });
 
-    // Mock window.location.href setter to capture the redirect URL.
-    let redirectedTo = '';
+    // Mock window.location.href setter to allow assignment without error.
     Object.defineProperty(window.location, 'href', {
-      set: (val: string) => { redirectedTo = val; },
+      set: (_val: string) => {},
       get: () => 'http://app.example.com/#/quick-start',
     });
 
