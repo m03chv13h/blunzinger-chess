@@ -41,6 +41,14 @@ describe('PlayedGamesSection', () => {
       );
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
     });
+
+    it('always shows the timeline even with no games', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText('Activity (last year)')).toBeInTheDocument();
+      expect(screen.getByText('No activity yet')).toBeInTheDocument();
+    });
   });
 
   describe('with games', () => {
