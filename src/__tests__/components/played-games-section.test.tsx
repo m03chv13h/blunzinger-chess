@@ -57,7 +57,9 @@ describe('PlayedGamesSection', () => {
       render(
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
-      expect(screen.getByText('Black wins')).toBeInTheDocument();
+      // User outcome (hvh mode assumes user is white, so black winning = loss)
+      expect(screen.getByText('Defeat')).toBeInTheDocument();
+      expect(screen.getByText(/Black wins/)).toBeInTheDocument();
       expect(screen.getByText(/checkmate/)).toBeInTheDocument();
     });
 
@@ -133,6 +135,69 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText('▴ Less')).toBeInTheDocument();
       fireEvent.click(screen.getByText('▴ Less'));
       expect(screen.queryByText('Mode:')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('user outcome visibility', () => {
+    it('shows Victory with win class for hvbot game won by user', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText('Victory')).toBeInTheDocument();
+      expect(container.querySelector('.game-card--win')).toBeInTheDocument();
+    });
+
+    it('shows Defeat with loss class for hvbot game lost by user', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText('Defeat')).toBeInTheDocument();
+      expect(container.querySelector('.game-card--loss')).toBeInTheDocument();
+    });
+
+    it('shows Draw with draw class for drawn game', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'draw', reason: 'stalemate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText('Draw')).toBeInTheDocument();
+      expect(container.querySelector('.game-card--draw')).toBeInTheDocument();
+    });
+
+    it('shows Victory when user plays black and wins (botSide=w)', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'w' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText('Victory')).toBeInTheDocument();
+    });
+
+    it('shows no outcome class for botvbot (spectator mode)', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(container.querySelector('.game-card--win')).not.toBeInTheDocument();
+      expect(container.querySelector('.game-card--loss')).not.toBeInTheDocument();
+      // Should show standard result label instead
+      expect(screen.getByText('White wins')).toBeInTheDocument();
     });
   });
 

@@ -140,10 +140,39 @@
   border-radius: 8px;
   overflow: hidden;
   transition: border-color 0.15s;
+  border-left: 4px solid transparent;
+}
+
+.game-card--win {
+  border-left-color: #4caf50;
+  background: #f6fdf6;
+}
+
+.game-card--loss {
+  border-left-color: #f44336;
+  background: #fef6f6;
+}
+
+.game-card--draw {
+  border-left-color: #ffc107;
+  background: #fffdf6;
 }
 
 .game-card:hover {
   border-color: #5b8def;
+  border-left-color: #5b8def;
+}
+
+.game-card--win:hover {
+  border-left-color: #4caf50;
+}
+
+.game-card--loss:hover {
+  border-left-color: #f44336;
+}
+
+.game-card--draw:hover {
+  border-left-color: #ffc107;
 }
 
 .game-card-main {
@@ -162,6 +191,28 @@
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 2px;
+}
+
+.game-card-result.result-win {
+  color: #2e7d32;
+}
+
+.game-card-result.result-loss {
+  color: #c62828;
+}
+
+.game-card-result.result-draw {
+  color: #f57f17;
+}
+
+.game-card-outcome-badge {
+  font-weight: 700;
+}
+
+.game-card-result-detail {
+  font-weight: 400;
+  font-size: 12px;
+  color: #666;
 }
 
 .game-card-reason {

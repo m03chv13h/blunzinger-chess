@@ -615,7 +615,8 @@ describe('App game flow', () => {
     it('shows played game in games section after completing a game', () => {
       completeGameAndGoToGames();
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
-      expect(screen.getByText('Black wins')).toBeInTheDocument();
+      expect(screen.getByText('Defeat')).toBeInTheDocument();
+      expect(screen.getByText(/Black wins/)).toBeInTheDocument();
     });
 
     it('shows board with Back to Games button when reviewing from games', () => {
