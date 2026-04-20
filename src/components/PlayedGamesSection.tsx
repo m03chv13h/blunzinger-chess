@@ -171,7 +171,7 @@ function GameTimeline({ games, onBarClick }: { games: GameRecord[]; onBarClick?:
             <div
               key={day.date}
               className="timeline-bar-wrapper"
-              title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L${day.white || day.black ? ` ${day.white}⚪ ${day.black}⚫` : ''}`}
+              title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L${day.white > 0 || day.black > 0 ? ` ${day.white}⚪ ${day.black}⚫` : ''}`}
               onClick={() => onBarClick?.(day.date)}
             >
               <div className="timeline-bar" style={{ height: `${height}%` }}>
