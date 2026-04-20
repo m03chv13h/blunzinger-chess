@@ -57,9 +57,8 @@ describe('PlayedGamesSection', () => {
       render(
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
-      // User outcome (hvh mode assumes user is white, so black winning = loss)
-      expect(screen.getByText('Defeat')).toBeInTheDocument();
-      expect(screen.getByText(/Black wins/)).toBeInTheDocument();
+      // hvh mode has no user perspective – shows factual result only
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
       expect(screen.getByText(/checkmate/)).toBeInTheDocument();
     });
 
@@ -308,6 +307,20 @@ describe('PlayedGamesSection', () => {
       expect(container.querySelector('.game-card--win')).not.toBeInTheDocument();
       expect(container.querySelector('.game-card--loss')).not.toBeInTheDocument();
       // Should show standard result label instead
+      expect(screen.getByText('White wins')).toBeInTheDocument();
+    });
+
+    it('shows no outcome class for hvh (spectator mode)', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(container.querySelector('.game-card--win')).not.toBeInTheDocument();
+      expect(container.querySelector('.game-card--loss')).not.toBeInTheDocument();
+      // Should show standard result label instead of Victory/Defeat
       expect(screen.getByText('White wins')).toBeInTheDocument();
     });
   });

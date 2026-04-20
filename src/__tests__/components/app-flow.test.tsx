@@ -615,8 +615,7 @@ describe('App game flow', () => {
     it('shows played game in games section after completing a game', () => {
       completeGameAndGoToGames();
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
-      expect(screen.getByText('Defeat')).toBeInTheDocument();
-      expect(screen.getByText(/Black wins/)).toBeInTheDocument();
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
     });
 
     it('shows board with Back to Games button when reviewing from games', () => {
@@ -692,9 +691,9 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByRole('button', { name: /Games/i }));
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
 
-      // Both games should be displayed (two "Defeat" cards)
-      const defeatCards = screen.getAllByText('Defeat');
-      expect(defeatCards.length).toBe(2);
+      // Both games should be displayed (two "Black wins" cards – hvh has no user perspective)
+      const resultCards = screen.getAllByText('Black wins');
+      expect(resultCards.length).toBe(2);
     });
   });
 });
