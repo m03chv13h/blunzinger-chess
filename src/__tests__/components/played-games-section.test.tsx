@@ -104,6 +104,48 @@ describe('PlayedGamesSection', () => {
       );
       expect(screen.getByText('Activity (last year)')).toBeInTheDocument();
     });
+
+    it('renders botvbot games as white segment at top of timeline bar', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      const whiteSegment = container.querySelector('.timeline-white');
+      expect(whiteSegment).toBeInTheDocument();
+      // White segment should be at the top (last child of timeline-bar)
+      const bar = container.querySelector('.timeline-bar');
+      expect(bar?.lastElementChild).toBe(whiteSegment);
+    });
+
+    it('renders hvh games as white segment at top of timeline bar', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      const whiteSegment = container.querySelector('.timeline-white');
+      expect(whiteSegment).toBeInTheDocument();
+      // Should NOT have win/loss segments for hvh games
+      expect(container.querySelector('.timeline-win')).not.toBeInTheDocument();
+      expect(container.querySelector('.timeline-loss')).not.toBeInTheDocument();
+    });
+
+    it('renders hvbot games as win/loss segments (not white)', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(container.querySelector('.timeline-win')).toBeInTheDocument();
+      expect(container.querySelector('.timeline-white')).not.toBeInTheDocument();
+    });
   });
 
   describe('expandable details', () => {

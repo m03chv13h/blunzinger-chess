@@ -93,6 +93,8 @@ interface TimelineDay {
   wins: number;
   draws: number;
   losses: number;
+  /** Games with no user perspective (botvbot, hvh) – shown as white at the top. */
+  white: number;
 }
 
 /** Build timeline data for the last year. */
@@ -108,12 +110,20 @@ function buildTimeline(games: GameRecord[]): TimelineDay[] {
     const dateKey = new Date(game.completedAt).toISOString().split('T')[0];
     let day = dayMap.get(dateKey);
     if (!day) {
-      day = { date: dateKey, wins: 0, draws: 0, losses: 0 };
+      day = { date: dateKey, wins: 0, draws: 0, losses: 0, white: 0 };
       dayMap.set(dateKey, day);
     }
-    if (game.result.winner === 'draw') day.draws++;
-    else if (game.result.winner === 'w') day.wins++;
-    else day.losses++;
+
+    // Bot vs bot and offline human vs human have no user perspective – count as white
+    if (game.config.mode === 'botvbot' || game.config.mode === 'hvh') {
+      day.white++;
+    } else if (game.result.winner === 'draw') {
+      day.draws++;
+    } else if (game.result.winner === 'w') {
+      day.wins++;
+    } else {
+      day.losses++;
+    }
   }
 
   // Sort by date
@@ -134,24 +144,25 @@ function GameTimeline({ games }: { games: GameRecord[] }) {
     );
   }
 
-  const maxGames = Math.max(...timeline.map((d) => d.wins + d.draws + d.losses), 1);
+  const maxGames = Math.max(...timeline.map((d) => d.wins + d.draws + d.losses + d.white), 1);
 
   return (
     <div className="games-timeline">
       <h3 className="games-timeline-title">Activity (last year)</h3>
       <div className="games-timeline-chart">
         {timeline.map((day) => {
-          const total = day.wins + day.draws + day.losses;
+          const total = day.wins + day.draws + day.losses + day.white;
           const height = Math.max((total / maxGames) * 100, 8);
           const winPct = (day.wins / total) * 100;
           const drawPct = (day.draws / total) * 100;
           const lossPct = (day.losses / total) * 100;
+          const whitePct = (day.white / total) * 100;
 
           return (
             <div
               key={day.date}
               className="timeline-bar-wrapper"
-              title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L`}
+              title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L${day.white ? ` ${day.white}⚪` : ''}`}
             >
               <div className="timeline-bar" style={{ height: `${height}%` }}>
                 {lossPct > 0 && (
@@ -162,6 +173,9 @@ function GameTimeline({ games }: { games: GameRecord[] }) {
                 )}
                 {winPct > 0 && (
                   <div className="timeline-segment timeline-win" style={{ height: `${winPct}%` }} />
+                )}
+                {whitePct > 0 && (
+                  <div className="timeline-segment timeline-white" style={{ height: `${whitePct}%` }} />
                 )}
               </div>
             </div>
