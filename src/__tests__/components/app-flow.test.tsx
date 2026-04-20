@@ -605,72 +605,71 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByRole('gridcell', { name: 'h4' }));
     }
 
-    function completeGameAndGoToAnalyse() {
+    function completeGameAndGoToGames() {
       fireEvent.click(screen.getByText('▶ Start Game'));
       playFoolsMate();
-      // Navigate to Analyse — this flushes the completed game into history
-      fireEvent.click(screen.getByRole('button', { name: /Analyse/i }));
+      // Navigate to Games — this flushes the completed game into history
+      fireEvent.click(screen.getByRole('button', { name: /Games/i }));
     }
 
-    it('shows played game in analyse section after completing a game', () => {
-      completeGameAndGoToAnalyse();
+    it('shows played game in games section after completing a game', () => {
+      completeGameAndGoToGames();
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
       expect(screen.getByText('Black wins')).toBeInTheDocument();
     });
 
-    it('shows board with Back to Analyse button when reviewing from analyse', () => {
-      completeGameAndGoToAnalyse();
-      // Click the played game to review it
-      fireEvent.click(screen.getByText('Black wins'));
-      // Should show the board in analyse-review mode
+    it('shows board with Back to Games button when reviewing from games', () => {
+      completeGameAndGoToGames();
+      // Click the Analyse button on the played game to review it
+      fireEvent.click(screen.getByText('📊 Analyse'));
+      // Should show the board in games-review mode
       expect(screen.getByRole('grid', { name: 'Chess board' })).toBeInTheDocument();
-      expect(screen.getByText('← Back to Analyse')).toBeInTheDocument();
+      expect(screen.getByText('← Back to Games')).toBeInTheDocument();
     });
 
-    it('highlights Analyse in sidebar during analyse-review', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
-      // The Analyse sidebar button should have the active class
+    it('highlights Games in sidebar during games-review', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
+      // The Games sidebar button should have the active class
       const nav = screen.getByRole('navigation');
-      const analyseBtn = within(nav).getByRole('button', { name: /Analyse/i });
-      expect(analyseBtn.className).toContain('sidebar-item--active');
+      const gamesBtn = within(nav).getByRole('button', { name: /Games/i });
+      expect(gamesBtn.className).toContain('sidebar-item--active');
     });
 
-    it('does not show game controls in analyse-review mode', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
+    it('does not show game controls in games-review mode', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
       // Game controls like New Game, Restart should not be shown
       expect(screen.queryByText('🔄 New Game')).not.toBeInTheDocument();
       expect(screen.queryByText('🔁 Restart')).not.toBeInTheDocument();
     });
 
-    it('does not show panel collapse toggle in analyse-review mode', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
+    it('does not show panel collapse toggle in games-review mode', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
       expect(screen.queryByText(/Show details/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Hide details/)).not.toBeInTheDocument();
     });
 
-    it('shows game summary and rules panel in analyse-review', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
+    it('shows game summary and rules panel in games-review', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
       expect(screen.getByText('Game Settings')).toBeInTheDocument();
     });
 
-    it('returns to analyse list when Back to Analyse is clicked', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
-      expect(screen.getByText('← Back to Analyse')).toBeInTheDocument();
+    it('returns to games list when Back to Games is clicked', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
+      expect(screen.getByText('← Back to Games')).toBeInTheDocument();
       // Click back
-      fireEvent.click(screen.getByText('← Back to Analyse'));
-      // Should be back in the analyse section
-      expect(screen.getByText('📊 Analyse')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('← Back to Games'));
+      // Should be back in the games section
       expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
     });
 
     it('shows review controls with move navigation', () => {
-      completeGameAndGoToAnalyse();
-      fireEvent.click(screen.getByText('Black wins'));
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
       // Review controls should be visible (the game is in review mode)
       expect(screen.getByText('📖 Review Mode')).toBeInTheDocument();
     });

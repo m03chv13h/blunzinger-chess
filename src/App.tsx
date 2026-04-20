@@ -21,6 +21,7 @@ import { NewGameSetupScreen } from './components/NewGameSetupScreen';
 import { RulesPanel } from './components/RulesPanel';
 import { RulesPage } from './components/RulesPage';
 import { AnalyseSection } from './components/AnalyseSection';
+import { PlayedGamesSection } from './components/PlayedGamesSection';
 import { SimulationSetupScreen } from './components/SimulationSetupScreen';
 import { SimulationView } from './components/SimulationView';
 import { EvaluationBar } from './components/EvaluationBar';
@@ -49,6 +50,8 @@ type AppScreen =
   | { type: 'online' }
   | { type: 'online-lobby'; config: GameSetupConfig }
   | { type: 'online-playing'; config: GameSetupConfig; roomCode: string; playerColor: Color; opponentName: string }
+  | { type: 'games' }
+  | { type: 'games-review'; config: GameSetupConfig }
   | { type: 'analyse' }
   | { type: 'analyse-review'; config: GameSetupConfig }
   | { type: 'simulate' }
@@ -339,10 +342,14 @@ function App() {
       flushSimulationRecords();
     }
     const isFromAnalyse = screen.type === 'analyse';
+    const isFromGames = screen.type === 'games';
     setLastConfig(record.config);
-    setScreen(isFromAnalyse
-      ? { type: 'analyse-review', config: record.config }
-      : { type: 'playing', config: record.config }
+    setScreen(
+      isFromAnalyse
+        ? { type: 'analyse-review', config: record.config }
+        : isFromGames
+          ? { type: 'games-review', config: record.config }
+          : { type: 'playing', config: record.config }
     );
     game.loadGameForReview(record);
     reviewLoadedRef.current = true;
@@ -371,6 +378,7 @@ function App() {
     : screen.type === 'online-lobby' ? 'online'
     : screen.type === 'simulation-running' ? 'simulate'
     : screen.type === 'analyse-review' ? 'analyse'
+    : screen.type === 'games-review' ? 'games'
     : screen.type === 'welcome' ? 'quick-start'
     : screen.type;
 
@@ -388,6 +396,10 @@ function App() {
     setScreen({ type: 'analyse' });
   }, []);
 
+  const handleBackToGames = useCallback(() => {
+    setScreen({ type: 'games' });
+  }, []);
+
   const handleLogout = useCallback(() => {
     flushPendingRecord();
     if (screen.type === 'simulation-running') {
@@ -403,11 +415,11 @@ function App() {
     setScreen({ type: 'quick-start' });
   };
 
-  const analyseCount = gameHistory.length + simulationHistory.length + remoteGameCount;
+  const gamesCount = gameHistory.length + remoteGameCount;
 
-  // Fetch remote games when navigating to the Analyse tab (connected mode).
+  // Fetch remote games when navigating to the Games or Analyse tab (connected mode).
   useEffect(() => {
-    if (screen.type === 'analyse' && isConnectedMode) {
+    if ((screen.type === 'games' || screen.type === 'analyse') && isConnectedMode) {
       fetchRemotePage(1);
     }
   }, [screen.type, fetchRemotePage]);
@@ -441,14 +453,14 @@ function App() {
   }
 
   // Render setup screens (non-playing)
-  if (screen.type !== 'playing' && screen.type !== 'online-playing' && screen.type !== 'analyse-review') {
+  if (screen.type !== 'playing' && screen.type !== 'online-playing' && screen.type !== 'analyse-review' && screen.type !== 'games-review') {
     return (
       <DeployModeProvider>
         <div className="app-layout">
           <Sidebar
             activeSection={activeSection}
             onNavigate={handleNavigate}
-            gameCount={analyseCount}
+            gameCount={gamesCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
@@ -467,10 +479,16 @@ function App() {
             )}
             {screen.type === 'analyse' && (
               <AnalyseSection
-                games={gameHistory}
+                games={[]}
                 simulations={simulationHistory}
                 onSelectGame={handleSelectGameForReview}
                 onStartAnalysis={handleStartGame}
+              />
+            )}
+            {screen.type === 'games' && (
+              <PlayedGamesSection
+                games={gameHistory}
+                onAnalyseGame={handleSelectGameForReview}
                 remoteGames={isConnectedMode ? gameHistoryBackend.remoteGames : undefined}
                 remoteTotal={isConnectedMode ? gameHistoryBackend.remoteTotal : undefined}
                 remotePage={isConnectedMode ? gameHistoryBackend.page : undefined}
@@ -528,7 +546,7 @@ function App() {
           <Sidebar
             activeSection={activeSection}
             onNavigate={handleNavigate}
-            gameCount={analyseCount}
+            gameCount={gamesCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
@@ -559,7 +577,7 @@ function App() {
         <Sidebar
           activeSection={activeSection}
           onNavigate={handleNavigate}
-          gameCount={analyseCount}
+          gameCount={gamesCount}
           isConnected={isConnectedMode}
           userName={userProfile.profile?.displayName ?? auth.user?.displayName}
           userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
@@ -576,7 +594,15 @@ function App() {
                 ← Back to Analyse
               </button>
             )}
-            {screen.type !== 'analyse-review' && !gameIsOver && !review.isReviewing && (
+            {screen.type === 'games-review' && (
+              <button
+                className="analyse-back-btn"
+                onClick={handleBackToGames}
+              >
+                ← Back to Games
+              </button>
+            )}
+            {screen.type !== 'analyse-review' && screen.type !== 'games-review' && !gameIsOver && !review.isReviewing && (
               <button
                 className="panel-collapse-toggle"
                 onClick={() => setLeftPanelExpanded(e => !e)}
@@ -587,7 +613,7 @@ function App() {
             {showDetails && (
               <>
                 <GameSummaryPanel config={screen.config} />
-                {screen.type !== 'analyse-review' && (
+                {screen.type !== 'analyse-review' && screen.type !== 'games-review' && (
                   <GameControls
                     onNewGame={handleNewGame}
                     onRestart={handleRestartGame}
@@ -601,7 +627,7 @@ function App() {
                   />
                 )}
                 <RulesPanel variantMode={screen.config.variantMode} gameType={screen.config.gameType} />
-                {screen.type !== 'analyse-review' && (
+                {screen.type !== 'analyse-review' && screen.type !== 'games-review' && (
                   <ReportIssue config={screen.config} fen={displayFen} moveHistory={game.state.moveHistory} />
                 )}
               </>
