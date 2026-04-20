@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig, GameResult } from '../core/blunziger/types';
 import type { GameListItem } from '../services/gamesService';
-import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel } from '../core/gameRecord';
+import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel, getUserOutcome, getUserResultLabel } from '../core/gameRecord';
+import type { UserOutcome } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
 import './PlayedGamesSection.css';
 
@@ -179,14 +180,23 @@ function GameCard({
   onAnalyse: (game: GameRecord) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const outcome = getUserOutcome(game.result, game.config);
+  const outcomeClass = outcome ? `game-card--${outcome}` : '';
 
   return (
-    <div className="game-card">
+    <div className={`game-card ${outcomeClass}`}>
       <div className="game-card-main">
         <MiniBoard fen={game.finalFen} />
         <div className="game-card-info">
-          <div className={`game-card-result ${game.result.winner === 'draw' ? 'result-draw' : game.result.winner === 'w' ? 'result-white' : 'result-black'}`}>
-            {getResultLabel(game.result)}
+          <div className={`game-card-result ${outcome ? `result-${outcome}` : ''}`}>
+            {outcome ? (
+              <>
+                <span className="game-card-outcome-badge">{getUserResultLabel(outcome)}</span>
+                <span className="game-card-result-detail"> ({getResultLabel(game.result)})</span>
+              </>
+            ) : (
+              getResultLabel(game.result)
+            )}
             <span className="game-card-reason"> — {game.result.reason.replace(/_/g, ' ')}</span>
           </div>
           <div className="game-card-meta">
@@ -320,14 +330,23 @@ export function PlayedGamesSection({
                 {(remoteGames ?? []).map((item) => {
                   const config = parseRemoteConfig(item.matchConfig);
                   const result = parseRemoteResult(item.result);
+                  const outcome: UserOutcome | null = result && config ? getUserOutcome(result, config) : null;
+                  const outcomeClass = outcome ? `game-card--${outcome}` : '';
                   return (
-                    <div key={item.id} className="game-card">
+                    <div key={item.id} className={`game-card ${outcomeClass}`}>
                       <div className="game-card-main">
                         {item.finalFen && <MiniBoard fen={item.finalFen} />}
                         <div className="game-card-info">
                           {result && (
-                            <div className={`game-card-result ${result.winner === 'draw' ? 'result-draw' : result.winner === 'w' ? 'result-white' : 'result-black'}`}>
-                              {getResultLabel(result)}
+                            <div className={`game-card-result ${outcome ? `result-${outcome}` : ''}`}>
+                              {outcome ? (
+                                <>
+                                  <span className="game-card-outcome-badge">{getUserResultLabel(outcome)}</span>
+                                  <span className="game-card-result-detail"> ({getResultLabel(result)})</span>
+                                </>
+                              ) : (
+                                getResultLabel(result)
+                              )}
                               <span className="game-card-reason"> — {result.reason.replace(/_/g, ' ')}</span>
                             </div>
                           )}

@@ -1,4 +1,4 @@
-import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, ScoreState, GameMode, VariantMode, GameType } from '../core/blunziger/types';
+import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, ScoreState, GameMode, VariantMode, GameType, Color } from '../core/blunziger/types';
 
 /** A completed game record stored for analysis. */
 export interface GameRecord {
@@ -95,6 +95,50 @@ export function getGameTypeLabel(gameType: GameType): string {
 export function getResultLabel(result: GameResult): string {
   if (result.winner === 'draw') return 'Draw';
   return `${result.winner === 'w' ? 'White' : 'Black'} wins`;
+}
+
+export type UserOutcome = 'win' | 'loss' | 'draw';
+
+/**
+ * Determine the game outcome from the logged-in user's perspective.
+ *
+ * - hvbot: user plays opposite of botSide
+ * - hvh: user is assumed to be white
+ * - botvbot: spectator – returns null (no user perspective)
+ *
+ * An explicit playerColor overrides the config-based inference (used for
+ * online multiplayer games).
+ */
+export function getUserOutcome(
+  result: GameResult,
+  config: GameSetupConfig,
+  playerColor?: Color | null,
+): UserOutcome | null {
+  if (result.winner === 'draw') return 'draw';
+
+  // botvbot is spectator mode – no user outcome
+  if (config.mode === 'botvbot' && !playerColor) return null;
+
+  let userColor: Color;
+  if (playerColor) {
+    userColor = playerColor;
+  } else if (config.mode === 'hvbot') {
+    userColor = config.botSide === 'w' ? 'b' : 'w';
+  } else {
+    // hvh: assume user is white
+    userColor = 'w';
+  }
+
+  return result.winner === userColor ? 'win' : 'loss';
+}
+
+/** Get a user-perspective result label (Victory / Defeat / Draw). */
+export function getUserResultLabel(outcome: UserOutcome): string {
+  switch (outcome) {
+    case 'win': return 'Victory';
+    case 'loss': return 'Defeat';
+    case 'draw': return 'Draw';
+  }
 }
 
 /** A group of simulated games stored together for analysis. */
