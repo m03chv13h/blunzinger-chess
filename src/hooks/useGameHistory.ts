@@ -9,7 +9,7 @@
 import { useState, useCallback } from 'react';
 import { isConnectedMode } from '../config/deployMode';
 import type { SaveGameRequest, GameListItem, GameDetail, PaginatedGames } from '../services/gamesService';
-import { saveGame, listGames, getGame, deleteGame } from '../services/gamesService';
+import { saveGame, listGames, getGame } from '../services/gamesService';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Move } from '../core/blunziger/types';
 
@@ -55,8 +55,6 @@ export interface UseGameHistory {
   fetchPage: (page?: number, pageSize?: number) => Promise<void>;
   /** Fetch a single remote game and convert it for review. */
   fetchGameForReview: (id: string) => Promise<GameRecord | null>;
-  /** Delete a remote game. */
-  removeGame: (id: string) => Promise<void>;
 }
 
 export function useGameHistory(): UseGameHistory {
@@ -118,21 +116,6 @@ export function useGameHistory(): UseGameHistory {
     }
   }, []);
 
-  const removeGame = useCallback(async (id: string) => {
-    if (!isConnectedMode) return;
-    setLoading(true);
-    setError(null);
-    try {
-      await deleteGame(id);
-      setRemoteGames(prev => prev.filter(g => g.id !== id));
-      setRemoteTotal(prev => prev - 1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete game');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return {
     remoteGames,
     remoteTotal,
@@ -142,6 +125,5 @@ export function useGameHistory(): UseGameHistory {
     saveGameToBackend,
     fetchPage,
     fetchGameForReview,
-    removeGame,
   };
 }

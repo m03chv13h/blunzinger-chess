@@ -212,26 +212,6 @@
   background: #eee;
 }
 
-.game-card-delete-btn {
-  background: none;
-  border: 1px solid #e88;
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
-  color: #c00;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.game-card-delete-btn:hover:not(:disabled) {
-  background: #fee;
-}
-
-.game-card-delete-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 /* ── Expanded Details ── */
 
 .game-card-details {

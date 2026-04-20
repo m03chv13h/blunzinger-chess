@@ -2,7 +2,7 @@
  * Games service — wraps the `/api/games` endpoints.
  *
  * Supports saving completed games, listing game history (paginated),
- * fetching individual games, and deleting games.
+ * and fetching individual games.
  */
 
 import { apiFetch } from './apiClient';
@@ -68,9 +68,4 @@ export async function listGames(page = 1, pageSize = 20): Promise<PaginatedGames
 /** Fetch a single game by ID. */
 export async function getGame(id: string): Promise<GameDetail> {
   return apiFetch<GameDetail>(`/api/games/${encodeURIComponent(id)}`);
-}
-
-/** Delete a game by ID. */
-export async function deleteGame(id: string): Promise<void> {
-  return apiFetch<void>(`/api/games/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
