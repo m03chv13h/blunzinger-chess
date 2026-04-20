@@ -139,9 +139,7 @@ export function useNavigation({ screenType, onNavigate }: UseNavigationOptions):
 
   useEffect(() => {
     function handlePopState() {
-      if (isInternalNavRef.current) {
-        isInternalNavRef.current = false;
-      }
+      isInternalNavRef.current = false;
       const screen = getScreenFromHash();
       if (screen) {
         onNavigateRef.current(screen);
@@ -155,13 +153,14 @@ export function useNavigation({ screenType, onNavigate }: UseNavigationOptions):
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Set initial hash if none exists and we're not on welcome.
+  // Set initial hash if none exists and we're not on welcome (mount only).
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     if (screenType !== 'welcome' && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#/')) {
       const targetPath = getPathForScreen(screenType);
       window.history.replaceState(null, '', `#${targetPath}`);
     }
-    // Only run on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [screenType]);
 }
