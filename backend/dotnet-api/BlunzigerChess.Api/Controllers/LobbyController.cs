@@ -31,6 +31,7 @@ public class LobbyController(AppDbContext db) : ControllerBase
         {
             existingRoom.GuestUserId = userId.Value;
             existingRoom.Status = RoomStatus.Playing;
+            existingRoom.LastActivityAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
             return Ok(new
@@ -77,6 +78,7 @@ public class LobbyController(AppDbContext db) : ControllerBase
 
         room.GuestUserId = userId.Value;
         room.Status = RoomStatus.Playing;
+        room.LastActivityAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
         return Ok(new
@@ -95,11 +97,16 @@ public class LobbyController(AppDbContext db) : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
 
+        // Only return rooms that have had recent activity.
+        // This prevents reconnecting to games that were abandoned long ago.
+        var abandonedCutoff = DateTime.UtcNow - TimeSpan.FromHours(1);
+
         var room = await db.MultiplayerRooms
             .Include(r => r.Host)
             .Include(r => r.Guest)
             .Where(r => r.Status == RoomStatus.Playing &&
-                        (r.HostUserId == userId.Value || r.GuestUserId == userId.Value))
+                        (r.HostUserId == userId.Value || r.GuestUserId == userId.Value) &&
+                        (r.LastActivityAt ?? r.CreatedAt) > abandonedCutoff)
             .OrderByDescending(r => r.CreatedAt)
             .FirstOrDefaultAsync();
 

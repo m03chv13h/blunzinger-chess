@@ -159,4 +159,73 @@ public class LobbyControllerGetActiveRoomTests
         Assert.True(doc.RootElement.GetProperty("active").GetBoolean());
         Assert.Equal("NEW01", doc.RootElement.GetProperty("roomCode").GetString());
     }
+
+    [Fact]
+    public async Task GetActiveRoom_returns_inactive_for_abandoned_room()
+    {
+        var hostId = Guid.NewGuid();
+        var guestId = Guid.NewGuid();
+        var (db, controller) = CreateController(hostId);
+
+        db.Users.AddRange(
+            new User { Id = hostId, DisplayName = "Alice" },
+            new User { Id = guestId, DisplayName = "Bob" });
+
+        // Playing room but inactive for over 1 hour
+        db.MultiplayerRooms.Add(new MultiplayerRoom
+        {
+            Id = Guid.NewGuid(),
+            Code = "STALE1",
+            HostUserId = hostId,
+            GuestUserId = guestId,
+            MatchConfig = """{"variant":"classic"}""",
+            Status = RoomStatus.Playing,
+            CreatedAt = DateTime.UtcNow.AddHours(-3),
+            LastActivityAt = DateTime.UtcNow.AddHours(-2),
+        });
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetActiveRoom();
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.False(doc.RootElement.GetProperty("active").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetActiveRoom_returns_active_for_recently_active_room()
+    {
+        var hostId = Guid.NewGuid();
+        var guestId = Guid.NewGuid();
+        var (db, controller) = CreateController(hostId);
+
+        db.Users.AddRange(
+            new User { Id = hostId, DisplayName = "Alice" },
+            new User { Id = guestId, DisplayName = "Bob" });
+
+        // Playing room with recent activity
+        db.MultiplayerRooms.Add(new MultiplayerRoom
+        {
+            Id = Guid.NewGuid(),
+            Code = "ACTV01",
+            HostUserId = hostId,
+            GuestUserId = guestId,
+            MatchConfig = """{"variant":"classic"}""",
+            Status = RoomStatus.Playing,
+            CreatedAt = DateTime.UtcNow.AddHours(-2),
+            LastActivityAt = DateTime.UtcNow.AddMinutes(-10),
+        });
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetActiveRoom();
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.True(doc.RootElement.GetProperty("active").GetBoolean());
+        Assert.Equal("ACTV01", doc.RootElement.GetProperty("roomCode").GetString());
+    }
 }

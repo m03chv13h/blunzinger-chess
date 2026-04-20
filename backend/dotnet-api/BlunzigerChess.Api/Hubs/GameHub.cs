@@ -180,6 +180,10 @@ public class GameHub(
         UserRooms[userId] = roomCode;
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroup(roomCode));
 
+        // Update last activity timestamp
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
         var user = room.HostUserId == userId ? room.Host : room.Guest;
         await Clients.Group(RoomGroup(roomCode)).SendAsync("PlayerJoined", new
         {
@@ -420,6 +424,9 @@ public class GameHub(
         var room = await GetAuthorizedRoomAsync(roomCode);
         if (room is null) return;
 
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
         await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentMoved", new
         {
             from,
@@ -434,6 +441,9 @@ public class GameHub(
         var room = await GetAuthorizedRoomAsync(roomCode);
         if (room is null) return;
 
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
         await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentDropMove", new
         {
             pieceType,
@@ -447,6 +457,9 @@ public class GameHub(
         var room = await GetAuthorizedRoomAsync(roomCode);
         if (room is null) return;
 
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
         await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentReported");
     }
 
@@ -455,6 +468,9 @@ public class GameHub(
     {
         var room = await GetAuthorizedRoomAsync(roomCode);
         if (room is null) return;
+
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
 
         await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentPieceRemoval", new
         {
