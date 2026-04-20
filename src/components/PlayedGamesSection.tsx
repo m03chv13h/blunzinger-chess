@@ -25,6 +25,19 @@ function parseRemoteResult(json?: string): GameResult | null {
   }
 }
 
+/** Get a list of enabled overlay labels from a config. */
+function getEnabledOverlays(config: GameSetupConfig): string[] {
+  const overlays: { flag: boolean; label: string }[] = [
+    { flag: config.enableKingOfTheHill, label: 'King of the Hill' },
+    { flag: config.enableClock, label: 'Clock' },
+    { flag: config.enableDoubleCheckPressure, label: 'Double Check Pressure' },
+    { flag: config.enableCrazyhouse, label: 'Crazyhouse' },
+    { flag: config.enableChess960, label: 'Chess960' },
+    { flag: config.enableAtomic, label: 'Atomic' },
+  ];
+  return overlays.filter((o) => o.flag).map((o) => o.label);
+}
+
 interface PlayedGamesSectionProps {
   games: GameRecord[];
   onAnalyseGame: (game: GameRecord) => void;
@@ -208,21 +221,15 @@ function GameCard({
               <span>{game.config.botDifficulty}</span>
             </div>
           )}
-          {(game.config.enableKingOfTheHill || game.config.enableClock || game.config.enableDoubleCheckPressure || game.config.enableCrazyhouse || game.config.enableChess960 || game.config.enableAtomic) && (
-            <div className="game-card-detail-row">
-              <span className="game-card-detail-label">Overlays:</span>
-              <span>
-                {[
-                  game.config.enableKingOfTheHill && 'King of the Hill',
-                  game.config.enableClock && 'Clock',
-                  game.config.enableDoubleCheckPressure && 'Double Check Pressure',
-                  game.config.enableCrazyhouse && 'Crazyhouse',
-                  game.config.enableChess960 && 'Chess960',
-                  game.config.enableAtomic && 'Atomic',
-                ].filter(Boolean).join(', ')}
-              </span>
-            </div>
-          )}
+          {(() => {
+            const enabledOverlays = getEnabledOverlays(game.config);
+            return enabledOverlays.length > 0 ? (
+              <div className="game-card-detail-row">
+                <span className="game-card-detail-label">Overlays:</span>
+                <span>{enabledOverlays.join(', ')}</span>
+              </div>
+            ) : null;
+          })()}
           <div className="game-card-detail-row">
             <span className="game-card-detail-label">Played:</span>
             <span>{new Date(game.completedAt).toLocaleString()}</span>

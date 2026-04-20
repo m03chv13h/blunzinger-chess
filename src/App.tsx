@@ -415,7 +415,7 @@ function App() {
     setScreen({ type: 'quick-start' });
   };
 
-  const analyseCount = gameHistory.length + remoteGameCount;
+  const gamesCount = gameHistory.length + remoteGameCount;
 
   // Fetch remote games when navigating to the Games or Analyse tab (connected mode).
   useEffect(() => {
@@ -460,7 +460,7 @@ function App() {
           <Sidebar
             activeSection={activeSection}
             onNavigate={handleNavigate}
-            gameCount={analyseCount}
+            gameCount={gamesCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
@@ -546,7 +546,7 @@ function App() {
           <Sidebar
             activeSection={activeSection}
             onNavigate={handleNavigate}
-            gameCount={analyseCount}
+            gameCount={gamesCount}
             isConnected={isConnectedMode}
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
@@ -577,7 +577,7 @@ function App() {
         <Sidebar
           activeSection={activeSection}
           onNavigate={handleNavigate}
-          gameCount={analyseCount}
+          gameCount={gamesCount}
           isConnected={isConnectedMode}
           userName={userProfile.profile?.displayName ?? auth.user?.displayName}
           userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
