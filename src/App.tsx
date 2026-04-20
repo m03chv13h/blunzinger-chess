@@ -71,6 +71,12 @@ function App() {
 
   // Backend-connected hooks (no-ops in static mode).
   const gameHistoryBackend = useGameHistory();
+  const {
+    fetchPage: fetchRemotePage,
+    saveGameToBackend,
+    fetchGameForReview,
+    removeGame: removeRemoteGame,
+  } = gameHistoryBackend;
   const userProfile = useUserProfile(!!auth.user);
 
   // In connected mode, include remote game count in the sidebar badge.
@@ -181,11 +187,11 @@ function App() {
       setGameHistory(prev => [record, ...prev]);
       // Also persist to backend in connected mode.
       if (isConnectedMode) {
-        gameHistoryBackend.saveGameToBackend(record);
+        saveGameToBackend(record);
       }
       pendingRecordRef.current = null;
     }
-  }, [gameHistoryBackend]);
+  }, [saveGameToBackend]);
 
   // The state used for evaluation: reviewed state when reviewing, otherwise live state.
   const stateForEval = review.reviewedGameState ?? game.state;
@@ -402,22 +408,22 @@ function App() {
   // Fetch remote games when navigating to the Analyse tab (connected mode).
   useEffect(() => {
     if (screen.type === 'analyse' && isConnectedMode) {
-      gameHistoryBackend.fetchPage(1);
+      fetchRemotePage(1);
     }
-  }, [screen.type, gameHistoryBackend]);
+  }, [screen.type, fetchRemotePage]);
 
   // Handle selecting a remote saved game for review.
   const handleSelectRemoteGame = useCallback(async (id: string) => {
-    const record = await gameHistoryBackend.fetchGameForReview(id);
+    const record = await fetchGameForReview(id);
     if (record) {
       selectGameForReviewRef.current(record);
     }
-  }, [gameHistoryBackend]);
+  }, [fetchGameForReview]);
 
   // Handle deleting a remote saved game.
   const handleDeleteRemoteGame = useCallback(async (id: string) => {
-    await gameHistoryBackend.removeGame(id);
-  }, [gameHistoryBackend]);
+    await removeRemoteGame(id);
+  }, [removeRemoteGame]);
 
   // Render welcome / login screen before everything else (connected mode only).
   if (screen.type === 'welcome' && isConnectedMode) {
@@ -470,7 +476,7 @@ function App() {
                 remotePage={isConnectedMode ? gameHistoryBackend.page : undefined}
                 remoteLoading={isConnectedMode ? gameHistoryBackend.loading : undefined}
                 remoteError={isConnectedMode ? gameHistoryBackend.error : undefined}
-                onFetchRemotePage={isConnectedMode ? gameHistoryBackend.fetchPage : undefined}
+                onFetchRemotePage={isConnectedMode ? fetchRemotePage : undefined}
                 onSelectRemoteGame={isConnectedMode ? handleSelectRemoteGame : undefined}
                 onDeleteRemoteGame={isConnectedMode ? handleDeleteRemoteGame : undefined}
               />
