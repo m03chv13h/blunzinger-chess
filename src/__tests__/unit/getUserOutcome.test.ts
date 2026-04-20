@@ -65,7 +65,7 @@ describe('getUserOutcome', () => {
       expect(getUserOutcome(result, config)).toBeNull();
     });
 
-    it('returns null even for draw', () => {
+    it('returns draw (draw is detected before mode check)', () => {
       const config = { ...baseConfig, mode: 'botvbot' as const };
       const result: GameResult = { winner: 'draw', reason: 'stalemate' };
       // Draw is detected before mode check
