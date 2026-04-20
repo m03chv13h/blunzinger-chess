@@ -105,7 +105,7 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText('Activity (last year)')).toBeInTheDocument();
     });
 
-    it('renders botvbot games as white segment at top of timeline bar', () => {
+    it('renders botvbot games by outcome: white win as white segment', () => {
       const game = makeGameRecord({
         config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
         result: { winner: 'w', reason: 'checkmate' },
@@ -115,22 +115,45 @@ describe('PlayedGamesSection', () => {
       );
       const whiteSegment = container.querySelector('.timeline-white');
       expect(whiteSegment).toBeInTheDocument();
-      // White segment should be at the top (first child of timeline-bar)
-      const bar = container.querySelector('.timeline-bar');
-      expect(bar?.firstElementChild).toBe(whiteSegment);
+      // No black segment when only white wins
+      expect(container.querySelector('.timeline-black')).not.toBeInTheDocument();
     });
 
-    it('renders hvh games as white segment at top of timeline bar', () => {
+    it('renders botvbot games by outcome: black win as black segment', () => {
       const game = makeGameRecord({
-        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
         result: { winner: 'b', reason: 'checkmate' },
       });
       const { container } = render(
         <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
       );
-      const whiteSegment = container.querySelector('.timeline-white');
-      expect(whiteSegment).toBeInTheDocument();
-      // Should NOT have win/loss segments for hvh games
+      const blackSegment = container.querySelector('.timeline-black');
+      expect(blackSegment).toBeInTheDocument();
+      // No white segment when only black wins
+      expect(container.querySelector('.timeline-white')).not.toBeInTheDocument();
+    });
+
+    it('renders hvh games by outcome with proportional segments', () => {
+      const whiteWin = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const blackWin = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const draw = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'draw', reason: 'stalemate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[whiteWin, blackWin, draw]} onAnalyseGame={() => {}} />,
+      );
+      // Should have white, black, and draw segments
+      expect(container.querySelector('.timeline-white')).toBeInTheDocument();
+      expect(container.querySelector('.timeline-black')).toBeInTheDocument();
+      expect(container.querySelector('.timeline-draw')).toBeInTheDocument();
+      // Should NOT have user-perspective win/loss segments
       expect(container.querySelector('.timeline-win')).not.toBeInTheDocument();
       expect(container.querySelector('.timeline-loss')).not.toBeInTheDocument();
     });
