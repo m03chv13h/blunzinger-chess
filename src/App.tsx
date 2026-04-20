@@ -87,7 +87,6 @@ function App() {
     fetchPage: fetchRemotePage,
     saveGameToBackend,
     fetchGameForReview,
-    removeGame: removeRemoteGame,
   } = gameHistoryBackend;
   const userProfile = useUserProfile(!!auth.user);
 
@@ -469,10 +468,6 @@ function App() {
   }, [fetchGameForReview]);
 
   // Handle deleting a remote saved game.
-  const handleDeleteRemoteGame = useCallback(async (id: string) => {
-    await removeRemoteGame(id);
-  }, [removeRemoteGame]);
-
   // Render welcome / login screen before everything else (connected mode only).
   if (screen.type === 'welcome' && isConnectedMode) {
     return (
@@ -532,7 +527,6 @@ function App() {
                 remoteError={isConnectedMode ? gameHistoryBackend.error : undefined}
                 onFetchRemotePage={isConnectedMode ? fetchRemotePage : undefined}
                 onSelectRemoteGame={isConnectedMode ? handleSelectRemoteGame : undefined}
-                onDeleteRemoteGame={isConnectedMode ? handleDeleteRemoteGame : undefined}
               />
             )}
             {screen.type === 'online' && (

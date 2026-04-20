@@ -91,25 +91,6 @@ public class GamesController(AppDbContext db) : ControllerBase
         return Ok(game);
     }
 
-    /// <summary>Delete a game.</summary>
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> DeleteGame(Guid id)
-    {
-        var userId = GetUserId();
-
-        var game = await db.Games
-            .Where(g => g.Id == id && g.UserId == userId)
-            .FirstOrDefaultAsync();
-
-        if (game is null)
-            return NotFound();
-
-        db.Games.Remove(game);
-        await db.SaveChangesAsync();
-
-        return NoContent();
-    }
-
     private Guid? GetUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);

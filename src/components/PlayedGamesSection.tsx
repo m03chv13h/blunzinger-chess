@@ -49,7 +49,6 @@ interface PlayedGamesSectionProps {
   remoteError?: string | null;
   onFetchRemotePage?: (page: number) => void;
   onSelectRemoteGame?: (id: string) => void;
-  onDeleteRemoteGame?: (id: string) => void;
 }
 
 /** Group games by date key (e.g. "2024-03-15"). */
@@ -250,7 +249,6 @@ export function PlayedGamesSection({
   remoteError,
   onFetchRemotePage,
   onSelectRemoteGame,
-  onDeleteRemoteGame,
 }: PlayedGamesSectionProps) {
   // Sort games by completedAt descending (most recent first)
   const sortedGames = [...games].sort((a, b) => b.completedAt - a.completedAt);
@@ -356,16 +354,6 @@ export function PlayedGamesSection({
                             >
                               📊 Analyse
                             </button>
-                            {onDeleteRemoteGame && (
-                              <button
-                                className="game-card-delete-btn"
-                                title="Delete saved game"
-                                onClick={() => onDeleteRemoteGame(item.id)}
-                                disabled={remoteLoading}
-                              >
-                                🗑️ Delete
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
