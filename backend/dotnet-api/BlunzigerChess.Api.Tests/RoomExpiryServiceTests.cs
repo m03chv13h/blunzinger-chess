@@ -102,7 +102,8 @@ public class RoomExpiryServiceTests
             HostUserId = Guid.NewGuid(),
             GuestUserId = Guid.NewGuid(),
             Status = RoomStatus.Playing,
-            CreatedAt = DateTime.UtcNow.AddSeconds(-120), // old but already playing
+            CreatedAt = DateTime.UtcNow.AddSeconds(-120), // old but recently active
+            LastActivityAt = DateTime.UtcNow.AddSeconds(-30),
         };
         db.MultiplayerRooms.Add(playingRoom);
         await db.SaveChangesAsync();
@@ -110,6 +111,79 @@ public class RoomExpiryServiceTests
         await service.ExpireStaleRoomsAsync(CancellationToken.None);
 
         var room = await db.MultiplayerRooms.FindAsync(playingRoom.Id);
+        Assert.Equal(RoomStatus.Playing, room!.Status);
+    }
+
+    [Fact]
+    public async Task Marks_abandoned_playing_rooms_as_finished()
+    {
+        var (db, service) = CreateTestService();
+
+        var abandonedRoom = new MultiplayerRoom
+        {
+            Id = Guid.NewGuid(),
+            Code = "ABAN01",
+            HostUserId = Guid.NewGuid(),
+            GuestUserId = Guid.NewGuid(),
+            Status = RoomStatus.Playing,
+            CreatedAt = DateTime.UtcNow.AddHours(-3),
+            LastActivityAt = DateTime.UtcNow.AddHours(-2), // inactive for 2 hours
+        };
+        db.MultiplayerRooms.Add(abandonedRoom);
+        await db.SaveChangesAsync();
+
+        await service.ExpireStaleRoomsAsync(CancellationToken.None);
+
+        var room = await db.MultiplayerRooms.FindAsync(abandonedRoom.Id);
+        Assert.Equal(RoomStatus.Finished, room!.Status);
+    }
+
+    [Fact]
+    public async Task Marks_abandoned_playing_rooms_without_last_activity_as_finished()
+    {
+        var (db, service) = CreateTestService();
+
+        // Room created long ago with no LastActivityAt — falls back to CreatedAt
+        var abandonedRoom = new MultiplayerRoom
+        {
+            Id = Guid.NewGuid(),
+            Code = "ABAN02",
+            HostUserId = Guid.NewGuid(),
+            GuestUserId = Guid.NewGuid(),
+            Status = RoomStatus.Playing,
+            CreatedAt = DateTime.UtcNow.AddHours(-3),
+            LastActivityAt = null,
+        };
+        db.MultiplayerRooms.Add(abandonedRoom);
+        await db.SaveChangesAsync();
+
+        await service.ExpireStaleRoomsAsync(CancellationToken.None);
+
+        var room = await db.MultiplayerRooms.FindAsync(abandonedRoom.Id);
+        Assert.Equal(RoomStatus.Finished, room!.Status);
+    }
+
+    [Fact]
+    public async Task Does_not_expire_recently_active_playing_rooms()
+    {
+        var (db, service) = CreateTestService();
+
+        var activeRoom = new MultiplayerRoom
+        {
+            Id = Guid.NewGuid(),
+            Code = "ACTV01",
+            HostUserId = Guid.NewGuid(),
+            GuestUserId = Guid.NewGuid(),
+            Status = RoomStatus.Playing,
+            CreatedAt = DateTime.UtcNow.AddHours(-5), // created 5 hours ago
+            LastActivityAt = DateTime.UtcNow.AddMinutes(-10), // but active 10 min ago
+        };
+        db.MultiplayerRooms.Add(activeRoom);
+        await db.SaveChangesAsync();
+
+        await service.ExpireStaleRoomsAsync(CancellationToken.None);
+
+        var room = await db.MultiplayerRooms.FindAsync(activeRoom.Id);
         Assert.Equal(RoomStatus.Playing, room!.Status);
     }
 }

@@ -35,6 +35,9 @@ public class MultiplayerRoom
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Timestamp of the last game activity (move, report, etc.). Used by cleanup to detect abandoned games.</summary>
+    public DateTime? LastActivityAt { get; set; }
+
     /// <summary>Associated game record (created when the game finishes).</summary>
     public Guid? GameId { get; set; }
 

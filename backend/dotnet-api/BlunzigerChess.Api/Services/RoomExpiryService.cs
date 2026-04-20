@@ -8,9 +8,12 @@ namespace BlunzigerChess.Api.Services;
 
 /// <summary>
 /// Background service that periodically cancels multiplayer rooms
-/// still in <see cref="RoomStatus.Waiting"/> after the lobby timeout.
+/// still in <see cref="RoomStatus.Waiting"/> after the lobby timeout,
+/// and marks abandoned <see cref="RoomStatus.Playing"/> rooms as finished
+/// when there has been no activity for a prolonged period.
 /// This acts as a server-side safety net in case the frontend countdown
-/// fails to cancel the room (e.g. browser crash, network loss).
+/// fails to cancel the room (e.g. browser crash, network loss) or both
+/// players disconnect without the game ending properly.
 /// </summary>
 public class RoomExpiryService(
     IServiceScopeFactory scopeFactory,
@@ -22,6 +25,9 @@ public class RoomExpiryService(
 
     /// <summary>Rooms waiting longer than this are cancelled.</summary>
     private static readonly TimeSpan RoomTimeout = TimeSpan.FromSeconds(60);
+
+    /// <summary>Playing rooms with no activity longer than this are marked as finished (abandoned).</summary>
+    internal static readonly TimeSpan AbandonedGameTimeout = TimeSpan.FromHours(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -47,13 +53,15 @@ public class RoomExpiryService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var cutoff = DateTime.UtcNow - RoomTimeout;
+        var waitingCutoff = DateTime.UtcNow - RoomTimeout;
+        var abandonedCutoff = DateTime.UtcNow - AbandonedGameTimeout;
 
-        var staleRooms = await db.MultiplayerRooms
-            .Where(r => r.Status == RoomStatus.Waiting && r.CreatedAt < cutoff)
+        // Expire waiting rooms that never got a second player
+        var staleWaitingRooms = await db.MultiplayerRooms
+            .Where(r => r.Status == RoomStatus.Waiting && r.CreatedAt < waitingCutoff)
             .ToListAsync(ct);
 
-        foreach (var room in staleRooms)
+        foreach (var room in staleWaitingRooms)
         {
             room.Status = RoomStatus.Cancelled;
 
@@ -70,7 +78,30 @@ public class RoomExpiryService(
                 room.Code, room.CreatedAt);
         }
 
-        if (staleRooms.Count > 0)
+        // Expire playing rooms with no recent activity (abandoned games)
+        var abandonedRooms = await db.MultiplayerRooms
+            .Where(r => r.Status == RoomStatus.Playing &&
+                        (r.LastActivityAt ?? r.CreatedAt) < abandonedCutoff)
+            .ToListAsync(ct);
+
+        foreach (var room in abandonedRooms)
+        {
+            room.Status = RoomStatus.Finished;
+
+            await hubContext.Clients
+                .Group($"room_{room.Code}")
+                .SendAsync("GameOver", new
+                {
+                    reason = "abandoned",
+                    detail = "Game ended due to inactivity",
+                }, cancellationToken: ct);
+
+            logger.LogInformation("Marked abandoned game room {Room} as finished (last activity: {Activity})",
+                room.Code, room.LastActivityAt ?? room.CreatedAt);
+        }
+
+        var totalExpired = staleWaitingRooms.Count + abandonedRooms.Count;
+        if (totalExpired > 0)
         {
             await db.SaveChangesAsync(ct);
         }
