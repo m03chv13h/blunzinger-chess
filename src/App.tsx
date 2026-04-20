@@ -8,6 +8,8 @@ import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
 import { DeployModeProvider } from './config/DeployModeContext';
 import { getActiveRoom } from './services/lobbyService';
+import { useNavigation, getScreenFromHash } from './hooks/useNavigation';
+import type { NavigableScreen } from './hooks/useNavigation';
 import { Sidebar } from './components/Sidebar';
 import type { NavSection } from './components/Sidebar';
 import { WelcomeScreen } from './components/WelcomeScreen';
@@ -62,10 +64,17 @@ type AppScreen =
 
 function App() {
   const auth = useAuth();
-  // In static mode, skip welcome and start at quick-start.
-  const [screen, setScreen] = useState<AppScreen>(
-    isStaticMode ? { type: 'quick-start' } : { type: 'welcome' },
-  );
+  // Determine initial screen from URL hash, falling back to defaults.
+  const [screen, setScreen] = useState<AppScreen>(() => {
+    if (isStaticMode) {
+      // In static mode, use the URL hash or default to quick-start.
+      return { type: getScreenFromHash() ?? 'quick-start' };
+    }
+    // In connected mode, start with the URL-derived screen if we have one,
+    // but show 'welcome' if there's no hash (first visit).
+    const hashScreen = getScreenFromHash();
+    return hashScreen ? { type: hashScreen } : { type: 'welcome' };
+  });
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
@@ -117,6 +126,21 @@ function App() {
       }).catch(() => {
         setScreen({ type: 'quick-start' });
       });
+    }
+  }, [auth.loading, auth.user, screen.type]);
+
+  // In connected mode, if started from a URL hash (not welcome), redirect to
+  // welcome if the user turns out to be unauthenticated on initial auth check.
+  const authCheckedRef = useRef(false);
+  useEffect(() => {
+    if (
+      isConnectedMode &&
+      !auth.loading && !authCheckedRef.current
+    ) {
+      authCheckedRef.current = true;
+      if (!auth.user && screen.type !== 'welcome') {
+        setScreen({ type: 'welcome' });
+      }
     }
   }, [auth.loading, auth.user, screen.type]);
 
@@ -381,6 +405,18 @@ function App() {
     : screen.type === 'games-review' ? 'games'
     : screen.type === 'welcome' ? 'quick-start'
     : screen.type;
+
+  // Sync URL hash with screen state and handle browser back/forward.
+  const handleHashNavigate = useCallback((section: NavigableScreen) => {
+    flushPendingRecord();
+    if (screen.type === 'simulation-running') {
+      simulation.stop();
+      flushSimulationRecords();
+    }
+    setScreen({ type: section });
+  }, [flushPendingRecord, flushSimulationRecords, screen.type, simulation]);
+
+  useNavigation({ screenType: screen.type, onNavigate: handleHashNavigate });
 
   const handleNavigate = (section: NavSection) => {
     flushPendingRecord();
