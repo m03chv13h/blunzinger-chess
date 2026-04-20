@@ -1,0 +1,307 @@
+.played-games-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.played-games-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 700px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.played-games-card h2 {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  text-align: center;
+  color: #1a1a2e;
+}
+
+.played-games-empty {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  padding: 20px 0;
+  line-height: 1.6;
+}
+
+/* ── Timeline ── */
+
+.games-timeline {
+  margin-bottom: 24px;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.games-timeline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin: 0 0 8px 0;
+}
+
+.games-timeline-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 60px;
+  overflow-x: auto;
+}
+
+.timeline-bar-wrapper {
+  flex: 1;
+  min-width: 4px;
+  max-width: 12px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.timeline-bar {
+  width: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-segment {
+  width: 100%;
+}
+
+.timeline-win {
+  background: #4caf50;
+}
+
+.timeline-draw {
+  background: #ffc107;
+}
+
+.timeline-loss {
+  background: #f44336;
+}
+
+/* ── Month/Date Groupings ── */
+
+.games-month-group {
+  margin-top: 20px;
+}
+
+.games-month-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.games-date-group {
+  margin-bottom: 16px;
+}
+
+.games-date-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Game Card ── */
+
+.game-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.game-card:hover {
+  border-color: #5b8def;
+}
+
+.game-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.game-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-card-result {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.game-card-reason {
+  font-weight: 400;
+  color: #666;
+  font-size: 12px;
+}
+
+.game-card-meta {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.game-card-sep {
+  margin: 0 4px;
+  color: #999;
+}
+
+.game-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.game-card-analyse-btn {
+  background: #e8f0fe;
+  border: 1px solid #c4d8f5;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a5cb0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.game-card-analyse-btn:hover:not(:disabled) {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.game-card-analyse-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.game-card-expand-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.game-card-expand-btn:hover {
+  background: #eee;
+}
+
+.game-card-delete-btn {
+  background: none;
+  border: 1px solid #e88;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #c00;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.game-card-delete-btn:hover:not(:disabled) {
+  background: #fee;
+}
+
+.game-card-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Expanded Details ── */
+
+.game-card-details {
+  padding: 8px 12px 12px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.game-card-detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.game-card-detail-row .game-card-detail-label {
+  font-weight: 600;
+  color: #555;
+  min-width: 90px;
+}
+
+/* ── Remote games ── */
+
+.played-games-remote-error {
+  text-align: center;
+  color: #c00;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.played-games-remote-loading {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+/* ── Pagination ── */
+
+.played-games-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.played-games-pagination button {
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a5cb0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.played-games-pagination button:hover:not(:disabled) {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.played-games-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.played-games-page-info {
+  font-size: 12px;
+  color: #666;
+}
