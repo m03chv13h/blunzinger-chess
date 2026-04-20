@@ -115,9 +115,9 @@ describe('PlayedGamesSection', () => {
       );
       const whiteSegment = container.querySelector('.timeline-white');
       expect(whiteSegment).toBeInTheDocument();
-      // White segment should be at the top (last child of timeline-bar)
+      // White segment should be at the top (first child of timeline-bar)
       const bar = container.querySelector('.timeline-bar');
-      expect(bar?.lastElementChild).toBe(whiteSegment);
+      expect(bar?.firstElementChild).toBe(whiteSegment);
     });
 
     it('renders hvh games as white segment at top of timeline bar', () => {

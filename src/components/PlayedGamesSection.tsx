@@ -165,6 +165,9 @@ function GameTimeline({ games }: { games: GameRecord[] }) {
               title={`${day.date}: ${day.wins}W ${day.draws}D ${day.losses}L${day.white ? ` ${day.white}⚪` : ''}`}
             >
               <div className="timeline-bar" style={{ height: `${height}%` }}>
+                {whitePct > 0 && (
+                  <div className="timeline-segment timeline-white" style={{ height: `${whitePct}%` }} />
+                )}
                 {lossPct > 0 && (
                   <div className="timeline-segment timeline-loss" style={{ height: `${lossPct}%` }} />
                 )}
@@ -173,9 +176,6 @@ function GameTimeline({ games }: { games: GameRecord[] }) {
                 )}
                 {winPct > 0 && (
                   <div className="timeline-segment timeline-win" style={{ height: `${winPct}%` }} />
-                )}
-                {whitePct > 0 && (
-                  <div className="timeline-segment timeline-white" style={{ height: `${whitePct}%` }} />
                 )}
               </div>
             </div>
