@@ -85,6 +85,25 @@ export const simulationHandlers = {
       callback(toGrpcError(err));
     }
   },
+
+  /**
+   * Batch JSON variant — runs N games sequentially and returns all records
+   * as a JSON array string.
+   */
+  RunBatchSimulationJson(call: Call<unknown>, callback: Callback<unknown>) {
+    try {
+      const req = call.request as { configJson: string; count: number };
+      const config = JSON.parse(req.configJson) as import('../../../../src/core/blunziger/types.js').GameSetupConfig;
+      const count = Math.max(1, Math.min(req.count, 200));
+      const records: GameRecord[] = [];
+      for (let i = 0; i < count; i++) {
+        records.push(runSimulatedGame(config));
+      }
+      callback(null, { recordsJson: JSON.stringify(records) });
+    } catch (err) {
+      callback(toGrpcError(err));
+    }
+  },
 };
 
 function toGrpcError(err: unknown): { code: number; message: string } {

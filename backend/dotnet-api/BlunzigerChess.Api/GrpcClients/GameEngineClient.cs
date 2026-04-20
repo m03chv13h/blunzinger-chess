@@ -108,4 +108,15 @@ public class GameEngineClient(
             new RunSimulatedGameJsonRequest { ConfigJson = configJson });
         return response.RecordJson;
     }
+
+    /// <summary>
+    /// Batch JSON variant — runs N games on the Node worker and returns all
+    /// game records as a JSON array string.
+    /// </summary>
+    public async Task<string> RunBatchSimulationJsonAsync(string configJson, int count)
+    {
+        var response = await simulation.RunBatchSimulationJsonAsync(
+            new RunBatchSimulationJsonRequest { ConfigJson = configJson, Count = count });
+        return response.RecordsJson;
+    }
 }

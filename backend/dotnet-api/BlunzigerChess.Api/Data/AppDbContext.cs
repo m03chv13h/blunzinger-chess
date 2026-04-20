@@ -7,6 +7,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Game> Games => Set<Game>();
+    public DbSet<Simulation> Simulations => Set<Simulation>();
     public DbSet<MultiplayerRoom> MultiplayerRooms => Set<MultiplayerRoom>();
     public DbSet<MatchmakingEntry> MatchmakingQueue => Set<MatchmakingEntry>();
 
@@ -31,6 +32,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(e => e.CreatedAt);
             entity.HasOne(e => e.User)
                   .WithMany(u => u.Games)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Simulation
+        modelBuilder.Entity<Simulation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasOne(e => e.User)
+                  .WithMany()
                   .HasForeignKey(e => e.UserId)
                   .OnDelete(DeleteBehavior.SetNull);
         });

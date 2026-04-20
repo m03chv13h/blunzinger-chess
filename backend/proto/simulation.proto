@@ -15,6 +15,9 @@ service SimulationService {
   // JSON passthrough variant — accepts/returns native frontend JSON to avoid
   // complex enum mapping on the .NET gateway side.
   rpc RunSimulatedGameJson(RunSimulatedGameJsonRequest) returns (RunSimulatedGameJsonResponse);
+
+  // Batch JSON variant — runs N games sequentially and returns all records as JSON.
+  rpc RunBatchSimulationJson(RunBatchSimulationJsonRequest) returns (RunBatchSimulationJsonResponse);
 }
 
 // ── Requests & Responses ─────────────────────────────────────────────
@@ -31,4 +34,13 @@ message RunSimulatedGameJsonRequest {
 }
 message RunSimulatedGameJsonResponse {
   string record_json = 1;
+}
+
+message RunBatchSimulationJsonRequest {
+  string config_json = 1;
+  int32 count = 2;
+}
+message RunBatchSimulationJsonResponse {
+  // JSON array of GameRecord objects
+  string records_json = 1;
 }

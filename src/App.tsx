@@ -8,6 +8,7 @@ import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
 import { DeployModeProvider } from './config/DeployModeContext';
 import { getActiveRoom } from './services/lobbyService';
+import { listSimulations, getSimulation } from './services/simulationService';
 import { useNavigation, getScreenFromHash } from './hooks/useNavigation';
 import type { NavigableScreen } from './hooks/useNavigation';
 import { Sidebar } from './components/Sidebar';
@@ -353,11 +354,19 @@ function App() {
     : [];
 
   const flushSimulationRecords = useCallback(() => {
-    if (simulation.completedRecords.length > 0 && simulation.config) {
+    if (isConnectedMode && simulation.savedSimulationRecord) {
+      // In connected mode, the backend already saved the simulation — just add to local history
+      setSimulationHistory((prev) => {
+        // Avoid duplicates
+        if (prev.some((s) => s.id === simulation.savedSimulationRecord!.id)) return prev;
+        return [simulation.savedSimulationRecord!, ...prev];
+      });
+    } else if (simulation.completedRecords.length > 0 && simulation.config) {
+      // Static mode: create a local simulation record
       const simRecord = createSimulationRecord(simulation.config, simulation.completedRecords);
       setSimulationHistory((prev) => [simRecord, ...prev]);
     }
-  }, [simulation.completedRecords, simulation.config]);
+  }, [simulation.completedRecords, simulation.config, simulation.savedSimulationRecord]);
 
   const handleSelectGameForReview = (record: GameRecord) => {
     // If reviewing a game from a running simulation, flush completed records first
@@ -458,6 +467,36 @@ function App() {
       fetchRemotePage(1);
     }
   }, [screen.type, fetchRemotePage]);
+
+  // Load saved simulations from the backend when viewing the Analyse tab (connected mode).
+  const simulationsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (screen.type === 'analyse' && isConnectedMode && !simulationsLoadedRef.current) {
+      simulationsLoadedRef.current = true;
+      listSimulations(1, 50).then(async (res) => {
+        // Fetch full details for each simulation to get the game records
+        const records: SimulationRecord[] = [];
+        for (const item of res.simulations) {
+          try {
+            const full = await getSimulation(item.id);
+            records.push(full);
+          } catch {
+            // Skip simulations that fail to load
+          }
+        }
+        if (records.length > 0) {
+          setSimulationHistory((prev) => {
+            // Merge: add remote records that don't already exist locally
+            const existingIds = new Set(prev.map((s) => s.id));
+            const newRecords = records.filter((r) => !existingIds.has(r.id));
+            return [...newRecords, ...prev];
+          });
+        }
+      }).catch(() => {
+        // Ignore errors fetching saved simulations
+      });
+    }
+  }, [screen.type]);
 
   // Handle selecting a remote saved game for review.
   const handleSelectRemoteGame = useCallback(async (id: string) => {
