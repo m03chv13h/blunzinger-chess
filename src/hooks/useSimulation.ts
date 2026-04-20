@@ -174,7 +174,8 @@ export function useSimulation(): UseSimulationReturn {
         const record = runSimulatedGame(simConfig);
         completeGame(gameIndex, record);
 
-        // Yield to the browser between games so the UI can render updates.
+        // Yield to the browser between games via setTimeout chaining
+        // so the UI can render updates between synchronous game runs.
         setTimeout(runNext, 0);
       };
 
