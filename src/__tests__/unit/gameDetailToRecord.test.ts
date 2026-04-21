@@ -82,7 +82,7 @@ describe('gameDetailToRecord', () => {
       moveHistory: undefined,
       finalFen: undefined,
     }));
-    expect(record.result).toEqual({ winner: 'draw', reason: 'unknown' });
+    expect(record.result).toEqual({ winner: 'draw', reason: 'draw' });
     expect(record.scores).toEqual({ w: 0, b: 0 });
     expect(record.positionHistory).toEqual([]);
     expect(record.moveHistory).toEqual([]);

@@ -16,7 +16,7 @@ import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Mov
 /** Convert a backend GameDetail (JSON strings) to a GameRecord for review. */
 export function gameDetailToRecord(detail: GameDetail): GameRecord {
   const config: GameSetupConfig = JSON.parse(detail.matchConfig);
-  const result: GameResult = detail.result ? JSON.parse(detail.result) : { winner: 'draw', reason: 'unknown' };
+  const result: GameResult = detail.result ? JSON.parse(detail.result) : { winner: 'draw', reason: 'draw' };
   const scores: ScoreState = detail.scores ? JSON.parse(detail.scores) : { w: 0, b: 0 };
   const positionHistory: PositionHistoryEntry[] = detail.positionHistory ? JSON.parse(detail.positionHistory) : [];
   const moveHistory: Move[] = detail.moveHistory ? JSON.parse(detail.moveHistory) : [];
@@ -41,7 +41,7 @@ export function gameDetailToRecord(detail: GameDetail): GameRecord {
 /** Convert a backend GameListItem (summary) to a GameRecord for display (no review data). */
 export function gameListItemToRecord(item: GameListItem): GameRecord {
   const config: GameSetupConfig = JSON.parse(item.matchConfig);
-  const result: GameResult = item.result ? JSON.parse(item.result) : { winner: 'draw', reason: 'unknown' };
+  const result: GameResult = item.result ? JSON.parse(item.result) : { winner: 'draw', reason: 'draw' };
   const scores: ScoreState = item.scores ? JSON.parse(item.scores) : { w: 0, b: 0 };
 
   return {

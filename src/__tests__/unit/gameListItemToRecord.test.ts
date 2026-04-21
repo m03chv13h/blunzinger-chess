@@ -63,7 +63,7 @@ describe('gameListItemToRecord', () => {
       scores: undefined,
       finalFen: undefined,
     }));
-    expect(record.result).toEqual({ winner: 'draw', reason: 'unknown' });
+    expect(record.result).toEqual({ winner: 'draw', reason: 'draw' });
     expect(record.scores).toEqual({ w: 0, b: 0 });
     expect(record.finalFen).toContain('RNBQKBNR');
   });
