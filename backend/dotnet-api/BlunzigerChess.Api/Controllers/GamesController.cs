@@ -64,6 +64,7 @@ public class GamesController(AppDbContext db) : ControllerBase
                 g.Id,
                 g.MatchConfig,
                 g.Result,
+                g.Scores,
                 g.FinalFen,
                 g.MoveCount,
                 g.GameMode,
