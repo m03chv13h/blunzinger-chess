@@ -42,7 +42,7 @@ import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
-import { useGameHistory } from './hooks/useGameHistory';
+import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
 import { useUserProfile } from './hooks/useUserProfile';
 import './App.css';
 
@@ -107,13 +107,13 @@ function App() {
   // Backend-connected hooks (no-ops in static mode).
   const gameHistoryBackend = useGameHistory();
   const {
+    remoteGames,
+    remoteTotal,
     fetchPage: fetchRemotePage,
     saveGameToBackend,
+    fetchGameForReview,
   } = gameHistoryBackend;
   const userProfile = useUserProfile(!!auth.user);
-
-  // In connected mode, include remote game count in the sidebar badge.
-  const remoteGameCount = isConnectedMode ? userProfile.profile?.gameCount ?? 0 : 0;
 
   // If the user is already authenticated (e.g. returning with a stored token),
   // skip the welcome screen automatically (connected mode only).
@@ -424,6 +424,19 @@ function App() {
   const selectGameForReviewRef = useRef(handleSelectGameForReview);
   selectGameForReviewRef.current = handleSelectGameForReview;
 
+  // In connected mode, fetch full game details from backend before loading for review.
+  const handleSelectRemoteGameForReview = useCallback(async (record: GameRecord) => {
+    if (isConnectedMode) {
+      const fullRecord = await fetchGameForReview(record.id);
+      if (fullRecord) {
+        selectGameForReviewRef.current(fullRecord);
+        return;
+      }
+    }
+    // Fall back to the partial record (local game or fetch failed).
+    selectGameForReviewRef.current(record);
+  }, [fetchGameForReview]);
+
   const handleStartSimulation = (config: GameSetupConfig, count: number) => {
     simulation.start(config, count);
     setScreen({ type: 'simulation-running' });
@@ -490,7 +503,7 @@ function App() {
     setScreen({ type: 'quick-start' });
   };
 
-  const gamesCount = gameHistory.length + remoteGameCount;
+  const gamesCount = isConnectedMode ? (remoteTotal || gameHistory.length) : gameHistory.length;
 
   // Fetch remote games when navigating to the Analyse tab (connected mode).
   useEffect(() => {
@@ -498,6 +511,22 @@ function App() {
       fetchRemotePage(1);
     }
   }, [screen.type, fetchRemotePage]);
+
+  // Fetch remote games when navigating to the Games section (connected mode).
+  useEffect(() => {
+    if (screen.type === 'games' && isConnectedMode) {
+      fetchRemotePage(1, 100);
+    }
+  }, [screen.type, fetchRemotePage]);
+
+  // In connected mode, use backend games for the Games section (ordered by latest first).
+  // Falls back to local gameHistory in static mode or when backend has no results.
+  const gamesForDisplay: GameRecord[] = (() => {
+    if (isConnectedMode && remoteGames.length > 0) {
+      return remoteGames.map(gameListItemToRecord);
+    }
+    return gameHistory;
+  })();
 
   // Load saved simulations from the backend when viewing the Analyse tab (connected mode).
   const simulationsLoadedRef = useRef(false);
@@ -579,8 +608,8 @@ function App() {
             )}
             {screen.type === 'games' && (
               <PlayedGamesSection
-                games={gameHistory}
-                onAnalyseGame={handleSelectGameForReview}
+                games={gamesForDisplay}
+                onAnalyseGame={handleSelectRemoteGameForReview}
               />
             )}
             {screen.type === 'online' && (

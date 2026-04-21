@@ -38,6 +38,30 @@ export function gameDetailToRecord(detail: GameDetail): GameRecord {
   };
 }
 
+/** Convert a backend GameListItem (summary) to a GameRecord for display (no review data). */
+export function gameListItemToRecord(item: GameListItem): GameRecord {
+  const config: GameSetupConfig = JSON.parse(item.matchConfig);
+  const result: GameResult = item.result ? JSON.parse(item.result) : { winner: 'draw', reason: 'unknown' };
+  const scores: ScoreState = item.scores ? JSON.parse(item.scores) : { w: 0, b: 0 };
+
+  return {
+    id: item.id,
+    completedAt: item.completedAt ? new Date(item.completedAt).getTime() : new Date(item.createdAt).getTime(),
+    config,
+    result,
+    finalFen: item.finalFen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    moveCount: item.moveCount,
+    scores,
+    positionHistory: [],
+    moveHistory: [],
+    violationReports: [],
+    missedChecks: [],
+    pieceRemovals: [],
+    timeReductions: [],
+    isOnline: item.gameMode === 'multiplayer',
+  };
+}
+
 export interface UseGameHistory {
   /** Persisted games fetched from the backend (connected mode only). */
   remoteGames: GameListItem[];
