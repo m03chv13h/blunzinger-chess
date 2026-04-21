@@ -1,0 +1,183 @@
+/* ── Simulations Overview (list below setup form) ── */
+
+.sim-overview {
+  margin-top: 24px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 18px;
+}
+
+.sim-overview-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px 0;
+}
+
+.sim-overview-empty {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  padding: 12px 0;
+  line-height: 1.6;
+}
+
+.sim-overview-loading {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.sim-overview-error {
+  text-align: center;
+  color: #c00;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* ── List ── */
+
+.sim-overview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sim-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sim-overview-item:hover {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+/* ── Icon / spinner ── */
+
+.sim-overview-icon {
+  font-size: 28px;
+  min-width: 40px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-overview-spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #c4d8f5;
+  border-top-color: #5b8def;
+  border-radius: 50%;
+  animation: sim-overview-spin 0.6s linear infinite;
+}
+
+@keyframes sim-overview-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Info ── */
+
+.sim-overview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sim-overview-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.sim-overview-sep {
+  margin: 0 4px;
+  color: #999;
+}
+
+.sim-overview-gametype {
+  font-weight: 400;
+  color: #666;
+}
+
+.sim-overview-standing {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.sim-overview-white {
+  color: #1a1a2e;
+}
+
+.sim-overview-black {
+  color: #444;
+}
+
+.sim-overview-draw {
+  color: #777;
+}
+
+.sim-overview-details {
+  font-size: 11px;
+  color: #999;
+}
+
+.sim-overview-status--running {
+  color: #5b8def;
+  font-weight: 600;
+}
+
+.sim-overview-date {
+  color: #999;
+}
+
+/* ── Pagination ── */
+
+.sim-overview-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sim-overview-pagination button {
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a5cb0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sim-overview-pagination button:hover:not(:disabled) {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.sim-overview-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sim-overview-page-info {
+  font-size: 12px;
+  color: #666;
+}
