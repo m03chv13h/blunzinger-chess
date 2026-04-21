@@ -18,6 +18,13 @@ service SimulationService {
 
   // Batch JSON variant — runs N games sequentially and returns all records as JSON.
   rpc RunBatchSimulationJson(RunBatchSimulationJsonRequest) returns (RunBatchSimulationJsonResponse);
+
+  // Enqueue a batch of games for async processing — returns immediately
+  // after the worker has placed each game into its internal queue.
+  rpc EnqueueBatchSimulation(EnqueueBatchRequest) returns (EnqueueBatchResponse);
+
+  // Query the progress of a previously enqueued batch simulation.
+  rpc GetSimulationProgress(GetSimulationProgressRequest) returns (GetSimulationProgressResponse);
 }
 
 // ── Requests & Responses ─────────────────────────────────────────────
@@ -43,4 +50,24 @@ message RunBatchSimulationJsonRequest {
 message RunBatchSimulationJsonResponse {
   // JSON array of GameRecord objects
   string records_json = 1;
+}
+
+// ── Async batch simulation (queue-based) ─────────────────────────────
+
+message EnqueueBatchRequest {
+  string simulation_id = 1;
+  string config_json = 2;
+  int32 count = 3;
+}
+message EnqueueBatchResponse {}
+
+message GetSimulationProgressRequest {
+  string simulation_id = 1;
+}
+message GetSimulationProgressResponse {
+  int32 completed_games = 1;
+  int32 total_games = 2;
+  // JSON array of completed game records so far
+  string completed_records_json = 3;
+  bool finished = 4;
 }

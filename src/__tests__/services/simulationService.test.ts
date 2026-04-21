@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { runSimulatedGameRemote, runBatchSimulationRemote, listSimulations, getSimulation } from '../../services/simulationService';
+import { runSimulatedGameRemote, runBatchSimulationRemote, getSimulationStatus, listSimulations, getSimulation } from '../../services/simulationService';
 import type { GameSetupConfig } from '../../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
 
@@ -96,15 +96,83 @@ describe('runBatchSimulationRemote', () => {
     botDifficulty: 'easy',
   };
 
-  it('sends POST /api/simulation/run-batch with config and count', async () => {
-    const mockSimulation = {
+  it('sends POST /api/simulation/run-batch and returns simulation ID', async () => {
+    const mockResponse = {
       id: 'batch-1',
+      status: 'running',
+      gameCount: 2,
+      completedGames: 0,
+    };
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockResponse,
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await runBatchSimulationRemote(config, 2);
+
+    expect(result.id).toBe('batch-1');
+    expect(result.status).toBe('running');
+    expect(result.gameCount).toBe(2);
+    expect(result.completedGames).toBe(0);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/simulation/run-batch');
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.config).toEqual(config);
+    expect(body.count).toBe(2);
+  });
+});
+
+// ── getSimulationStatus ──────────────────────────────────────────────
+
+describe('getSimulationStatus', () => {
+  it('sends GET /api/simulation/:id/status', async () => {
+    const mockStatus = {
+      id: 'batch-1',
+      status: 'running',
+      config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+      games: [
+        { id: 'g1', result: { winner: 'w', reason: 'checkmate' }, moveCount: 20 },
+      ],
+      gameCount: 3,
+      completedGames: 1,
+      standing: { whiteWins: 1, blackWins: 0, draws: 0 },
+    };
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockStatus,
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getSimulationStatus('batch-1');
+
+    expect(result.id).toBe('batch-1');
+    expect(result.status).toBe('running');
+    expect(result.completedGames).toBe(1);
+    expect(result.gameCount).toBe(3);
+    expect(result.games).toHaveLength(1);
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/simulation/batch-1/status');
+  });
+
+  it('returns completed status with all games', async () => {
+    const mockStatus = {
+      id: 'batch-2',
+      status: 'completed',
       completedAt: 1700000000000,
-      config,
+      config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
       games: [
         { id: 'g1', result: { winner: 'w', reason: 'checkmate' }, moveCount: 20 },
         { id: 'g2', result: { winner: 'b', reason: 'checkmate' }, moveCount: 30 },
       ],
+      gameCount: 2,
+      completedGames: 2,
       standing: { whiteWins: 1, blackWins: 1, draws: 0 },
     };
 
@@ -112,22 +180,15 @@ describe('runBatchSimulationRemote', () => {
       ok: true,
       status: 200,
       headers: new Headers({ 'content-type': 'application/json' }),
-      json: async () => mockSimulation,
+      json: async () => mockStatus,
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const result = await runBatchSimulationRemote(config, 2);
+    const result = await getSimulationStatus('batch-2');
 
-    expect(result.id).toBe('batch-1');
-    expect(result.standing.whiteWins).toBe(1);
-    expect(result.standing.blackWins).toBe(1);
+    expect(result.status).toBe('completed');
+    expect(result.completedGames).toBe(2);
     expect(result.games).toHaveLength(2);
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toBe('/api/simulation/run-batch');
-    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.config).toEqual(config);
-    expect(body.count).toBe(2);
   });
 });
 
