@@ -14,7 +14,11 @@ public class SimulationProgressService(
     IServiceScopeFactory scopeFactory,
     ILogger<SimulationProgressService> logger) : BackgroundService
 {
-    /// <summary>How often the background loop polls for simulation progress.</summary>
+    /// <summary>
+    /// How often the background loop polls for simulation progress.
+    /// Intentionally slightly faster than the frontend's 4-second polling
+    /// interval so DB results are fresh when the frontend requests them.
+    /// </summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -91,6 +95,15 @@ public class SimulationProgressService(
                 }
 
                 await db.SaveChangesAsync(ct);
+            }
+            catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.NotFound)
+            {
+                // Worker no longer knows about this simulation (cleaned up after
+                // the grace period). If the simulation was never completed, it may
+                // have been lost — log and skip.
+                logger.LogDebug(
+                    "Simulation {SimId} not found on worker (may have been cleaned up)",
+                    simulation.Id);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

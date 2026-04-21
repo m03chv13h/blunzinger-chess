@@ -31,6 +31,8 @@ interface SimulationJob {
   totalGames: number;
   completedRecords: GameRecord[];
   finished: boolean;
+  /** Timestamp when the job finished, used for delayed cleanup. */
+  finishedAt?: number;
 }
 
 /** In-memory map of active simulation jobs keyed by simulation ID. */
@@ -38,6 +40,9 @@ const simulationJobs = new Map<string, SimulationJob>();
 
 /** Whether the background queue processor is currently running. */
 let processingQueue = false;
+
+/** Grace period (ms) to keep finished jobs before cleanup. */
+const FINISHED_JOB_TTL_MS = 60_000;
 
 /**
  * Process the next pending game across all queued simulations.
@@ -69,6 +74,15 @@ function processQueue(): void {
 
     if (activeJob.completedRecords.length >= activeJob.totalGames) {
       activeJob.finished = true;
+      activeJob.finishedAt = Date.now();
+    }
+
+    // Clean up finished jobs past the grace period
+    const now = Date.now();
+    for (const [id, job] of simulationJobs) {
+      if (job.finished && job.finishedAt && now - job.finishedAt > FINISHED_JOB_TTL_MS) {
+        simulationJobs.delete(id);
+      }
     }
 
     // Yield to event loop before processing the next game
@@ -194,6 +208,7 @@ export const simulationHandlers = {
 
   /**
    * Return the current progress for a queued simulation.
+   * Returns NOT_FOUND (code 5) if the simulation ID is unknown.
    */
   GetSimulationProgress(call: Call<unknown>, callback: Callback<unknown>) {
     try {
@@ -201,12 +216,10 @@ export const simulationHandlers = {
       const job = simulationJobs.get(req.simulationId);
 
       if (!job) {
-        callback(null, {
-          completedGames: 0,
-          totalGames: 0,
-          completedRecordsJson: '[]',
-          finished: true,
-        });
+        // Unknown simulation — may have been cleaned up after the grace period
+        // or was never enqueued. Return NOT_FOUND so the caller can distinguish
+        // this from a legitimately finished simulation.
+        callback({ code: 5, message: `Simulation ${req.simulationId} not found` });
         return;
       }
 
@@ -216,11 +229,6 @@ export const simulationHandlers = {
         completedRecordsJson: JSON.stringify(job.completedRecords),
         finished: job.finished,
       });
-
-      // Clean up finished simulations after they've been read
-      if (job.finished) {
-        simulationJobs.delete(req.simulationId);
-      }
     } catch (err) {
       callback(toGrpcError(err));
     }
