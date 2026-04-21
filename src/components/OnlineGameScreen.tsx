@@ -361,6 +361,7 @@ export function OnlineGameScreen({
 
   const handleOfferDraw = useCallback(() => {
     setDrawPending(true);
+    setDrawDeclined(false);
     hub.offerDraw(roomCode).catch(() => {
       setHubError('Failed to offer draw');
     });
@@ -551,7 +552,7 @@ export function OnlineGameScreen({
                   Draw declined.{' '}
                   <button
                     className="online-game-draw-btn"
-                    onClick={() => { setDrawDeclined(false); handleOfferDraw(); }}
+                    onClick={handleOfferDraw}
                   >
                     🤝 Offer again
                   </button>
