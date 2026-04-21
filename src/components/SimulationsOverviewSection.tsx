@@ -2,6 +2,7 @@ import type { SimulationListItem } from '../services/simulationService';
 import type { SimulationRecord } from '../core/gameRecord';
 import { getVariantLabel, getGameTypeLabel } from '../core/gameRecord';
 import type { GameSetupConfig } from '../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
 import './SimulationsOverviewSection.css';
 
 /** Unified simulation item shape for display. */
@@ -24,7 +25,7 @@ function fromRemoteItem(item: SimulationListItem): SimulationDisplayItem {
   try {
     config = JSON.parse(item.configJson) as GameSetupConfig;
   } catch {
-    config = {} as GameSetupConfig;
+    config = { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' };
   }
   return {
     id: item.id,
