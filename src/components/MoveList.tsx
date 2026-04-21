@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import { formatCategorizedMoves } from './formatViolation';
@@ -38,6 +38,10 @@ interface MoveRow {
 
 export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
+  useEffect(() => {
+    setCollapsed(defaultCollapsed);
+  }, [defaultCollapsed]);
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
   for (const r of violationReports) {
