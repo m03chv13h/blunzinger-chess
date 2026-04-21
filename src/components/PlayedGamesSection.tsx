@@ -1,30 +1,9 @@
 import { useRef, useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
-import type { GameSetupConfig, GameResult } from '../core/blunziger/types';
-import type { GameListItem } from '../services/gamesService';
+import type { GameSetupConfig } from '../core/blunziger/types';
 import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel, getUserOutcome, getUserResultLabel } from '../core/gameRecord';
-import type { UserOutcome } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
 import './PlayedGamesSection.css';
-
-/** Safely parse a JSON-encoded GameSetupConfig from a remote game. */
-function parseRemoteConfig(json: string): GameSetupConfig | null {
-  try {
-    return JSON.parse(json) as GameSetupConfig;
-  } catch {
-    return null;
-  }
-}
-
-/** Safely parse a JSON-encoded GameResult from a remote game. */
-function parseRemoteResult(json?: string): GameResult | null {
-  if (!json) return null;
-  try {
-    return JSON.parse(json) as GameResult;
-  } catch {
-    return null;
-  }
-}
 
 /** Get a list of enabled overlay labels from a config. */
 function getEnabledOverlays(config: GameSetupConfig): string[] {
@@ -42,14 +21,6 @@ function getEnabledOverlays(config: GameSetupConfig): string[] {
 interface PlayedGamesSectionProps {
   games: GameRecord[];
   onAnalyseGame: (game: GameRecord) => void;
-  /** Remote saved games from the backend (connected mode). */
-  remoteGames?: GameListItem[];
-  remoteTotal?: number;
-  remotePage?: number;
-  remoteLoading?: boolean;
-  remoteError?: string | null;
-  onFetchRemotePage?: (page: number) => void;
-  onSelectRemoteGame?: (id: string) => void;
 }
 
 /** Group games by date key (e.g. "2024-03-15"). */
@@ -273,20 +244,11 @@ function GameCard({
 export function PlayedGamesSection({
   games,
   onAnalyseGame,
-  remoteGames,
-  remoteTotal,
-  remotePage,
-  remoteLoading,
-  remoteError,
-  onFetchRemotePage,
-  onSelectRemoteGame,
 }: PlayedGamesSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Sort games by completedAt descending (most recent first)
   const sortedGames = [...games].sort((a, b) => b.completedAt - a.completedAt);
-
-  const hasRemoteGames = (remoteGames?.length ?? 0) > 0;
 
   const dateGroups = groupByDate(sortedGames);
   const dateKeys = Array.from(dateGroups.keys()).sort((a, b) => b.localeCompare(a));
@@ -309,7 +271,7 @@ export function PlayedGamesSection({
         <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />
 
         {/* Empty message when no games */}
-        {sortedGames.length === 0 && !hasRemoteGames && !remoteLoading && !remoteError && (
+        {sortedGames.length === 0 && (
           <p className="played-games-empty">
             No games played yet. Start a game from <strong>Quick Start</strong> or{' '}
             <strong>New Game</strong> and complete it to see it here.
@@ -332,105 +294,6 @@ export function PlayedGamesSection({
             ))}
           </div>
         ))}
-
-        {/* ── Saved Games (remote / connected mode) ── */}
-        {(hasRemoteGames || remoteLoading || remoteError) && (
-          <>
-            <h3 className="games-month-heading">☁️ Saved Games</h3>
-
-            {remoteError && (
-              <p className="played-games-remote-error">{remoteError}</p>
-            )}
-
-            {remoteLoading && !hasRemoteGames && (
-              <p className="played-games-remote-loading">Loading saved games…</p>
-            )}
-
-            {hasRemoteGames && (
-              <div className="games-list">
-                {(remoteGames ?? []).map((item) => {
-                  const config = parseRemoteConfig(item.matchConfig);
-                  const result = parseRemoteResult(item.result);
-                  const outcome: UserOutcome | null = result && config ? getUserOutcome(result, config) : null;
-                  const outcomeClass = outcome ? `game-card--${outcome}` : '';
-                  return (
-                    <div key={item.id} className={`game-card ${outcomeClass}`}>
-                      <div className="game-card-main">
-                        {item.finalFen && <MiniBoard fen={item.finalFen} />}
-                        <div className="game-card-info">
-                          {result && (
-                            <div className={`game-card-result ${outcome ? `result-${outcome}` : ''}`}>
-                              {outcome ? (
-                                <>
-                                  <span className="game-card-outcome-badge">{getUserResultLabel(outcome)}</span>
-                                  <span className="game-card-result-detail"> ({getResultLabel(result)})</span>
-                                </>
-                              ) : (
-                                getResultLabel(result)
-                              )}
-                              <span className="game-card-reason"> — {result.reason.replace(/_/g, ' ')}</span>
-                            </div>
-                          )}
-                          <div className="game-card-meta">
-                            {config && (
-                              <>
-                                <span>{getVariantLabel(config.variantMode)}</span>
-                                <span className="game-card-sep">·</span>
-                                <span>{getGameTypeLabel(config.gameType)}</span>
-                                <span className="game-card-sep">·</span>
-                              </>
-                            )}
-                            <span>{item.moveCount} moves</span>
-                            {item.completedAt && (
-                              <>
-                                <span className="game-card-sep">·</span>
-                                <span>{new Date(item.completedAt).toLocaleString()}</span>
-                              </>
-                            )}
-                          </div>
-                          <div className="game-card-actions">
-                            <button
-                              className="game-card-analyse-btn"
-                              onClick={() => onSelectRemoteGame?.(item.id)}
-                              disabled={remoteLoading}
-                            >
-                              📊 Analyse
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {remoteTotal != null && remoteTotal > 20 && onFetchRemotePage && remotePage != null && (
-              <div className="played-games-pagination">
-                <button
-                  disabled={remotePage <= 1 || remoteLoading}
-                  onClick={() => onFetchRemotePage(remotePage - 1)}
-                >
-                  ← Prev
-                </button>
-                <span className="played-games-page-info">
-                  Page {remotePage} of {Math.ceil(remoteTotal / 20)}
-                </span>
-                <button
-                  disabled={remotePage >= Math.ceil(remoteTotal / 20) || remoteLoading}
-                  onClick={() => onFetchRemotePage(remotePage + 1)}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
-
-            {remoteLoading && hasRemoteGames && (
-              <p className="played-games-remote-loading">Loading…</p>
-            )}
-          </>
-        )}
       </div>
     </div>
   );

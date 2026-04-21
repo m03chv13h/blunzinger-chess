@@ -87,7 +87,6 @@ function App() {
   const {
     fetchPage: fetchRemotePage,
     saveGameToBackend,
-    fetchGameForReview,
   } = gameHistoryBackend;
   const userProfile = useUserProfile(!!auth.user);
 
@@ -471,9 +470,9 @@ function App() {
 
   const gamesCount = gameHistory.length + remoteGameCount;
 
-  // Fetch remote games when navigating to the Games or Analyse tab (connected mode).
+  // Fetch remote games when navigating to the Analyse tab (connected mode).
   useEffect(() => {
-    if ((screen.type === 'games' || screen.type === 'analyse') && isConnectedMode) {
+    if (screen.type === 'analyse' && isConnectedMode) {
       fetchRemotePage(1);
     }
   }, [screen.type, fetchRemotePage]);
@@ -508,15 +507,6 @@ function App() {
     }
   }, [screen.type]);
 
-  // Handle selecting a remote saved game for review.
-  const handleSelectRemoteGame = useCallback(async (id: string) => {
-    const record = await fetchGameForReview(id);
-    if (record) {
-      selectGameForReviewRef.current(record);
-    }
-  }, [fetchGameForReview]);
-
-  // Handle deleting a remote saved game.
   // Render welcome / login screen before everything else (connected mode only).
   if (screen.type === 'welcome' && isConnectedMode) {
     return (
@@ -569,13 +559,6 @@ function App() {
               <PlayedGamesSection
                 games={gameHistory}
                 onAnalyseGame={handleSelectGameForReview}
-                remoteGames={isConnectedMode ? gameHistoryBackend.remoteGames : undefined}
-                remoteTotal={isConnectedMode ? gameHistoryBackend.remoteTotal : undefined}
-                remotePage={isConnectedMode ? gameHistoryBackend.page : undefined}
-                remoteLoading={isConnectedMode ? gameHistoryBackend.loading : undefined}
-                remoteError={isConnectedMode ? gameHistoryBackend.error : undefined}
-                onFetchRemotePage={isConnectedMode ? fetchRemotePage : undefined}
-                onSelectRemoteGame={isConnectedMode ? handleSelectRemoteGame : undefined}
               />
             )}
             {screen.type === 'online' && (
