@@ -5,6 +5,7 @@ import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinitio
 import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
+import { TimeInput } from './TimeInput';
 import './SimulationSection.css';
 
 function formatEngineName(info: EngineInfo): string {
@@ -33,6 +34,8 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
   const isKingHuntCheckLimit = config.variantMode === 'classic_king_hunt_given_check_limit';
   const isReportMode = config.gameType === 'report_incorrectness';
   const isPenaltyMode = config.gameType === 'penalty_on_miss';
+  const showClock = config.enableClock;
+  const showTimeReductionValue = config.enableTimeReductionPenalty && showClock;
   const engineInfos = getAllEngineInfos();
 
   const handleStart = () => {
@@ -238,6 +241,28 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
                 />
               </div>
             )}
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableTimeReductionPenalty}
+                disabled={!config.enableClock}
+                onChange={(e) => update({ enableTimeReductionPenalty: e.target.checked })}
+              />
+              Time reduction
+            </label>
+            {showTimeReductionValue && (
+              <div className="sim-setup-group">
+                <label htmlFor="sim-time-reduction">Time reduction (seconds)</label>
+                <NumericInput
+                  id="sim-time-reduction"
+                  value={config.timeReductionSeconds}
+                  onChange={(v) => update({ timeReductionSeconds: v })}
+                  min={1}
+                  max={300}
+                  fallback={60}
+                />
+              </div>
+            )}
           </fieldset>
         )}
 
@@ -253,6 +278,60 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
               King of the Hill
             </label>
           </div>
+
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableClock}
+                onChange={(e) => update({ enableClock: e.target.checked })}
+              />
+              Clock
+            </label>
+          </div>
+
+          {showClock && (
+            <div className="sim-setup-group">
+              <label htmlFor="sim-initial-time">Initial time (MM:SS)</label>
+              <TimeInput
+                id="sim-initial-time"
+                valueMs={config.initialTimeMs}
+                onChange={(ms) => update({ initialTimeMs: ms })}
+                minSeconds={10}
+                maxSeconds={3600}
+                fallbackMs={5 * 60 * 1000}
+              />
+            </div>
+          )}
+
+          {showClock && (
+            <div className="sim-setup-group">
+              <label htmlFor="sim-increment">Increment per move (MM:SS)</label>
+              <TimeInput
+                id="sim-increment"
+                valueMs={config.incrementMs}
+                onChange={(ms) => update({ incrementMs: ms })}
+                minSeconds={0}
+                maxSeconds={600}
+                fallbackMs={0}
+              />
+            </div>
+          )}
+
+          {showClock && (
+            <div className="sim-setup-group">
+              <label htmlFor="sim-decrement">Decrement per move (MM:SS)</label>
+              <TimeInput
+                id="sim-decrement"
+                valueMs={config.decrementMs}
+                onChange={(ms) => update({ decrementMs: ms })}
+                minSeconds={0}
+                maxSeconds={600}
+                fallbackMs={0}
+              />
+            </div>
+          )}
+
           <div className="checkbox-group">
             <label>
               <input
@@ -271,6 +350,16 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
                 onChange={(e) => update({ enableCrazyhouse: e.target.checked })}
               />
               Crazyhouse
+            </label>
+          </div>
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableChess960}
+                onChange={(e) => update({ enableChess960: e.target.checked })}
+              />
+              Chess960
             </label>
           </div>
           <div className="checkbox-group">
