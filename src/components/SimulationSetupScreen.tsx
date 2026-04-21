@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { GameSetupConfig, VariantMode, GameType, BotLevel } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
@@ -12,9 +13,11 @@ function formatEngineName(info: EngineInfo): string {
 
 interface SimulationSetupScreenProps {
   onStart: (config: GameSetupConfig, count: number) => void;
+  /** Optional content rendered below the setup form (e.g. simulations overview). */
+  children?: ReactNode;
 }
 
-export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
+export function SimulationSetupScreen({ onStart, children }: SimulationSetupScreenProps) {
   const [config, setConfig] = useState<GameSetupConfig>({
     ...DEFAULT_SETUP_CONFIG,
     mode: 'botvbot',
@@ -285,6 +288,8 @@ export function SimulationSetupScreen({ onStart }: SimulationSetupScreenProps) {
         <button className="sim-start-btn" onClick={handleStart}>
           ▶ Start Simulation
         </button>
+
+        {children}
       </div>
     </div>
   );

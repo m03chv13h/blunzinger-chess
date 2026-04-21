@@ -9,6 +9,7 @@ import { isStaticMode, isConnectedMode } from './config/deployMode';
 import { DeployModeProvider } from './config/DeployModeContext';
 import { getActiveRoom } from './services/lobbyService';
 import { listSimulations, getSimulation } from './services/simulationService';
+import type { SimulationListItem } from './services/simulationService';
 import { useNavigation, getScreenFromHash } from './hooks/useNavigation';
 import type { NavigableScreen } from './hooks/useNavigation';
 import { Sidebar } from './components/Sidebar';
@@ -28,6 +29,7 @@ import { PlayedGamesSection } from './components/PlayedGamesSection';
 import type { ConnectionFilter } from './components/PlayedGamesSection';
 import { SimulationSetupScreen } from './components/SimulationSetupScreen';
 import { SimulationView } from './components/SimulationView';
+import { SimulationsOverviewSection } from './components/SimulationsOverviewSection';
 import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
 import { CrazyhouseReserves } from './components/CrazyhouseReserve';
@@ -93,6 +95,11 @@ function App() {
     return [];
   });
   const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
+  const [remoteSimList, setRemoteSimList] = useState<SimulationListItem[]>([]);
+  const [remoteSimTotal, setRemoteSimTotal] = useState(0);
+  const [remoteSimPage, setRemoteSimPage] = useState(1);
+  const [remoteSimLoading, setRemoteSimLoading] = useState(false);
+  const [remoteSimError, setRemoteSimError] = useState<string | null>(null);
   const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
 
   // Persist game history to localStorage whenever it changes.
@@ -589,6 +596,33 @@ function App() {
     }
   }, [screen.type]);
 
+  // Fetch simulation list for the overview in the Simulate section.
+  const SIM_PAGE_SIZE = 20;
+
+  const fetchSimulationPage = useCallback((page: number) => {
+    setRemoteSimLoading(true);
+    setRemoteSimError(null);
+    listSimulations(page, SIM_PAGE_SIZE).then((res) => {
+      setRemoteSimList(res.simulations);
+      setRemoteSimTotal(res.total);
+      setRemoteSimPage(res.page);
+      setRemoteSimLoading(false);
+    }).catch(() => {
+      setRemoteSimError('Failed to load simulations');
+      setRemoteSimLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (screen.type === 'simulate' && isConnectedMode) {
+      fetchSimulationPage(1);
+    }
+  }, [screen.type, fetchSimulationPage]);
+
+  const handleSimPageChange = useCallback((page: number) => {
+    fetchSimulationPage(page);
+  }, [fetchSimulationPage]);
+
   // Render welcome / login screen before everything else (connected mode only).
   if (screen.type === 'welcome' && isConnectedMode) {
     return (
@@ -667,7 +701,18 @@ function App() {
               />
             )}
             {screen.type === 'simulate' && (
-              <SimulationSetupScreen onStart={handleStartSimulation} />
+              <SimulationSetupScreen onStart={handleStartSimulation}>
+                <SimulationsOverviewSection
+                  remoteSimulations={isConnectedMode ? remoteSimList : undefined}
+                  localSimulations={isStaticMode ? simulationHistory : undefined}
+                  loading={isConnectedMode ? remoteSimLoading : false}
+                  error={isConnectedMode ? remoteSimError : null}
+                  page={remoteSimPage}
+                  total={remoteSimTotal}
+                  pageSize={SIM_PAGE_SIZE}
+                  onPageChange={isConnectedMode ? handleSimPageChange : undefined}
+                />
+              </SimulationSetupScreen>
             )}
             {screen.type === 'simulation-running' && simulation.config && (
               <SimulationView
