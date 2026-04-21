@@ -373,7 +373,7 @@ public class GameHub(
     public async Task ResignGame(string roomCode)
     {
         var room = await GetAuthorizedRoomAsync(roomCode);
-        if (room is null || string.IsNullOrEmpty(room.CurrentGameState)) return;
+        if (room is null) return;
 
         room.Status = Models.RoomStatus.Finished;
         await db.SaveChangesAsync();
