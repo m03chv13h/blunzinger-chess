@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineGameScreen } from '../../components/OnlineGameScreen';
 import { createInitialState } from '../../core/blunziger/engine';
@@ -295,6 +295,31 @@ describe('OnlineGameScreen – resignation and draw via GameOver event', () => {
       reason: 'draw',
       detail: 'Draw by agreement',
     });
+  });
+
+  it('calls hub.resignGame when resign button is confirmed', () => {
+    mockGameState = makeGameState();
+    mockHub.resignGame.mockClear();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="RESIGN_ROOM"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    const resignBtn = screen.getByText('🏳 Resign');
+    // First click shows confirmation
+    fireEvent.click(resignBtn);
+    expect(mockHub.resignGame).not.toHaveBeenCalled();
+
+    // Second click (confirm) triggers the actual resign
+    const confirmBtn = screen.getByText('Confirm resign?');
+    fireEvent.click(confirmBtn);
+    expect(mockHub.resignGame).toHaveBeenCalledWith('RESIGN_ROOM');
   });
 
   it('ignores unknown GameOver reasons', () => {
