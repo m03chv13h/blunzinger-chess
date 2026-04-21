@@ -544,4 +544,153 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
     });
   });
+
+  describe('connection filter (online/offline)', () => {
+    it('shows the connection filter buttons', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByRole('radiogroup', { name: 'Connection filter' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: '🌐 All' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: '🟢 Online' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: '📴 Offline' })).toBeInTheDocument();
+    });
+
+    it('defaults to "All" (both online and offline)', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      const allBtn = screen.getByRole('radio', { name: '🌐 All' });
+      expect(allBtn.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('shows all games when "All" is selected', () => {
+      const onlineGame = makeGameRecord({ isOnline: true });
+      const offlineGame = makeGameRecord({ isOnline: false });
+      const undefinedGame = makeGameRecord();
+      render(
+        <PlayedGamesSection games={[onlineGame, offlineGame, undefinedGame]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText(/Total \(3 games\)/)).toBeInTheDocument();
+    });
+
+    it('shows only online games when "Online" is selected', () => {
+      const onlineGame = makeGameRecord({
+        isOnline: true,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const offlineGame = makeGameRecord({
+        isOnline: false,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[onlineGame, offlineGame]} onAnalyseGame={() => {}} />,
+      );
+
+      // Click "Online" filter
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+
+      // Only online game visible
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+      expect(screen.getByText('Victory')).toBeInTheDocument();
+    });
+
+    it('shows only offline games when "Offline" is selected', () => {
+      const onlineGame = makeGameRecord({
+        isOnline: true,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const offlineGame = makeGameRecord({
+        isOnline: false,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[onlineGame, offlineGame]} onAnalyseGame={() => {}} />,
+      );
+
+      // Click "Offline" filter
+      fireEvent.click(screen.getByRole('radio', { name: '📴 Offline' }));
+
+      // Only offline game visible
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+      expect(screen.getByText('Defeat')).toBeInTheDocument();
+    });
+
+    it('treats games without isOnline as offline', () => {
+      const legacyGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[legacyGame]} onAnalyseGame={() => {}} />,
+      );
+
+      // Click "Online" filter
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      expect(screen.getByText(/No games played yet/)).toBeInTheDocument();
+
+      // Click "Offline" filter — legacy game should appear
+      fireEvent.click(screen.getByRole('radio', { name: '📴 Offline' }));
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+    });
+
+    it('shows empty message when filter excludes all games', () => {
+      const offlineGame = makeGameRecord({ isOnline: false });
+      render(
+        <PlayedGamesSection games={[offlineGame]} onAnalyseGame={() => {}} />,
+      );
+
+      // Click "Online" filter
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      expect(screen.getByText(/No games played yet/)).toBeInTheDocument();
+    });
+
+    it('switching back to "All" shows all games again', () => {
+      const onlineGame = makeGameRecord({ isOnline: true });
+      const offlineGame = makeGameRecord({ isOnline: false });
+      render(
+        <PlayedGamesSection games={[onlineGame, offlineGame]} onAnalyseGame={() => {}} />,
+      );
+
+      // Filter to online only
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+
+      // Switch back to all
+      fireEvent.click(screen.getByRole('radio', { name: '🌐 All' }));
+      expect(screen.getByText(/Total \(2 games\)/)).toBeInTheDocument();
+    });
+
+    it('works together with spectated filter', () => {
+      const onlineSpectated = makeGameRecord({
+        isOnline: true,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+      });
+      const onlineActive = makeGameRecord({
+        isOnline: true,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const offlineActive = makeGameRecord({
+        isOnline: false,
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[onlineSpectated, onlineActive, offlineActive]} onAnalyseGame={() => {}} />,
+      );
+
+      // Filter to online + uncheck spectated
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      fireEvent.click(screen.getByLabelText('Include spectated games'));
+
+      // Only the online active game remains
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+      expect(screen.getByText('Victory')).toBeInTheDocument();
+    });
+  });
 });

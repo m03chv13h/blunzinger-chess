@@ -27,6 +27,8 @@ export interface GameRecord {
   pieceRemovals: PieceRemovalEntry[];
   /** Time reductions for review. */
   timeReductions: TimeReductionEntry[];
+  /** Whether this game was played online (multiplayer). */
+  isOnline?: boolean;
 }
 
 let counter = 0;

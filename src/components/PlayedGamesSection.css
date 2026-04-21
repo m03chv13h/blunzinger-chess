@@ -24,6 +24,14 @@
 
 /* ── Filter ── */
 
+.played-games-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .played-games-filter {
   display: flex;
   align-items: center;
@@ -31,11 +39,42 @@
   font-size: 13px;
   color: #555;
   cursor: pointer;
-  margin-bottom: 12px;
 }
 
 .played-games-filter input[type="checkbox"] {
   cursor: pointer;
+}
+
+.connection-filter {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.connection-filter-btn {
+  background: #f8f9fa;
+  border: none;
+  border-right: 1px solid #ccc;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #555;
+  transition: background 0.15s, color 0.15s;
+}
+
+.connection-filter-btn:last-child {
+  border-right: none;
+}
+
+.connection-filter-btn:hover {
+  background: #e8e8e8;
+}
+
+.connection-filter-btn--active {
+  background: #1a1a2e;
+  color: #fff;
 }
 
 .played-games-empty {
