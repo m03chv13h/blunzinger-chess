@@ -44,7 +44,7 @@ import { useReview } from './hooks/useReview';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
 import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
-import type { GameFilters } from './hooks/useGameHistory';
+import type { GameFilters } from './services/gamesService';
 import { useUserProfile } from './hooks/useUserProfile';
 import './App.css';
 
@@ -522,6 +522,8 @@ function App() {
   }, [screen.type, fetchRemotePage]);
 
   // Fetch remote games when navigating to the Games section (connected mode).
+  // Intentionally reset filters so the user starts with a clean slate each time.
+  // The PlayedGamesSection component also resets its local filter state on mount.
   useEffect(() => {
     if (screen.type === 'games' && isConnectedMode) {
       gamesFiltersRef.current = {};

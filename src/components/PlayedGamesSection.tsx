@@ -323,6 +323,8 @@ export function PlayedGamesSection({
       return;
     }
     remoteMode.onFilterChange({ connectionFilter, includeSpectated });
+    // remoteMode.onFilterChange is omitted because the parent provides a stable
+    // useCallback reference; including it would cause spurious re-fetches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionFilter, includeSpectated, isRemote]);
 

@@ -11,7 +11,6 @@ import { isConnectedMode } from '../config/deployMode';
 import type { SaveGameRequest, GameListItem, GameDetail, PaginatedGames } from '../services/gamesService';
 import type { GameFilters } from '../services/gamesService';
 import { saveGame, listGames, getGame } from '../services/gamesService';
-export type { GameFilters } from '../services/gamesService';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Move } from '../core/blunziger/types';
 
