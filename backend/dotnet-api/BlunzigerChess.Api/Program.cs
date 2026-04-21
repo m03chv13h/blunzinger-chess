@@ -195,6 +195,7 @@ builder.Services.AddScoped<GameEngineClient>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddHostedService<MatchmakingService>();
 builder.Services.AddHostedService<RoomExpiryService>();
+builder.Services.AddHostedService<SimulationProgressService>();
 
 // ── SignalR ──────────────────────────────────────────────────────────
 

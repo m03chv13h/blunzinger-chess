@@ -30,6 +30,9 @@ public class Simulation
     /// <summary>Number of draws.</summary>
     public int Draws { get; set; }
 
+    /// <summary>Number of games completed so far (used for tracking progress of async simulations).</summary>
+    public int CompletedGames { get; set; }
+
     /// <summary>All game records as a JSON array (mirrors TypeScript GameRecord[]).</summary>
     [Column(TypeName = "jsonb")]
     public string GamesJson { get; set; } = "[]";

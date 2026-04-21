@@ -31,63 +31,104 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
     }
 
     /// <summary>
-    /// Run a batch of simulated bot-vs-bot games, save results to DB, and return
-    /// the simulation record (config, standings, all game records).
+    /// Run a batch of simulated bot-vs-bot games asynchronously.
+    /// Creates the simulation record, enqueues the games on the Node worker,
+    /// and returns immediately with the simulation ID.
+    /// The worker processes each game individually from its queue.
     /// </summary>
     [HttpPost("run-batch")]
-    public async Task<ContentResult> RunBatch([FromBody] RunBatchRequest request)
+    public async Task<IActionResult> RunBatch([FromBody] RunBatchRequest request)
     {
         var userId = GetUserId();
         var count = Math.Clamp(request.Count, 1, 200);
         var configJson = request.Config.GetRawText();
 
-        // Run all games on the Node worker
-        var recordsJson = await engineClient.RunBatchSimulationJsonAsync(configJson, count);
-
-        // Parse records to compute standings
-        using var doc = JsonDocument.Parse(recordsJson);
-        var records = doc.RootElement;
-        int whiteWins = 0, blackWins = 0, draws = 0;
-        foreach (var record in records.EnumerateArray())
-        {
-            if (record.TryGetProperty("result", out var result) &&
-                result.TryGetProperty("winner", out var winner))
-            {
-                var w = winner.GetString();
-                if (w == "w") whiteWins++;
-                else if (w == "b") blackWins++;
-                else draws++;
-            }
-        }
-
-        // Persist to database
+        // Create the simulation record in pending state
         var simulation = new Simulation
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             ConfigJson = configJson,
             GameCount = count,
-            WhiteWins = whiteWins,
-            BlackWins = blackWins,
-            Draws = draws,
-            GamesJson = recordsJson,
+            WhiteWins = 0,
+            BlackWins = 0,
+            Draws = 0,
+            CompletedGames = 0,
+            GamesJson = "[]",
             CreatedAt = DateTime.UtcNow,
-            CompletedAt = DateTime.UtcNow,
+            CompletedAt = null,
         };
         db.Simulations.Add(simulation);
         await db.SaveChangesAsync();
 
-        // Build response matching the frontend SimulationRecord shape
-        var responseJson = JsonSerializer.Serialize(new
+        // Enqueue the batch on the worker — returns immediately
+        await engineClient.EnqueueBatchSimulationAsync(
+            simulation.Id.ToString(), configJson, count);
+
+        return Ok(new
         {
             id = simulation.Id.ToString(),
-            completedAt = new DateTimeOffset(simulation.CompletedAt!.Value).ToUnixTimeMilliseconds(),
-            config = JsonSerializer.Deserialize<JsonElement>(configJson),
-            games = JsonSerializer.Deserialize<JsonElement>(recordsJson),
-            standing = new { whiteWins, blackWins, draws },
+            status = "running",
+            gameCount = count,
+            completedGames = 0,
         });
+    }
 
-        return Content(responseJson, "application/json");
+    /// <summary>
+    /// Get the current status/progress of a simulation.
+    /// Used by the frontend to poll for updates during async simulations.
+    /// </summary>
+    [HttpGet("{id:guid}/status")]
+    public async Task<IActionResult> GetSimulationStatus(Guid id)
+    {
+        var userId = GetUserId();
+
+        var simulation = await db.Simulations
+            .Where(s => s.Id == id && s.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        if (simulation is null)
+            return NotFound();
+
+        // Already completed — return the full result from DB
+        if (simulation.CompletedAt.HasValue)
+        {
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                id = simulation.Id.ToString(),
+                status = "completed",
+                completedAt = new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds(),
+                config = JsonSerializer.Deserialize<JsonElement>(simulation.ConfigJson),
+                games = JsonSerializer.Deserialize<JsonElement>(simulation.GamesJson),
+                gameCount = simulation.GameCount,
+                completedGames = simulation.CompletedGames,
+                standing = new
+                {
+                    whiteWins = simulation.WhiteWins,
+                    blackWins = simulation.BlackWins,
+                    draws = simulation.Draws,
+                },
+            });
+            return Content(responseJson, "application/json");
+        }
+
+        // Still running — return what we have so far
+        var statusJson = JsonSerializer.Serialize(new
+        {
+            id = simulation.Id.ToString(),
+            status = "running",
+            config = JsonSerializer.Deserialize<JsonElement>(simulation.ConfigJson),
+            games = JsonSerializer.Deserialize<JsonElement>(simulation.GamesJson),
+            gameCount = simulation.GameCount,
+            completedGames = simulation.CompletedGames,
+            standing = new
+            {
+                whiteWins = simulation.WhiteWins,
+                blackWins = simulation.BlackWins,
+                draws = simulation.Draws,
+            },
+        });
+        return Content(statusJson, "application/json");
     }
 
     /// <summary>List the authenticated user's simulations (paginated, without full game data).</summary>
@@ -113,11 +154,13 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
                 s.Id,
                 s.ConfigJson,
                 s.GameCount,
+                s.CompletedGames,
                 s.WhiteWins,
                 s.BlackWins,
                 s.Draws,
                 s.CreatedAt,
                 s.CompletedAt,
+                Status = s.CompletedAt.HasValue ? "completed" : "running",
             })
             .ToListAsync();
 
@@ -141,9 +184,14 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         var responseJson = JsonSerializer.Serialize(new
         {
             id = simulation.Id.ToString(),
-            completedAt = new DateTimeOffset(simulation.CompletedAt ?? simulation.CreatedAt).ToUnixTimeMilliseconds(),
+            status = simulation.CompletedAt.HasValue ? "completed" : "running",
+            completedAt = simulation.CompletedAt.HasValue
+                ? new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds()
+                : (long?)null,
             config = JsonSerializer.Deserialize<JsonElement>(simulation.ConfigJson),
             games = JsonSerializer.Deserialize<JsonElement>(simulation.GamesJson),
+            gameCount = simulation.GameCount,
+            completedGames = simulation.CompletedGames,
             standing = new
             {
                 whiteWins = simulation.WhiteWins,

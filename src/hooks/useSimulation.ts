@@ -4,7 +4,7 @@ import type { GameRecord, SimulationRecord } from '../core/gameRecord';
 import { getResultLabel } from '../core/gameRecord';
 import { runSimulatedGame } from '../core/simulation';
 import { isConnectedMode } from '../config/deployMode';
-import { runBatchSimulationRemote } from '../services/simulationService';
+import { runBatchSimulationRemote, getSimulationStatus } from '../services/simulationService';
 
 export interface SimulationGameEntry {
   /** 1-based game number. */
@@ -46,6 +46,9 @@ export interface UseSimulationReturn {
   savedSimulationRecord: SimulationRecord | null;
 }
 
+/** Polling interval for checking simulation progress in connected mode. */
+const POLL_INTERVAL_MS = 4000;
+
 export function useSimulation(): UseSimulationReturn {
   const [running, setRunning] = useState(false);
   const [games, setGames] = useState<SimulationGameEntry[]>([]);
@@ -69,8 +72,13 @@ export function useSimulation(): UseSimulationReturn {
   const pendingRef = useRef<{ config: GameSetupConfig; count: number } | null>(null);
   const runningRef = useRef(false);
 
+  // Track active simulation ID for polling in connected mode
+  const simulationIdRef = useRef<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const start = useCallback((cfg: GameSetupConfig, count: number) => {
     cancelledRef.current = false;
+    simulationIdRef.current = null;
     setConfig(cfg);
     setSavedSimulationRecord(null);
     const initialGames: SimulationGameEntry[] = Array.from({ length: count }, (_, i) => ({
@@ -85,11 +93,16 @@ export function useSimulation(): UseSimulationReturn {
 
   const stop = useCallback(() => {
     cancelledRef.current = true;
+    simulationIdRef.current = null;
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
     setRunning(false);
   }, []);
 
   // Run simulation games.
-  // In connected mode, all games are run as a single batch on the backend.
+  // In connected mode, enqueue the batch on the backend and poll for progress.
   // In static mode, games run locally one at a time.
   useEffect(() => {
     if (!running || !pendingRef.current) return;
@@ -100,25 +113,69 @@ export function useSimulation(): UseSimulationReturn {
     runningRef.current = true;
 
     if (isConnectedMode) {
-      // Batch offload to the backend Node worker via the API.
-      // The backend runs all games, saves them, and returns the full result.
-      const runBatch = async () => {
+      // Enqueue the batch on the backend and poll for progress.
+      const startBatch = async () => {
         try {
-          const simRecord = await runBatchSimulationRemote(simConfig, count);
+          const { id } = await runBatchSimulationRemote(simConfig, count);
           if (cancelledRef.current) {
             runningRef.current = false;
             return;
           }
-          // Populate all game entries from the returned records
-          const finishedGames: SimulationGameEntry[] = simRecord.games.map((record, i) => ({
-            index: i + 1,
-            moveCount: record.moveCount,
-            finished: true,
-            resultLabel: getResultLabel(record.result),
-            record,
-          }));
-          setGames(finishedGames);
-          setSavedSimulationRecord(simRecord);
+          simulationIdRef.current = id;
+
+          // Start polling every 4 seconds for simulation progress
+          const poll = async () => {
+            if (cancelledRef.current || !simulationIdRef.current) return;
+
+            try {
+              const status = await getSimulationStatus(simulationIdRef.current);
+              if (cancelledRef.current) return;
+
+              // Update game entries from the returned records
+              const updatedGames: SimulationGameEntry[] = Array.from(
+                { length: count },
+                (_, i) => {
+                  const record = status.games[i];
+                  if (record) {
+                    return {
+                      index: i + 1,
+                      moveCount: record.moveCount,
+                      finished: true,
+                      resultLabel: getResultLabel(record.result),
+                      record,
+                    };
+                  }
+                  return { index: i + 1, moveCount: 0, finished: false };
+                },
+              );
+              setGames(updatedGames);
+
+              if (status.status === 'completed') {
+                // Simulation done — build the SimulationRecord
+                const simRecord: SimulationRecord = {
+                  id: status.id,
+                  completedAt: status.completedAt ?? Date.now(),
+                  config: status.config,
+                  games: status.games,
+                  standing: status.standing,
+                };
+                setSavedSimulationRecord(simRecord);
+                simulationIdRef.current = null;
+                if (pollTimerRef.current) {
+                  clearInterval(pollTimerRef.current);
+                  pollTimerRef.current = null;
+                }
+                runningRef.current = false;
+                setRunning(false);
+              }
+            } catch {
+              // Polling errors are non-fatal; retry on next interval
+            }
+          };
+
+          // Poll immediately, then every 4 seconds
+          poll();
+          pollTimerRef.current = setInterval(poll, POLL_INTERVAL_MS);
         } catch {
           if (cancelledRef.current) {
             runningRef.current = false;
@@ -138,11 +195,11 @@ export function useSimulation(): UseSimulationReturn {
             record,
           }));
           setGames(finishedGames);
+          runningRef.current = false;
+          setRunning(false);
         }
-        runningRef.current = false;
-        setRunning(false);
       };
-      runBatch();
+      startBatch();
     } else {
       // Static mode: run games locally one at a time
       let currentGame = 0;
@@ -185,6 +242,10 @@ export function useSimulation(): UseSimulationReturn {
 
     return () => {
       cancelledRef.current = true;
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
   }, [running]);
 

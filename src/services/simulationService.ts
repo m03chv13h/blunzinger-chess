@@ -3,6 +3,8 @@
  *
  * In connected mode the heavy simulation work is offloaded to the
  * Node.js game engine worker via the .NET API gateway.
+ * Batch simulations are processed asynchronously: the API returns
+ * immediately and the frontend polls for progress every 4 seconds.
  */
 
 import { apiFetch } from './apiClient';
@@ -22,22 +24,59 @@ export async function runSimulatedGameRemote(config: GameSetupConfig): Promise<G
   });
 }
 
+// ── Async batch simulation ───────────────────────────────────────────
+
+/** Response from the batch start endpoint (POST /api/simulation/run-batch). */
+export interface BatchSimulationStartResult {
+  id: string;
+  status: 'running';
+  gameCount: number;
+  completedGames: number;
+}
+
 /**
- * Run a batch of simulated bot-vs-bot games on the backend.
- * Results are persisted server-side and returned as a SimulationRecord.
+ * Start a batch of simulated bot-vs-bot games on the backend.
+ * The API enqueues the games on the worker and returns immediately.
+ * Use {@link getSimulationStatus} to poll for progress.
  *
  * @param config The game setup configuration (frontend format).
  * @param count Number of games to simulate (1–200).
- * @returns The complete simulation record with all game results.
+ * @returns The initial simulation record with its ID.
  */
 export async function runBatchSimulationRemote(
   config: GameSetupConfig,
   count: number,
-): Promise<SimulationRecord> {
-  return apiFetch<SimulationRecord>('/api/simulation/run-batch', {
+): Promise<BatchSimulationStartResult> {
+  return apiFetch<BatchSimulationStartResult>('/api/simulation/run-batch', {
     method: 'POST',
     body: { config, count },
   });
+}
+
+/** Status response from the simulation status polling endpoint. */
+export interface SimulationStatusResponse {
+  id: string;
+  status: 'running' | 'completed';
+  completedAt?: number;
+  config: GameSetupConfig;
+  games: GameRecord[];
+  gameCount: number;
+  completedGames: number;
+  standing: {
+    whiteWins: number;
+    blackWins: number;
+    draws: number;
+  };
+}
+
+/**
+ * Poll the current status/progress of a running simulation.
+ *
+ * @param id The simulation ID returned by {@link runBatchSimulationRemote}.
+ * @returns Current simulation state with partial or full results.
+ */
+export async function getSimulationStatus(id: string): Promise<SimulationStatusResponse> {
+  return apiFetch<SimulationStatusResponse>(`/api/simulation/${encodeURIComponent(id)}/status`);
 }
 
 // ── Simulation history ───────────────────────────────────────────────
@@ -46,11 +85,13 @@ export interface SimulationListItem {
   id: string;
   configJson: string;
   gameCount: number;
+  completedGames: number;
   whiteWins: number;
   blackWins: number;
   draws: number;
   createdAt: string;
   completedAt?: string;
+  status: 'running' | 'completed';
 }
 
 export interface PaginatedSimulations {

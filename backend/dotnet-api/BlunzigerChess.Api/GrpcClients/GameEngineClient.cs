@@ -119,4 +119,23 @@ public class GameEngineClient(
             new RunBatchSimulationJsonRequest { ConfigJson = configJson, Count = count });
         return response.RecordsJson;
     }
+
+    /// <summary>
+    /// Enqueue a batch of games for async processing on the Node worker.
+    /// Returns immediately after the worker has placed each game into its queue.
+    /// </summary>
+    public async Task EnqueueBatchSimulationAsync(string simulationId, string configJson, int count)
+    {
+        await simulation.EnqueueBatchSimulationAsync(
+            new EnqueueBatchRequest { SimulationId = simulationId, ConfigJson = configJson, Count = count });
+    }
+
+    /// <summary>
+    /// Query the progress of a previously enqueued batch simulation.
+    /// </summary>
+    public async Task<GetSimulationProgressResponse> GetSimulationProgressAsync(string simulationId)
+    {
+        return await simulation.GetSimulationProgressAsync(
+            new GetSimulationProgressRequest { SimulationId = simulationId });
+    }
 }
