@@ -92,6 +92,7 @@ export function OnlineGameScreen({
         game.state.pieceRemovals,
         game.state.timeReductions,
       );
+      record.isOnline = true;
       onGameComplete?.(record);
     }
   }, [gameIsOver, game.state, config, onGameComplete]);

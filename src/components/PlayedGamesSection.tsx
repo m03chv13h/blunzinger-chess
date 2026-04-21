@@ -291,17 +291,23 @@ function isSpectatedGame(game: GameRecord): boolean {
   return game.config.mode === 'hvh' || game.config.mode === 'botvbot';
 }
 
+export type ConnectionFilter = 'all' | 'online' | 'offline';
+
 export function PlayedGamesSection({
   games,
   onAnalyseGame,
 }: PlayedGamesSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [includeSpectated, setIncludeSpectated] = useState(true);
+  const [connectionFilter, setConnectionFilter] = useState<ConnectionFilter>('all');
 
   // Filter out spectated games when the checkbox is unchecked
-  const filteredGames = includeSpectated
-    ? games
-    : games.filter((g) => !isSpectatedGame(g));
+  const filteredGames = games.filter((g) => {
+    if (!includeSpectated && isSpectatedGame(g)) return false;
+    if (connectionFilter === 'online' && !g.isOnline) return false;
+    if (connectionFilter === 'offline' && g.isOnline) return false;
+    return true;
+  });
 
   // Sort games by completedAt descending (most recent first)
   const sortedGames = [...filteredGames].sort((a, b) => b.completedAt - a.completedAt);
@@ -333,14 +339,30 @@ export function PlayedGamesSection({
         <h2>🎮 Played Games</h2>
 
         {/* Filter controls */}
-        <label className="played-games-filter">
-          <input
-            type="checkbox"
-            checked={includeSpectated}
-            onChange={(e) => setIncludeSpectated(e.target.checked)}
-          />
-          Include spectated games
-        </label>
+        <div className="played-games-filters">
+          <label className="played-games-filter">
+            <input
+              type="checkbox"
+              checked={includeSpectated}
+              onChange={(e) => setIncludeSpectated(e.target.checked)}
+            />
+            Include spectated games
+          </label>
+
+          <div className="connection-filter" role="radiogroup" aria-label="Connection filter">
+            {(['all', 'online', 'offline'] as const).map((value) => (
+              <button
+                key={value}
+                className={`connection-filter-btn${connectionFilter === value ? ' connection-filter-btn--active' : ''}`}
+                onClick={() => setConnectionFilter(value)}
+                role="radio"
+                aria-checked={connectionFilter === value}
+              >
+                {value === 'all' ? '🌐 All' : value === 'online' ? '🟢 Online' : '📴 Offline'}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Timeline – always visible */}
         <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />
