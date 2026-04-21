@@ -400,6 +400,15 @@ public class GameHub(
         });
     }
 
+    /// <summary>Decline a draw offer.</summary>
+    public async Task DeclineDraw(string roomCode)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("DrawDeclined");
+    }
+
     /// <summary>Accept a draw offer.</summary>
     public async Task AcceptDraw(string roomCode)
     {

@@ -49,6 +49,7 @@ export function OnlineGameScreen({
   const [hubError, setHubError] = useState<string | null>(null);
   const [drawOffered, setDrawOffered] = useState(false);
   const [drawPending, setDrawPending] = useState(false);
+  const [drawDeclined, setDrawDeclined] = useState(false);
   const [resignConfirm, setResignConfirm] = useState(false);
   const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
   const [disconnectCountdown, setDisconnectCountdown] = useState<number | null>(null);
@@ -197,6 +198,11 @@ export function OnlineGameScreen({
     setDrawOffered(true);
   }, []);
 
+  const handleDrawDeclined = useCallback(() => {
+    setDrawPending(false);
+    setDrawDeclined(true);
+  }, []);
+
   const handleError = useCallback((msg: string) => {
     setHubError(msg);
   }, []);
@@ -211,6 +217,7 @@ export function OnlineGameScreen({
     onOpponentReconnected: handleOpponentReconnected,
     onGameOver: handleGameOver,
     onDrawOffered: handleDrawOffered,
+    onDrawDeclined: handleDrawDeclined,
     onError: handleError,
   });
 
@@ -354,6 +361,7 @@ export function OnlineGameScreen({
 
   const handleOfferDraw = useCallback(() => {
     setDrawPending(true);
+    setDrawDeclined(false);
     hub.offerDraw(roomCode).catch(() => {
       setHubError('Failed to offer draw');
     });
@@ -368,7 +376,10 @@ export function OnlineGameScreen({
 
   const handleDeclineDraw = useCallback(() => {
     setDrawOffered(false);
-  }, []);
+    hub.declineDraw(roomCode).catch(() => {
+      setHubError('Failed to decline draw');
+    });
+  }, [hub, roomCode]);
 
   // ── Review ─────────────────────────────────────────────────────────
 
@@ -525,7 +536,7 @@ export function OnlineGameScreen({
                 </button>
               )}
 
-              {!drawPending && !drawOffered && (
+              {!drawPending && !drawDeclined && !drawOffered && (
                 <button
                   className="online-game-draw-btn"
                   onClick={handleOfferDraw}
@@ -535,6 +546,17 @@ export function OnlineGameScreen({
               )}
               {drawPending && (
                 <p className="online-game-draw-pending">Draw offer sent…</p>
+              )}
+              {drawDeclined && (
+                <p className="online-game-draw-declined">
+                  Draw declined.{' '}
+                  <button
+                    className="online-game-draw-btn"
+                    onClick={handleOfferDraw}
+                  >
+                    🤝 Offer again
+                  </button>
+                </p>
               )}
             </div>
           )}
