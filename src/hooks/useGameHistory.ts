@@ -36,6 +36,7 @@ export function gameDetailToRecord(detail: GameDetail): GameRecord {
     missedChecks: [],
     pieceRemovals: [],
     timeReductions: [],
+    isOnline: detail.gameMode === 'multiplayer',
   };
 }
 
@@ -100,7 +101,7 @@ export function useGameHistory(): UseGameHistory {
         moveHistory: JSON.stringify(record.moveHistory),
         finalFen: record.finalFen,
         moveCount: record.moveCount,
-        gameMode: 'local',
+        gameMode: record.isOnline ? 'multiplayer' : 'local',
       };
       const res = await saveGame(req);
       return res.gameId;

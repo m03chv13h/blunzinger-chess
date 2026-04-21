@@ -96,4 +96,14 @@ describe('gameDetailToRecord', () => {
     expect(record.pieceRemovals).toEqual([]);
     expect(record.timeReductions).toEqual([]);
   });
+
+  it('marks game as online when gameMode is multiplayer', () => {
+    const record = gameDetailToRecord(makeDetail({ gameMode: 'multiplayer' }));
+    expect(record.isOnline).toBe(true);
+  });
+
+  it('marks game as not online when gameMode is local', () => {
+    const record = gameDetailToRecord(makeDetail({ gameMode: 'local' }));
+    expect(record.isOnline).toBe(false);
+  });
 });
