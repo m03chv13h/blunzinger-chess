@@ -1,6 +1,7 @@
 import { beforeEach } from 'vitest';
 
-// Reset browser URL state between tests so navigation hash doesn't leak.
+// Reset browser URL state and localStorage between tests so state doesn't leak.
 beforeEach(() => {
   window.location.hash = '';
+  localStorage.removeItem('blunziger-chess-game-history');
 });

@@ -78,9 +78,31 @@ function App() {
   });
   const [lastConfig, setLastConfig] = useState<GameSetupConfig>(DEFAULT_SETUP_CONFIG);
   const [showEvalBar, setShowEvalBar] = useState(false);
-  const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
+  const [gameHistory, setGameHistory] = useState<GameRecord[]>(() => {
+    try {
+      const stored = localStorage.getItem('blunziger-chess-game-history');
+      if (stored) {
+        const parsed: GameRecord[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // Ignore corrupted data
+    }
+    return [];
+  });
   const [simulationHistory, setSimulationHistory] = useState<SimulationRecord[]>([]);
   const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
+
+  // Persist game history to localStorage whenever it changes.
+  useEffect(() => {
+    try {
+      // Cap at 200 most-recent games to prevent localStorage overflow.
+      const toStore = gameHistory.length > 200 ? gameHistory.slice(0, 200) : gameHistory;
+      localStorage.setItem('blunziger-chess-game-history', JSON.stringify(toStore));
+    } catch {
+      // Ignore quota-exceeded or other storage errors
+    }
+  }, [gameHistory]);
 
   // Backend-connected hooks (no-ops in static mode).
   const gameHistoryBackend = useGameHistory();

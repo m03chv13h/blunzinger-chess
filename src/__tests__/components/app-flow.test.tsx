@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../../App';
 import { GameStatus } from '../../components/GameStatus';
@@ -694,6 +694,35 @@ describe('App game flow', () => {
       // Both games should be displayed (two "Black wins" cards – hvh has no user perspective)
       const resultCards = screen.getAllByText('Black wins');
       expect(resultCards.length).toBe(2);
+    });
+
+    it('persists games to localStorage so they survive page refresh', () => {
+      completeGameAndGoToGames();
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
+
+      // Verify the game was saved to localStorage
+      const stored = localStorage.getItem('blunziger-chess-game-history');
+      expect(stored).not.toBeNull();
+      const parsed = JSON.parse(stored!);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].result.winner).toBe('b');
+      expect(parsed[0].result.reason).toBe('checkmate');
+    });
+
+    it('restores games from localStorage on fresh render', () => {
+      completeGameAndGoToGames();
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
+
+      // Unmount and re-render — simulates a page refresh while keeping localStorage
+      cleanup();
+      render(<App />);
+
+      // Navigate to Games
+      fireEvent.click(screen.getByRole('button', { name: /Games/i }));
+
+      // The game should still be there from localStorage
+      expect(screen.getByText('🎮 Played Games')).toBeInTheDocument();
+      expect(screen.getByText('Black wins')).toBeInTheDocument();
     });
   });
 });
