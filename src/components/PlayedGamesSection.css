@@ -113,6 +113,21 @@
   margin-top: 20px;
 }
 
+.games-month-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 12px 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.games-month-heading-row .games-month-heading {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 .games-month-heading {
   font-size: 16px;
   font-weight: 700;
@@ -353,5 +368,59 @@
 
 .played-games-page-info {
   font-size: 12px;
+  color: #666;
+}
+
+/* ── Results Summary ── */
+
+.results-summary-total {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border: 1px solid #d0ddf5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.results-summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.results-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.results-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.results-badge--win {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.results-badge--loss {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.results-badge--draw {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.results-badge--neutral {
+  background: #f5f5f5;
   color: #666;
 }

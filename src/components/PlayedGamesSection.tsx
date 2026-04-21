@@ -5,6 +5,51 @@ import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel, ge
 import { MiniBoard } from './MiniBoard';
 import './PlayedGamesSection.css';
 
+interface ResultsTally {
+  wins: number;
+  losses: number;
+  draws: number;
+  /** Games with no user perspective (botvbot, hvh offline). */
+  neutral: number;
+  total: number;
+}
+
+/** Compute win/loss/draw/neutral tallies for a list of games. */
+function computeResultsTally(games: GameRecord[]): ResultsTally {
+  let wins = 0, losses = 0, draws = 0, neutral = 0;
+  for (const game of games) {
+    const outcome = getUserOutcome(game.result, game.config);
+    if (outcome === null) {
+      neutral++;
+    } else if (outcome === 'win') {
+      wins++;
+    } else if (outcome === 'loss') {
+      losses++;
+    } else {
+      draws++;
+    }
+  }
+  return { wins, losses, draws, neutral, total: games.length };
+}
+
+function ResultsSummary({ tally }: { tally: ResultsTally }) {
+  const parts: React.ReactNode[] = [];
+  if (tally.wins > 0) {
+    parts.push(<span key="w" className="results-badge results-badge--win">{tally.wins}W</span>);
+  }
+  if (tally.losses > 0) {
+    parts.push(<span key="l" className="results-badge results-badge--loss">{tally.losses}L</span>);
+  }
+  if (tally.draws > 0) {
+    parts.push(<span key="d" className="results-badge results-badge--draw">{tally.draws}D</span>);
+  }
+  if (tally.neutral > 0) {
+    parts.push(<span key="n" className="results-badge results-badge--neutral">{tally.neutral} spectated</span>);
+  }
+  if (parts.length === 0) return null;
+  return <span className="results-summary">{parts}</span>;
+}
+
 /** Get a list of enabled overlay labels from a config. */
 function getEnabledOverlays(config: GameSetupConfig): string[] {
   const overlays: { flag: boolean; label: string }[] = [
@@ -262,6 +307,15 @@ export function PlayedGamesSection({
     }
   }
 
+  // Compute overall tally
+  const totalTally = computeResultsTally(sortedGames);
+
+  // Compute per-month tallies by collecting all games for each month
+  function getMonthGames(monthKey: string): GameRecord[] {
+    const dates = monthGroups.get(monthKey) ?? [];
+    return dates.flatMap((dk) => dateGroups.get(dk) ?? []);
+  }
+
   return (
     <div className="played-games-section" ref={containerRef}>
       <div className="played-games-card">
@@ -269,6 +323,14 @@ export function PlayedGamesSection({
 
         {/* Timeline – always visible */}
         <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />
+
+        {/* Total results summary */}
+        {sortedGames.length > 0 && (
+          <div className="results-summary-total">
+            <span className="results-summary-label">Total ({totalTally.total} game{totalTally.total !== 1 ? 's' : ''}):</span>
+            <ResultsSummary tally={totalTally} />
+          </div>
+        )}
 
         {/* Empty message when no games */}
         {sortedGames.length === 0 && (
@@ -279,21 +341,27 @@ export function PlayedGamesSection({
         )}
 
         {/* Games grouped by month and date */}
-        {monthKeys.map((monthKey) => (
-          <div key={monthKey} className="games-month-group">
-            <h3 className="games-month-heading">{formatMonth(monthKey)}</h3>
-            {(monthGroups.get(monthKey) ?? []).map((dateKey) => (
-              <div key={dateKey} className="games-date-group" data-date={dateKey}>
-                <h4 className="games-date-heading">{formatDate(dateKey)}</h4>
-                <div className="games-list">
-                  {(dateGroups.get(dateKey) ?? []).map((game) => (
-                    <GameCard key={game.id} game={game} onAnalyse={onAnalyseGame} />
-                  ))}
-                </div>
+        {monthKeys.map((monthKey) => {
+          const monthTally = computeResultsTally(getMonthGames(monthKey));
+          return (
+            <div key={monthKey} className="games-month-group">
+              <div className="games-month-heading-row">
+                <h3 className="games-month-heading">{formatMonth(monthKey)}</h3>
+                <ResultsSummary tally={monthTally} />
               </div>
-            ))}
-          </div>
-        ))}
+              {(monthGroups.get(monthKey) ?? []).map((dateKey) => (
+                <div key={dateKey} className="games-date-group" data-date={dateKey}>
+                  <h4 className="games-date-heading">{formatDate(dateKey)}</h4>
+                  <div className="games-list">
+                    {(dateGroups.get(dateKey) ?? []).map((game) => (
+                      <GameCard key={game.id} game={game} onAnalyse={onAnalyseGame} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

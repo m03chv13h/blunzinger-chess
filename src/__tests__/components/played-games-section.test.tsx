@@ -352,4 +352,104 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText(formattedMonth)).toBeInTheDocument();
     });
   });
+
+  describe('results summary', () => {
+    it('shows total results summary with game count', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+    });
+
+    it('shows plural game count in total summary', () => {
+      const game1 = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const game2 = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[game1, game2]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText(/Total \(2 games\)/)).toBeInTheDocument();
+    });
+
+    it('does not show total summary when there are no games', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.queryByText(/Total/)).not.toBeInTheDocument();
+    });
+
+    it('shows win badge in total summary for hvbot win', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      const totalSection = container.querySelector('.results-summary-total');
+      expect(totalSection).toBeInTheDocument();
+      expect(totalSection!.querySelector('.results-badge--win')).toBeInTheDocument();
+      expect(totalSection!.querySelector('.results-badge--win')!.textContent).toBe('1W');
+    });
+
+    it('shows loss and draw badges for mixed results', () => {
+      const winGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const lossGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const drawGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'draw', reason: 'stalemate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[winGame, lossGame, drawGame]} onAnalyseGame={() => {}} />,
+      );
+      const totalSection = container.querySelector('.results-summary-total');
+      expect(totalSection!.querySelector('.results-badge--win')!.textContent).toBe('1W');
+      expect(totalSection!.querySelector('.results-badge--loss')!.textContent).toBe('1L');
+      expect(totalSection!.querySelector('.results-badge--draw')!.textContent).toBe('1D');
+    });
+
+    it('shows spectated badge for hvh/botvbot games', () => {
+      const hvhGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const botvbotGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[hvhGame, botvbotGame]} onAnalyseGame={() => {}} />,
+      );
+      const totalSection = container.querySelector('.results-summary-total');
+      expect(totalSection!.querySelector('.results-badge--neutral')!.textContent).toBe('2 spectated');
+    });
+
+    it('shows per-month summary badges', () => {
+      const game = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const { container } = render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} />,
+      );
+      const monthRow = container.querySelector('.games-month-heading-row');
+      expect(monthRow).toBeInTheDocument();
+      expect(monthRow!.querySelector('.results-badge--win')).toBeInTheDocument();
+    });
+  });
 });
