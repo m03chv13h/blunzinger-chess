@@ -22,6 +22,22 @@
   color: #1a1a2e;
 }
 
+/* ── Filter ── */
+
+.played-games-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.played-games-filter input[type="checkbox"] {
+  cursor: pointer;
+}
+
 .played-games-empty {
   text-align: center;
   color: #666;
