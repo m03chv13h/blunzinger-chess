@@ -286,14 +286,25 @@ function GameCard({
   );
 }
 
+/** A game is "spectated" when the user had no active role (hvh or botvbot). */
+function isSpectatedGame(game: GameRecord): boolean {
+  return game.config.mode === 'hvh' || game.config.mode === 'botvbot';
+}
+
 export function PlayedGamesSection({
   games,
   onAnalyseGame,
 }: PlayedGamesSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [includeSpectated, setIncludeSpectated] = useState(true);
+
+  // Filter out spectated games when the checkbox is unchecked
+  const filteredGames = includeSpectated
+    ? games
+    : games.filter((g) => !isSpectatedGame(g));
 
   // Sort games by completedAt descending (most recent first)
-  const sortedGames = [...games].sort((a, b) => b.completedAt - a.completedAt);
+  const sortedGames = [...filteredGames].sort((a, b) => b.completedAt - a.completedAt);
 
   const dateGroups = groupByDate(sortedGames);
   const dateKeys = Array.from(dateGroups.keys()).sort((a, b) => b.localeCompare(a));
@@ -320,6 +331,16 @@ export function PlayedGamesSection({
     <div className="played-games-section" ref={containerRef}>
       <div className="played-games-card">
         <h2>🎮 Played Games</h2>
+
+        {/* Filter controls */}
+        <label className="played-games-filter">
+          <input
+            type="checkbox"
+            checked={includeSpectated}
+            onChange={(e) => setIncludeSpectated(e.target.checked)}
+          />
+          Include spectated games
+        </label>
 
         {/* Timeline – always visible */}
         <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />

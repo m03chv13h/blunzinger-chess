@@ -452,4 +452,96 @@ describe('PlayedGamesSection', () => {
       expect(monthRow!.querySelector('.results-badge--win')).toBeInTheDocument();
     });
   });
+
+  describe('spectated games filter', () => {
+    it('shows the include spectated games checkbox', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByLabelText('Include spectated games')).toBeInTheDocument();
+    });
+
+    it('checkbox is checked by default', () => {
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} />,
+      );
+      const checkbox = screen.getByLabelText('Include spectated games') as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+    });
+
+    it('shows spectated games when checkbox is checked (default)', () => {
+      const hvhGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const hvbotGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[hvhGame, hvbotGame]} onAnalyseGame={() => {}} />,
+      );
+      expect(screen.getByText(/Total \(2 games\)/)).toBeInTheDocument();
+    });
+
+    it('hides spectated games when checkbox is unchecked', () => {
+      const hvhGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      const botvbotGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+        result: { winner: 'b', reason: 'checkmate' },
+      });
+      const hvbotGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvbot', botSide: 'b' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[hvhGame, botvbotGame, hvbotGame]} onAnalyseGame={() => {}} />,
+      );
+      // All 3 games visible initially
+      expect(screen.getByText(/Total \(3 games\)/)).toBeInTheDocument();
+
+      // Uncheck the filter
+      fireEvent.click(screen.getByLabelText('Include spectated games'));
+
+      // Only hvbot game remains
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+    });
+
+    it('shows empty message when all games are spectated and filter is unchecked', () => {
+      const hvhGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[hvhGame]} onAnalyseGame={() => {}} />,
+      );
+      // Uncheck the filter
+      fireEvent.click(screen.getByLabelText('Include spectated games'));
+
+      // Should show empty message
+      expect(screen.getByText(/No games played yet/)).toBeInTheDocument();
+    });
+
+    it('re-shows spectated games when checkbox is re-checked', () => {
+      const hvhGame = makeGameRecord({
+        config: { ...DEFAULT_SETUP_CONFIG, mode: 'hvh' },
+        result: { winner: 'w', reason: 'checkmate' },
+      });
+      render(
+        <PlayedGamesSection games={[hvhGame]} onAnalyseGame={() => {}} />,
+      );
+      const checkbox = screen.getByLabelText('Include spectated games');
+
+      // Uncheck
+      fireEvent.click(checkbox);
+      expect(screen.getByText(/No games played yet/)).toBeInTheDocument();
+
+      // Re-check
+      fireEvent.click(checkbox);
+      expect(screen.getByText(/Total \(1 game\)/)).toBeInTheDocument();
+    });
+  });
 });
