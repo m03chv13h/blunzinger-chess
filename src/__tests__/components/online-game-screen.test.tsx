@@ -30,6 +30,7 @@ const mockHub = {
   resignGame: vi.fn().mockResolvedValue(undefined),
   offerDraw: vi.fn().mockResolvedValue(undefined),
   acceptDraw: vi.fn().mockResolvedValue(undefined),
+  declineDraw: vi.fn().mockResolvedValue(undefined),
   endGame: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -729,5 +730,95 @@ describe('OnlineGameScreen – game completion callback', () => {
     );
 
     expect(onGameComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('OnlineGameScreen – draw decline notification', () => {
+  beforeEach(() => {
+    mockSetResult.mockClear();
+    capturedCallbacks = {};
+  });
+
+  it('shows "Draw declined" when opponent declines the draw offer', () => {
+    mockGameState = makeGameState();
+    mockHub.offerDraw.mockClear();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="DRAW_ROOM"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Offer a draw
+    const drawBtn = screen.getByText('🤝 Offer Draw');
+    fireEvent.click(drawBtn);
+    expect(screen.getByText('Draw offer sent…')).toBeInTheDocument();
+
+    // Opponent declines
+    act(() => {
+      capturedCallbacks.onDrawDeclined?.();
+    });
+
+    expect(screen.queryByText('Draw offer sent…')).not.toBeInTheDocument();
+    expect(screen.getByText('Draw declined.')).toBeInTheDocument();
+  });
+
+  it('allows offering a draw again after decline', () => {
+    mockGameState = makeGameState();
+    mockHub.offerDraw.mockClear();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="DRAW_ROOM"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Offer → decline
+    fireEvent.click(screen.getByText('🤝 Offer Draw'));
+    act(() => {
+      capturedCallbacks.onDrawDeclined?.();
+    });
+
+    // Offer again button should be visible
+    const offerAgainBtn = screen.getByText('🤝 Offer again');
+    fireEvent.click(offerAgainBtn);
+
+    // Should now show pending state again
+    expect(screen.getByText('Draw offer sent…')).toBeInTheDocument();
+    expect(mockHub.offerDraw).toHaveBeenCalledTimes(2);
+  });
+
+  it('calls hub.declineDraw when decline button is clicked', () => {
+    mockGameState = makeGameState();
+    mockHub.declineDraw.mockClear();
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="DRAW_ROOM"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Simulate receiving a draw offer
+    act(() => {
+      capturedCallbacks.onDrawOffered?.({ offeredBy: 'opp-id' });
+    });
+
+    expect(screen.getByText('Your opponent offers a draw.')).toBeInTheDocument();
+
+    // Click decline
+    fireEvent.click(screen.getByText('❌ Decline'));
+    expect(mockHub.declineDraw).toHaveBeenCalledWith('DRAW_ROOM');
   });
 });

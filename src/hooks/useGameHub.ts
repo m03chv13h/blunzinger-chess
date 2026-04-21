@@ -108,6 +108,7 @@ export interface GameHubCallbacks {
   onMoveRejected?: (event: MoveRejectedEvent) => void;
   onGameOver?: (event: GameOverEvent) => void;
   onDrawOffered?: (event: DrawOfferedEvent) => void;
+  onDrawDeclined?: () => void;
   onMatchFound?: (event: MatchFoundEvent) => void;
   onOpponentMoved?: (event: OpponentMovedEvent) => void;
   onOpponentDropMove?: (event: OpponentDropMoveEvent) => void;
@@ -144,6 +145,8 @@ export interface UseGameHub {
   offerDraw: (roomCode: string) => Promise<void>;
   /** Accept a draw. */
   acceptDraw: (roomCode: string) => Promise<void>;
+  /** Decline a draw. */
+  declineDraw: (roomCode: string) => Promise<void>;
   /** Notify the server the game has ended (client-side detection). */
   endGame: (roomCode: string) => Promise<void>;
   /** Relay a move to the opponent (client-side engine). */
@@ -188,6 +191,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     connection.on('MoveRejected', (e: MoveRejectedEvent) => callbacksRef.current.onMoveRejected?.(e));
     connection.on('GameOver', (e: GameOverEvent) => callbacksRef.current.onGameOver?.(e));
     connection.on('DrawOffered', (e: DrawOfferedEvent) => callbacksRef.current.onDrawOffered?.(e));
+    connection.on('DrawDeclined', () => callbacksRef.current.onDrawDeclined?.());
     connection.on('MatchFound', (e: MatchFoundEvent) => callbacksRef.current.onMatchFound?.(e));
     connection.on('OpponentMoved', (e: OpponentMovedEvent) => callbacksRef.current.onOpponentMoved?.(e));
     connection.on('OpponentDropMove', (e: OpponentDropMoveEvent) => callbacksRef.current.onOpponentDropMove?.(e));
@@ -240,6 +244,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
   const resignGame = useCallback((roomCode: string) => invoke('ResignGame', roomCode), [invoke]);
   const offerDraw = useCallback((roomCode: string) => invoke('OfferDraw', roomCode), [invoke]);
   const acceptDraw = useCallback((roomCode: string) => invoke('AcceptDraw', roomCode), [invoke]);
+  const declineDraw = useCallback((roomCode: string) => invoke('DeclineDraw', roomCode), [invoke]);
   const endGame = useCallback((roomCode: string) => invoke('EndGame', roomCode), [invoke]);
 
   // ── Client-side relay methods ──────────────────────────────────────
@@ -272,6 +277,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     resignGame,
     offerDraw,
     acceptDraw,
+    declineDraw,
     endGame,
     sendMove,
     sendDropMove,
