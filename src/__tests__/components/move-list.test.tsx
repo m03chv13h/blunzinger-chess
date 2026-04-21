@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MoveList } from '../../components/MoveList';
 import type { Move, Color } from 'chess.js';
@@ -535,5 +535,49 @@ describe('MoveList – mobile-friendly tooltip attributes', () => {
     expect(label).not.toBeNull();
     expect(label!.getAttribute('data-tooltip')).toBe('Extra move (penalty)');
     expect(label!.getAttribute('tabindex')).toBe('0');
+  });
+});
+
+describe('MoveList – defaultCollapsed sync', () => {
+  it('should expand when defaultCollapsed changes from true to false', () => {
+    const moves = [w('e4'), b('d5'), w('exd5')];
+    const { rerender } = render(<MoveList moves={moves} defaultCollapsed={true} />);
+    // Content should be hidden when collapsed
+    expect(screen.queryByText('#')).not.toBeInTheDocument();
+
+    // Simulate game ending: defaultCollapsed becomes false
+    rerender(<MoveList moves={moves} defaultCollapsed={false} />);
+    // Content should now be visible
+    expect(screen.getByText('#')).toBeInTheDocument();
+    expect(screen.getByText('e4')).toBeInTheDocument();
+    expect(screen.getByText('d5')).toBeInTheDocument();
+    expect(screen.getByText('exd5')).toBeInTheDocument();
+  });
+
+  it('should collapse when defaultCollapsed changes from false to true', () => {
+    const moves = [w('e4'), b('d5')];
+    const { rerender } = render(<MoveList moves={moves} defaultCollapsed={false} />);
+    // Content should be visible
+    expect(screen.getByText('#')).toBeInTheDocument();
+
+    // Simulate new game starting: defaultCollapsed becomes true
+    rerender(<MoveList moves={moves} defaultCollapsed={true} />);
+    // Content should now be hidden
+    expect(screen.queryByText('#')).not.toBeInTheDocument();
+  });
+
+  it('should allow manual toggle and then sync when defaultCollapsed changes', () => {
+    const moves = [w('e4'), b('d5')];
+    const { rerender } = render(<MoveList moves={moves} defaultCollapsed={true} />);
+    // Collapsed by default
+    expect(screen.queryByText('#')).not.toBeInTheDocument();
+
+    // User manually expands
+    fireEvent.click(screen.getByText(/Moves/));
+    expect(screen.getByText('#')).toBeInTheDocument();
+
+    // Game ends: defaultCollapsed becomes false, content stays visible
+    rerender(<MoveList moves={moves} defaultCollapsed={false} />);
+    expect(screen.getByText('#')).toBeInTheDocument();
   });
 });
