@@ -50,6 +50,16 @@ export interface PaginatedGames {
   pageSize: number;
 }
 
+// ── Filters ──────────────────────────────────────────────────────────
+
+/** Server-side filters for the games list endpoint. */
+export interface GameFilters {
+  /** Filter by game mode: "local" (offline) or "multiplayer" (online). */
+  gameMode?: 'local' | 'multiplayer';
+  /** When false, exclude spectated games (hvh / botvbot). Defaults to true. */
+  includeSpectated?: boolean;
+}
+
 // ── API calls ────────────────────────────────────────────────────────
 
 /** Save a completed game to the backend. */
@@ -60,9 +70,20 @@ export async function saveGame(req: SaveGameRequest): Promise<SaveGameResponse> 
   });
 }
 
-/** List the current user's games (paginated). */
-export async function listGames(page = 1, pageSize = 20): Promise<PaginatedGames> {
-  return apiFetch<PaginatedGames>(`/api/games?page=${page}&pageSize=${pageSize}`);
+/** List the current user's games (paginated, with optional server-side filters). */
+export async function listGames(
+  page = 1,
+  pageSize = 20,
+  filters?: GameFilters,
+): Promise<PaginatedGames> {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (filters?.gameMode) {
+    params.set('gameMode', filters.gameMode);
+  }
+  if (filters?.includeSpectated === false) {
+    params.set('includeSpectated', 'false');
+  }
+  return apiFetch<PaginatedGames>(`/api/games?${params.toString()}`);
 }
 
 /** Fetch a single game by ID. */

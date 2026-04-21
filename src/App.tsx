@@ -25,6 +25,7 @@ import { RulesPanel } from './components/RulesPanel';
 import { RulesPage } from './components/RulesPage';
 import { AnalyseSection } from './components/AnalyseSection';
 import { PlayedGamesSection } from './components/PlayedGamesSection';
+import type { ConnectionFilter } from './components/PlayedGamesSection';
 import { SimulationSetupScreen } from './components/SimulationSetupScreen';
 import { SimulationView } from './components/SimulationView';
 import { EvaluationBar } from './components/EvaluationBar';
@@ -43,6 +44,7 @@ import { useReview } from './hooks/useReview';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
 import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
+import type { GameFilters } from './hooks/useGameHistory';
 import { useUserProfile } from './hooks/useUserProfile';
 import './App.css';
 
@@ -109,6 +111,9 @@ function App() {
   const {
     remoteGames,
     remoteTotal,
+    page: remotePage,
+    loading: remoteLoading,
+    error: remoteError,
     fetchPage: fetchRemotePage,
     saveGameToBackend,
     fetchGameForReview,
@@ -505,6 +510,10 @@ function App() {
 
   const gamesCount = isConnectedMode ? (remoteTotal || gameHistory.length) : gameHistory.length;
 
+  // ── Server-side filters for the Games section (connected mode) ──
+  const GAMES_PAGE_SIZE = 20;
+  const gamesFiltersRef = useRef<GameFilters>({});
+
   // Fetch remote games when navigating to the Analyse tab (connected mode).
   useEffect(() => {
     if (screen.type === 'analyse' && isConnectedMode) {
@@ -515,9 +524,29 @@ function App() {
   // Fetch remote games when navigating to the Games section (connected mode).
   useEffect(() => {
     if (screen.type === 'games' && isConnectedMode) {
-      fetchRemotePage(1, 100);
+      gamesFiltersRef.current = {};
+      fetchRemotePage(1, GAMES_PAGE_SIZE);
     }
   }, [screen.type, fetchRemotePage]);
+
+  /** Convert UI filter state to API-level GameFilters. */
+  const toGameFilters = useCallback((f: { connectionFilter: ConnectionFilter; includeSpectated: boolean }): GameFilters => {
+    const filters: GameFilters = {};
+    if (f.connectionFilter === 'online') filters.gameMode = 'multiplayer';
+    else if (f.connectionFilter === 'offline') filters.gameMode = 'local';
+    if (!f.includeSpectated) filters.includeSpectated = false;
+    return filters;
+  }, []);
+
+  const handleGamesFilterChange = useCallback((f: { connectionFilter: ConnectionFilter; includeSpectated: boolean }) => {
+    const filters = toGameFilters(f);
+    gamesFiltersRef.current = filters;
+    fetchRemotePage(1, GAMES_PAGE_SIZE, filters);
+  }, [fetchRemotePage, toGameFilters]);
+
+  const handleGamesPageChange = useCallback((p: number) => {
+    fetchRemotePage(p, GAMES_PAGE_SIZE, gamesFiltersRef.current);
+  }, [fetchRemotePage]);
 
   // In connected mode, use backend games for the Games section (ordered by latest first).
   // Falls back to local gameHistory in static mode or when backend has no results.
@@ -610,6 +639,15 @@ function App() {
               <PlayedGamesSection
                 games={gamesForDisplay}
                 onAnalyseGame={handleSelectRemoteGameForReview}
+                remoteMode={isConnectedMode ? {
+                  page: remotePage,
+                  totalGames: remoteTotal,
+                  pageSize: GAMES_PAGE_SIZE,
+                  loading: remoteLoading,
+                  error: remoteError,
+                  onFilterChange: handleGamesFilterChange,
+                  onPageChange: handleGamesPageChange,
+                } : undefined}
               />
             )}
             {screen.type === 'online' && (

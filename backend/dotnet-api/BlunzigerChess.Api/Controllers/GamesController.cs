@@ -45,15 +45,33 @@ public class GamesController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListGames(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? gameMode = null,
+        [FromQuery] bool includeSpectated = true)
     {
         var userId = GetUserId();
         pageSize = Math.Clamp(pageSize, 1, 100);
         page = Math.Max(1, page);
 
         var query = db.Games
-            .Where(g => g.UserId == userId)
-            .OrderByDescending(g => g.CompletedAt ?? g.CreatedAt);
+            .Where(g => g.UserId == userId);
+
+        // Server-side filter: online ("multiplayer") vs offline ("local").
+        if (!string.IsNullOrEmpty(gameMode))
+        {
+            query = query.Where(g => g.GameMode == gameMode);
+        }
+
+        // Server-side filter: exclude spectated games (hvh / botvbot).
+        // MatchConfig is a jsonb column; use the PostgreSQL @> containment operator.
+        if (!includeSpectated)
+        {
+            query = query.Where(g =>
+                !EF.Functions.JsonContains(g.MatchConfig, @"{""mode"":""hvh""}") &&
+                !EF.Functions.JsonContains(g.MatchConfig, @"{""mode"":""botvbot""}"));
+        }
+
+        query = query.OrderByDescending(g => g.CompletedAt ?? g.CreatedAt);
 
         var total = await query.CountAsync();
         var games = await query
