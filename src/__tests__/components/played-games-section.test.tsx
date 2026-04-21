@@ -693,4 +693,161 @@ describe('PlayedGamesSection', () => {
       expect(screen.getByText('Victory')).toBeInTheDocument();
     });
   });
+
+  describe('remote mode (server-side filtering + pagination)', () => {
+    function makeRemoteMode(overrides: Partial<React.ComponentProps<typeof PlayedGamesSection>['remoteMode']> = {}) {
+      return {
+        page: 1,
+        totalGames: 50,
+        pageSize: 20,
+        loading: false,
+        error: null,
+        onFilterChange: vi.fn(),
+        onPageChange: vi.fn(),
+        ...overrides,
+      } as NonNullable<React.ComponentProps<typeof PlayedGamesSection>['remoteMode']>;
+    }
+
+    it('shows pagination controls when totalGames > pageSize', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ totalGames: 50, pageSize: 20, page: 1 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText('← Prev')).toBeInTheDocument();
+      expect(screen.getByText('Next →')).toBeInTheDocument();
+      expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
+    });
+
+    it('does not show pagination when totalGames <= pageSize', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ totalGames: 5, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.queryByText('← Prev')).not.toBeInTheDocument();
+      expect(screen.queryByText('Next →')).not.toBeInTheDocument();
+    });
+
+    it('disables Prev button on first page', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ page: 1, totalGames: 50, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText('← Prev')).toBeDisabled();
+      expect(screen.getByText('Next →')).not.toBeDisabled();
+    });
+
+    it('disables Next button on last page', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ page: 3, totalGames: 50, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText('← Prev')).not.toBeDisabled();
+      expect(screen.getByText('Next →')).toBeDisabled();
+    });
+
+    it('calls onPageChange when Next is clicked', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ page: 1, totalGames: 50, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      fireEvent.click(screen.getByText('Next →'));
+      expect(remoteMode.onPageChange).toHaveBeenCalledWith(2);
+    });
+
+    it('calls onPageChange when Prev is clicked', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode({ page: 2, totalGames: 50, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      fireEvent.click(screen.getByText('← Prev'));
+      expect(remoteMode.onPageChange).toHaveBeenCalledWith(1);
+    });
+
+    it('calls onFilterChange when connection filter changes', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode();
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      expect(remoteMode.onFilterChange).toHaveBeenCalledWith({
+        connectionFilter: 'online',
+        includeSpectated: true,
+      });
+    });
+
+    it('calls onFilterChange when spectated checkbox is toggled', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode();
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      fireEvent.click(screen.getByLabelText('Include spectated games'));
+      expect(remoteMode.onFilterChange).toHaveBeenCalledWith({
+        connectionFilter: 'all',
+        includeSpectated: false,
+      });
+    });
+
+    it('does not call onFilterChange on initial render (skips first effect)', () => {
+      const game = makeGameRecord();
+      const remoteMode = makeRemoteMode();
+      render(
+        <PlayedGamesSection games={[game]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      // The initial render should NOT trigger onFilterChange — parent already fetched.
+      expect(remoteMode.onFilterChange).not.toHaveBeenCalled();
+    });
+
+    it('shows "Showing X of Y" instead of "Total" in remote mode', () => {
+      const games = [makeGameRecord(), makeGameRecord()];
+      const remoteMode = makeRemoteMode({ totalGames: 50, pageSize: 20 });
+      render(
+        <PlayedGamesSection games={games} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText(/Showing 2 of 50 games/)).toBeInTheDocument();
+    });
+
+    it('shows loading indicator when loading', () => {
+      const remoteMode = makeRemoteMode({ loading: true });
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText('Loading games…')).toBeInTheDocument();
+    });
+
+    it('shows error message when there is an error', () => {
+      const remoteMode = makeRemoteMode({ error: 'Network error' });
+      render(
+        <PlayedGamesSection games={[]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+    });
+
+    it('does not apply client-side filtering in remote mode', () => {
+      // In remote mode, even games with isOnline=false should appear regardless of filter state,
+      // because the server already filtered the results.
+      const offlineGame = makeGameRecord({ isOnline: false });
+      const remoteMode = makeRemoteMode();
+      const { rerender } = render(
+        <PlayedGamesSection games={[offlineGame]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      // The game should be visible even after clicking "Online" — in remote mode,
+      // it just triggers onFilterChange callback instead of local filtering.
+      fireEvent.click(screen.getByRole('radio', { name: '🟢 Online' }));
+      // Re-render with the same game still present (server would return different data,
+      // but we're verifying client doesn't filter locally).
+      rerender(
+        <PlayedGamesSection games={[offlineGame]} onAnalyseGame={() => {}} remoteMode={remoteMode} />,
+      );
+      // The offline game is still in the DOM because remote mode skips client-side filtering.
+      expect(screen.queryByText(/No games played yet/)).not.toBeInTheDocument();
+    });
+  });
 });

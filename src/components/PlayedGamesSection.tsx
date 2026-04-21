@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig } from '../core/blunziger/types';
 import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel, getUserOutcome, getUserResultLabel } from '../core/gameRecord';
@@ -66,6 +66,16 @@ function getEnabledOverlays(config: GameSetupConfig): string[] {
 interface PlayedGamesSectionProps {
   games: GameRecord[];
   onAnalyseGame: (game: GameRecord) => void;
+  /** When provided, enables server-side filtering + pagination (connected mode). */
+  remoteMode?: {
+    page: number;
+    totalGames: number;
+    pageSize: number;
+    loading: boolean;
+    error: string | null;
+    onFilterChange: (filters: { connectionFilter: ConnectionFilter; includeSpectated: boolean }) => void;
+    onPageChange: (page: number) => void;
+  };
 }
 
 /** Group games by date key (e.g. "2024-03-15"). */
@@ -296,21 +306,41 @@ export type ConnectionFilter = 'all' | 'online' | 'offline';
 export function PlayedGamesSection({
   games,
   onAnalyseGame,
+  remoteMode,
 }: PlayedGamesSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [includeSpectated, setIncludeSpectated] = useState(true);
   const [connectionFilter, setConnectionFilter] = useState<ConnectionFilter>('all');
 
-  // Filter out spectated games when the checkbox is unchecked
-  const filteredGames = games.filter((g) => {
-    if (!includeSpectated && isSpectatedGame(g)) return false;
-    if (connectionFilter === 'online' && !g.isOnline) return false;
-    if (connectionFilter === 'offline' && g.isOnline) return false;
-    return true;
-  });
+  // In remote mode, notify parent when filters change so it can re-fetch from the server.
+  // Skip the initial render — the parent already fetches page 1 when entering the Games section.
+  const isRemote = !!remoteMode;
+  const filtersInitRef = useRef(false);
+  useEffect(() => {
+    if (!isRemote) return;
+    if (!filtersInitRef.current) {
+      filtersInitRef.current = true;
+      return;
+    }
+    remoteMode.onFilterChange({ connectionFilter, includeSpectated });
+    // remoteMode.onFilterChange is omitted because the parent provides a stable
+    // useCallback reference; including it would cause spurious re-fetches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionFilter, includeSpectated, isRemote]);
+
+  // In local mode, apply client-side filtering. In remote mode, the server already
+  // returns filtered results so we use games as-is.
+  const displayGames = isRemote
+    ? games
+    : games.filter((g) => {
+        if (!includeSpectated && isSpectatedGame(g)) return false;
+        if (connectionFilter === 'online' && !g.isOnline) return false;
+        if (connectionFilter === 'offline' && g.isOnline) return false;
+        return true;
+      });
 
   // Sort games by completedAt descending (most recent first)
-  const sortedGames = [...filteredGames].sort((a, b) => b.completedAt - a.completedAt);
+  const sortedGames = [...displayGames].sort((a, b) => b.completedAt - a.completedAt);
 
   const dateGroups = groupByDate(sortedGames);
   const dateKeys = Array.from(dateGroups.keys()).sort((a, b) => b.localeCompare(a));
@@ -367,16 +397,24 @@ export function PlayedGamesSection({
         {/* Timeline – always visible */}
         <GameTimeline games={sortedGames} onBarClick={handleTimelineBarClick} />
 
-        {/* Total results summary */}
+        {/* Total results summary — in remote mode show the server total */}
         {sortedGames.length > 0 && (
           <div className="results-summary-total">
-            <span className="results-summary-label">Total ({totalTally.total} game{totalTally.total !== 1 ? 's' : ''}):</span>
+            <span className="results-summary-label">
+              {remoteMode
+                ? `Showing ${sortedGames.length} of ${remoteMode.totalGames} game${remoteMode.totalGames !== 1 ? 's' : ''}`
+                : `Total (${totalTally.total} game${totalTally.total !== 1 ? 's' : ''})`}:
+            </span>
             <ResultsSummary tally={totalTally} />
           </div>
         )}
 
+        {/* Remote mode: loading and error indicators */}
+        {remoteMode?.loading && <p className="played-games-remote-loading">Loading games…</p>}
+        {remoteMode?.error && <p className="played-games-remote-error">{remoteMode.error}</p>}
+
         {/* Empty message when no games */}
-        {sortedGames.length === 0 && (
+        {sortedGames.length === 0 && !remoteMode?.loading && (
           <p className="played-games-empty">
             No games played yet. Start a game from <strong>Quick Start</strong> or{' '}
             <strong>New Game</strong> and complete it to see it here.
@@ -405,6 +443,27 @@ export function PlayedGamesSection({
             </div>
           );
         })}
+
+        {/* Pagination (remote mode only) */}
+        {remoteMode && remoteMode.totalGames > remoteMode.pageSize && (
+          <div className="played-games-pagination">
+            <button
+              disabled={remoteMode.page <= 1 || remoteMode.loading}
+              onClick={() => remoteMode.onPageChange(remoteMode.page - 1)}
+            >
+              ← Prev
+            </button>
+            <span className="played-games-page-info">
+              Page {remoteMode.page} of {Math.ceil(remoteMode.totalGames / remoteMode.pageSize)}
+            </span>
+            <button
+              disabled={remoteMode.page >= Math.ceil(remoteMode.totalGames / remoteMode.pageSize) || remoteMode.loading}
+              onClick={() => remoteMode.onPageChange(remoteMode.page + 1)}
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

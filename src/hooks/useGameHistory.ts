@@ -9,6 +9,7 @@
 import { useState, useCallback } from 'react';
 import { isConnectedMode } from '../config/deployMode';
 import type { SaveGameRequest, GameListItem, GameDetail, PaginatedGames } from '../services/gamesService';
+import type { GameFilters } from '../services/gamesService';
 import { saveGame, listGames, getGame } from '../services/gamesService';
 import type { GameRecord } from '../core/gameRecord';
 import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Move } from '../core/blunziger/types';
@@ -75,8 +76,8 @@ export interface UseGameHistory {
   error: string | null;
   /** Save a completed game to the backend. Returns the game ID. */
   saveGameToBackend: (record: GameRecord) => Promise<string | null>;
-  /** Fetch a page of games from the backend. */
-  fetchPage: (page?: number, pageSize?: number) => Promise<void>;
+  /** Fetch a page of games from the backend with optional filters. */
+  fetchPage: (page?: number, pageSize?: number, filters?: GameFilters) => Promise<void>;
   /** Fetch a single remote game and convert it for review. */
   fetchGameForReview: (id: string) => Promise<GameRecord | null>;
 }
@@ -109,12 +110,12 @@ export function useGameHistory(): UseGameHistory {
     }
   }, []);
 
-  const fetchPage = useCallback(async (p = 1, pageSize = 20) => {
+  const fetchPage = useCallback(async (p = 1, pageSize = 20, filters?: GameFilters) => {
     if (!isConnectedMode) return;
     setLoading(true);
     setError(null);
     try {
-      const data: PaginatedGames = await listGames(p, pageSize);
+      const data: PaginatedGames = await listGames(p, pageSize, filters);
       setRemoteGames(data.games);
       setRemoteTotal(data.total);
       setPage(data.page);
