@@ -146,6 +146,7 @@ test.describe('Sidebar Navigation', () => {
     const nav = page.getByRole('navigation');
     await expect(nav.getByText('Quick Start')).toBeVisible();
     await expect(nav.getByText('New Game')).toBeVisible();
+    await expect(nav.getByText('Games')).toBeVisible();
     await expect(nav.getByText('Analyse')).toBeVisible();
     await expect(nav.getByText('Simulate')).toBeVisible();
     await expect(nav.getByText('Rules')).toBeVisible();
@@ -164,6 +165,16 @@ test.describe('Sidebar Navigation', () => {
   test('navigating to Simulate shows simulation setup', async ({ page }) => {
     await page.getByRole('button', { name: /Simulate/i }).click();
     await expect(page.getByText(/Start Simulation/i)).toBeVisible();
+  });
+
+  test('navigating to Games shows played games section', async ({ page }) => {
+    await page.getByRole('button', { name: /Games/i }).click();
+    await expect(page.getByRole('heading', { name: '🎮 Played Games' })).toBeVisible();
+  });
+
+  test('Lobby button is visible in the sidebar', async ({ page }) => {
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByText(/Lobby/i)).toBeVisible();
   });
 
   test('navigating to Rules shows the rules page', async ({ page }) => {
@@ -420,11 +431,37 @@ test.describe('Analyse Section', () => {
     await expect(page.getByRole('heading', { name: '📊 Analyse' })).toBeVisible();
   });
 
-  test('shows empty state message when no games played', async ({ page }) => {
-    await expect(page.getByText(/No games played yet/i)).toBeVisible();
+  test('shows empty state message when no simulations', async ({ page }) => {
+    await expect(page.getByText(/No simulations yet/i)).toBeVisible();
   });
 
   test('shows analyse position form', async ({ page }) => {
     await expect(page.getByText(/Analyse Position/i)).toBeVisible();
+  });
+
+  test('shows FEN input for position analysis', async ({ page }) => {
+    await expect(page.getByLabel('FEN string for analysis')).toBeVisible();
+  });
+
+  test('shows Start Analysis button', async ({ page }) => {
+    await expect(page.getByText('▶ Start Analysis')).toBeVisible();
+  });
+});
+
+// ── 11. Games Section ───────────────────────────────────────────────
+
+test.describe('Games Section', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await skipWelcome(page);
+    await page.getByRole('button', { name: /Games/i }).click();
+  });
+
+  test('shows played games heading', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: '🎮 Played Games' })).toBeVisible();
+  });
+
+  test('shows empty state message when no games played', async ({ page }) => {
+    await expect(page.getByText(/No games played yet/i)).toBeVisible();
   });
 });
