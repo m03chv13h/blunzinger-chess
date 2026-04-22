@@ -16,7 +16,7 @@ interface SimulationDisplayItem {
   draws: number;
   createdAt: string;
   completedAt?: string;
-  status: 'running' | 'completed';
+  status: 'running' | 'completed' | 'abandoned';
 }
 
 /** Convert a remote SimulationListItem to display shape. */
@@ -151,7 +151,10 @@ export function SimulationsOverviewSection({
                 {item.status === 'running' && (
                   <span className="sim-overview-status sim-overview-status--running"> · Running</span>
                 )}
-                {item.status === 'completed' && item.completedAt && (
+                {item.status === 'abandoned' && (
+                  <span className="sim-overview-status sim-overview-status--abandoned"> · Abandoned</span>
+                )}
+                {(item.status === 'completed' || item.status === 'abandoned') && item.completedAt && (
                   <span className="sim-overview-date"> · {new Date(item.completedAt).toLocaleString()}</span>
                 )}
               </div>
