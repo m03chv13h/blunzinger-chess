@@ -767,7 +767,10 @@ function App() {
     );
   }
 
-  const showDetails = gameIsOver || review.isReviewing || leftPanelExpanded;
+  const isStandaloneReview = screen.type === 'analyse-review' || screen.type === 'games-review';
+  const showDetails = isStandaloneReview
+    ? leftPanelExpanded
+    : gameIsOver || review.isReviewing || leftPanelExpanded;
 
   // Playing screen
   return (
@@ -801,7 +804,7 @@ function App() {
                 ← Back to Games
               </button>
             )}
-            {screen.type !== 'analyse-review' && screen.type !== 'games-review' && !gameIsOver && !review.isReviewing && (
+            {(isStandaloneReview || (!gameIsOver && !review.isReviewing)) && (
               <button
                 className="panel-collapse-toggle"
                 onClick={() => setLeftPanelExpanded(e => !e)}
@@ -899,7 +902,7 @@ function App() {
               gameOver={game.state.result !== null}
               pieceRemovals={game.state.pieceRemovals}
               timeReductions={game.state.timeReductions}
-              defaultCollapsed={!gameIsOver && !review.isReviewing}
+              defaultCollapsed={isStandaloneReview || (!gameIsOver && !review.isReviewing)}
             />
           </aside>
         </main>
