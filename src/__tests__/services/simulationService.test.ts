@@ -190,9 +190,36 @@ describe('getSimulationStatus', () => {
     expect(result.completedGames).toBe(2);
     expect(result.games).toHaveLength(2);
   });
-});
+  it('returns abandoned status for partially completed simulations', async () => {
+    const mockStatus = {
+      id: 'batch-3',
+      status: 'abandoned',
+      completedAt: 1700000000000,
+      config: { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' },
+      games: [
+        { id: 'g1', result: { winner: 'w', reason: 'checkmate' }, moveCount: 20 },
+      ],
+      gameCount: 5,
+      completedGames: 1,
+      standing: { whiteWins: 1, blackWins: 0, draws: 0 },
+    };
 
-// ── listSimulations ──────────────────────────────────────────────────
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockStatus,
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getSimulationStatus('batch-3');
+
+    expect(result.status).toBe('abandoned');
+    expect(result.completedGames).toBe(1);
+    expect(result.gameCount).toBe(5);
+    expect(result.games).toHaveLength(1);
+  });
+});
 
 describe('listSimulations', () => {
   it('sends GET /api/simulation with pagination params', async () => {

@@ -93,10 +93,12 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         // Already completed — return the full result from DB
         if (simulation.CompletedAt.HasValue)
         {
+            var completedStatus = simulation.CompletedGames >= simulation.GameCount
+                ? "completed" : "abandoned";
             var responseJson = JsonSerializer.Serialize(new
             {
                 id = simulation.Id.ToString(),
-                status = "completed",
+                status = completedStatus,
                 completedAt = new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds(),
                 config = JsonSerializer.Deserialize<JsonElement>(simulation.ConfigJson),
                 games = JsonSerializer.Deserialize<JsonElement>(simulation.GamesJson),
@@ -160,7 +162,9 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
                 s.Draws,
                 s.CreatedAt,
                 s.CompletedAt,
-                Status = s.CompletedAt.HasValue ? "completed" : "running",
+                Status = s.CompletedAt.HasValue
+                    ? (s.CompletedGames >= s.GameCount ? "completed" : "abandoned")
+                    : "running",
             })
             .ToListAsync();
 
@@ -181,10 +185,13 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
             return NotFound();
 
         // Return in SimulationRecord shape
+        var simStatus = simulation.CompletedAt.HasValue
+            ? (simulation.CompletedGames >= simulation.GameCount ? "completed" : "abandoned")
+            : "running";
         var responseJson = JsonSerializer.Serialize(new
         {
             id = simulation.Id.ToString(),
-            status = simulation.CompletedAt.HasValue ? "completed" : "running",
+            status = simStatus,
             completedAt = simulation.CompletedAt.HasValue
                 ? new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds()
                 : (long?)null,

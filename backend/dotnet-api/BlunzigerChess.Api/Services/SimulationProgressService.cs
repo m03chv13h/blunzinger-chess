@@ -21,6 +21,14 @@ public class SimulationProgressService(
     /// </summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
+    /// <summary>
+    /// Simulations that have been pending (not completed) for longer than this
+    /// are marked as completed with whatever partial results exist.
+    /// This cleans up simulations that were lost due to prolonged worker outages
+    /// or other unrecoverable failures.
+    /// </summary>
+    internal static readonly TimeSpan StaleSimulationTimeout = TimeSpan.FromHours(1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Simulation progress service started");
@@ -54,10 +62,25 @@ public class SimulationProgressService(
         if (pendingSimulations.Count == 0)
             return;
 
+        var staleCutoff = DateTime.UtcNow - StaleSimulationTimeout;
+
         foreach (var simulation in pendingSimulations)
         {
             try
             {
+                // Clean up simulations that have been pending for too long.
+                // These are considered abandoned — mark them as completed with
+                // whatever partial results exist so they stop being retried.
+                if (simulation.CreatedAt < staleCutoff)
+                {
+                    simulation.CompletedAt = DateTime.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                    logger.LogWarning(
+                        "Marked stale simulation {SimId} as completed ({Completed}/{Total} games, created {CreatedAt})",
+                        simulation.Id, simulation.CompletedGames, simulation.GameCount, simulation.CreatedAt);
+                    continue;
+                }
+
                 var progress = await engineClient.GetSimulationProgressAsync(simulation.Id.ToString());
 
                 if (progress.CompletedGames <= simulation.CompletedGames)
@@ -98,12 +121,22 @@ public class SimulationProgressService(
             }
             catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.NotFound)
             {
-                // Worker no longer knows about this simulation (cleaned up after
-                // the grace period). If the simulation was never completed, it may
-                // have been lost — log and skip.
-                logger.LogDebug(
-                    "Simulation {SimId} not found on worker (may have been cleaned up)",
-                    simulation.Id);
+                // Worker no longer knows about this simulation (crashed/restarted
+                // and lost its in-memory queue). Re-enqueue it so the simulation
+                // queue is persistent across worker restarts.
+                try
+                {
+                    await engineClient.EnqueueBatchSimulationAsync(
+                        simulation.Id.ToString(), simulation.ConfigJson, simulation.GameCount);
+                    logger.LogInformation(
+                        "Re-enqueued simulation {SimId} on worker ({Count} games)",
+                        simulation.Id, simulation.GameCount);
+                }
+                catch (Exception reEnqueueEx)
+                {
+                    logger.LogWarning(reEnqueueEx,
+                        "Failed to re-enqueue simulation {SimId} on worker", simulation.Id);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
