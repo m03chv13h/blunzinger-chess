@@ -644,17 +644,32 @@ describe('App game flow', () => {
       expect(screen.queryByText('🔁 Restart')).not.toBeInTheDocument();
     });
 
-    it('does not show panel collapse toggle in games-review mode', () => {
+    it('collapses left panel by default in games-review mode', () => {
       completeGameAndGoToGames();
       fireEvent.click(screen.getByText('📊 Analyse'));
-      expect(screen.queryByText(/Show details/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Show details/)).toBeInTheDocument();
       expect(screen.queryByText(/Hide details/)).not.toBeInTheDocument();
     });
 
-    it('shows game summary and rules panel in games-review', () => {
+    it('hides game summary and rules panel by default in games-review', () => {
       completeGameAndGoToGames();
       fireEvent.click(screen.getByText('📊 Analyse'));
+      expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
+    });
+
+    it('expands left panel when toggle is clicked in games-review', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
+      fireEvent.click(screen.getByText(/Show details/));
       expect(screen.getByText('Game Settings')).toBeInTheDocument();
+      expect(screen.getByText(/Hide details/)).toBeInTheDocument();
+    });
+
+    it('collapses move list by default in games-review', () => {
+      completeGameAndGoToGames();
+      fireEvent.click(screen.getByText('📊 Analyse'));
+      expect(screen.getByText(/Moves/)).toBeInTheDocument();
+      expect(screen.queryByText('#')).not.toBeInTheDocument();
     });
 
     it('returns to games list when Back to Games is clicked', () => {
