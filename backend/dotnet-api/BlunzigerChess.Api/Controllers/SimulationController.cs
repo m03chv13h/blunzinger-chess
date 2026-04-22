@@ -93,8 +93,7 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         // Already completed — return the full result from DB
         if (simulation.CompletedAt.HasValue)
         {
-            var completedStatus = simulation.CompletedGames >= simulation.GameCount
-                ? "completed" : "abandoned";
+            var completedStatus = DeriveStatus(simulation);
             var responseJson = JsonSerializer.Serialize(new
             {
                 id = simulation.Id.ToString(),
@@ -185,9 +184,7 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
             return NotFound();
 
         // Return in SimulationRecord shape
-        var simStatus = simulation.CompletedAt.HasValue
-            ? (simulation.CompletedGames >= simulation.GameCount ? "completed" : "abandoned")
-            : "running";
+        var simStatus = DeriveStatus(simulation);
         var responseJson = JsonSerializer.Serialize(new
         {
             id = simulation.Id.ToString(),
@@ -215,6 +212,11 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return claim is not null && Guid.TryParse(claim, out var id) ? id : null;
     }
+
+    private static string DeriveStatus(Simulation simulation) =>
+        simulation.CompletedAt.HasValue
+            ? (simulation.CompletedGames >= simulation.GameCount ? "completed" : "abandoned")
+            : "running";
 }
 
 public record RunBatchRequest
