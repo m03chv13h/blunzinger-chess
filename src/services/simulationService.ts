@@ -56,7 +56,7 @@ export async function runBatchSimulationRemote(
 /** Status response from the simulation status polling endpoint. */
 export interface SimulationStatusResponse {
   id: string;
-  status: 'running' | 'completed';
+  status: 'running' | 'completed' | 'abandoned';
   completedAt?: number;
   config: GameSetupConfig;
   games: GameRecord[];
@@ -91,7 +91,7 @@ export interface SimulationListItem {
   draws: number;
   createdAt: string;
   completedAt?: string;
-  status: 'running' | 'completed';
+  status: 'running' | 'completed' | 'abandoned';
 }
 
 export interface PaginatedSimulations {

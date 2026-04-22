@@ -93,10 +93,11 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         // Already completed — return the full result from DB
         if (simulation.CompletedAt.HasValue)
         {
+            var completedStatus = DeriveStatus(simulation);
             var responseJson = JsonSerializer.Serialize(new
             {
                 id = simulation.Id.ToString(),
-                status = "completed",
+                status = completedStatus,
                 completedAt = new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds(),
                 config = JsonSerializer.Deserialize<JsonElement>(simulation.ConfigJson),
                 games = JsonSerializer.Deserialize<JsonElement>(simulation.GamesJson),
@@ -160,7 +161,9 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
                 s.Draws,
                 s.CreatedAt,
                 s.CompletedAt,
-                Status = s.CompletedAt.HasValue ? "completed" : "running",
+                Status = s.CompletedAt.HasValue
+                    ? (s.CompletedGames >= s.GameCount ? "completed" : "abandoned")
+                    : "running",
             })
             .ToListAsync();
 
@@ -181,10 +184,11 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
             return NotFound();
 
         // Return in SimulationRecord shape
+        var simStatus = DeriveStatus(simulation);
         var responseJson = JsonSerializer.Serialize(new
         {
             id = simulation.Id.ToString(),
-            status = simulation.CompletedAt.HasValue ? "completed" : "running",
+            status = simStatus,
             completedAt = simulation.CompletedAt.HasValue
                 ? new DateTimeOffset(simulation.CompletedAt.Value).ToUnixTimeMilliseconds()
                 : (long?)null,
@@ -208,6 +212,11 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return claim is not null && Guid.TryParse(claim, out var id) ? id : null;
     }
+
+    private static string DeriveStatus(Simulation simulation) =>
+        simulation.CompletedAt.HasValue
+            ? (simulation.CompletedGames >= simulation.GameCount ? "completed" : "abandoned")
+            : "running";
 }
 
 public record RunBatchRequest

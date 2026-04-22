@@ -150,7 +150,7 @@ export function useSimulation(): UseSimulationReturn {
               );
               setGames(updatedGames);
 
-              if (status.status === 'completed') {
+              if (status.status === 'completed' || status.status === 'abandoned') {
                 // Simulation done — build the SimulationRecord
                 const simRecord: SimulationRecord = {
                   id: status.id,
