@@ -16,7 +16,7 @@ interface SimulationDisplayItem {
   draws: number;
   createdAt: string;
   completedAt?: string;
-  status: 'running' | 'completed';
+  status: 'running' | 'completed' | 'abandoned';
 }
 
 /** Convert a remote SimulationListItem to display shape. */
