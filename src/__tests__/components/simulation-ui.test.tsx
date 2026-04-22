@@ -87,8 +87,11 @@ describe('Simulation UI', () => {
   it('shows overlay options', () => {
     fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
     expect(screen.getByLabelText('King of the Hill')).toBeInTheDocument();
+    expect(screen.getByLabelText('Clock')).toBeInTheDocument();
     expect(screen.getByLabelText('Double Check Pressure')).toBeInTheDocument();
     expect(screen.getByLabelText('Crazyhouse')).toBeInTheDocument();
+    expect(screen.getByLabelText('Chess960')).toBeInTheDocument();
+    expect(screen.getByLabelText('Atomic Chess')).toBeInTheDocument();
   });
 
   it('shows per-side engine selectors', () => {
@@ -130,5 +133,42 @@ describe('Simulation UI', () => {
     fireEvent.change(blackSelect, { target: { value: 'medium' } });
     expect(whiteSelect.value).toBe('hard');
     expect(blackSelect.value).toBe('medium');
+  });
+
+  it('shows clock time inputs when Clock overlay is enabled', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    expect(screen.queryByLabelText('Initial time (MM:SS)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Clock'));
+    expect(screen.getByLabelText('Initial time (MM:SS)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Increment per move (MM:SS)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Decrement per move (MM:SS)')).toBeInTheDocument();
+  });
+
+  it('hides clock time inputs when Clock overlay is unchecked', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    fireEvent.click(screen.getByLabelText('Clock'));
+    expect(screen.getByLabelText('Initial time (MM:SS)')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Clock'));
+    expect(screen.queryByLabelText('Initial time (MM:SS)')).not.toBeInTheDocument();
+  });
+
+  it('shows time reduction penalty in penalty mode when clock is enabled', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    fireEvent.change(screen.getByLabelText('Game Type'), { target: { value: 'penalty_on_miss' } });
+    // Time reduction checkbox should be present but disabled without clock
+    const timeReductionCheckbox = screen.getByLabelText('Time reduction') as HTMLInputElement;
+    expect(timeReductionCheckbox).toBeInTheDocument();
+    expect(timeReductionCheckbox.disabled).toBe(true);
+    // Enable clock
+    fireEvent.click(screen.getByLabelText('Clock'));
+    expect(timeReductionCheckbox.disabled).toBe(false);
+  });
+
+  it('shows time reduction seconds input when both clock and time reduction are enabled', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    fireEvent.change(screen.getByLabelText('Game Type'), { target: { value: 'penalty_on_miss' } });
+    fireEvent.click(screen.getByLabelText('Clock'));
+    fireEvent.click(screen.getByLabelText('Time reduction'));
+    expect(screen.getByLabelText('Time reduction (seconds)')).toBeInTheDocument();
   });
 });
