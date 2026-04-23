@@ -431,8 +431,8 @@ test.describe('Analyse Section', () => {
     await expect(page.getByRole('heading', { name: '📊 Analyse' })).toBeVisible();
   });
 
-  test('shows empty state message when no simulations', async ({ page }) => {
-    await expect(page.getByText(/No simulations yet/i)).toBeVisible();
+  test('shows empty state subtitle', async ({ page }) => {
+    await expect(page.getByText(/Analyse a specific position/i)).toBeVisible();
   });
 
   test('shows analyse position form', async ({ page }) => {

@@ -30,6 +30,7 @@ import type { ConnectionFilter } from './components/PlayedGamesSection';
 import { SimulationSetupScreen } from './components/SimulationSetupScreen';
 import { SimulationView } from './components/SimulationView';
 import { SimulationsOverviewSection } from './components/SimulationsOverviewSection';
+import { SimulationDetailView } from './components/SimulationDetailView';
 import { EvaluationBar } from './components/EvaluationBar';
 import { ReviewControls } from './components/ReviewControls';
 import { CrazyhouseReserves } from './components/CrazyhouseReserve';
@@ -63,6 +64,7 @@ type AppScreen =
   | { type: 'analyse-review'; config: GameSetupConfig }
   | { type: 'simulate' }
   | { type: 'simulation-running' }
+  | { type: 'simulation-detail' }
   | { type: 'rules' }
   | { type: 'profile' }
   | { type: 'playing'; config: GameSetupConfig };
@@ -100,6 +102,7 @@ function App() {
   const [remoteSimPage, setRemoteSimPage] = useState(1);
   const [remoteSimLoading, setRemoteSimLoading] = useState(false);
   const [remoteSimError, setRemoteSimError] = useState<string | null>(null);
+  const [selectedSimulation, setSelectedSimulation] = useState<SimulationRecord | null>(null);
   const [leftPanelExpanded, setLeftPanelExpanded] = useState(false);
 
   // Persist game history to localStorage whenever it changes.
@@ -460,11 +463,37 @@ function App() {
     setScreen({ type: 'simulate' });
   };
 
+  const handleSelectSimulation = useCallback(async (id: string) => {
+    // Try to find in local history first
+    const local = simulationHistory.find((s) => s.id === id);
+    if (local) {
+      setSelectedSimulation(local);
+      setScreen({ type: 'simulation-detail' });
+      return;
+    }
+    // Fetch from backend (connected mode)
+    if (isConnectedMode) {
+      try {
+        const full = await getSimulation(id);
+        setSelectedSimulation(full);
+        setScreen({ type: 'simulation-detail' });
+      } catch {
+        // Ignore fetch errors — user can retry
+      }
+    }
+  }, [simulationHistory]);
+
+  const handleBackFromSimulationDetail = useCallback(() => {
+    setSelectedSimulation(null);
+    setScreen({ type: 'simulate' });
+  }, []);
+
   const activeSection: NavSection | 'playing' =
     screen.type === 'playing' ? 'playing'
     : screen.type === 'online-playing' ? 'playing'
     : screen.type === 'online-lobby' ? 'online'
     : screen.type === 'simulation-running' ? 'simulate'
+    : screen.type === 'simulation-detail' ? 'simulate'
     : screen.type === 'analyse-review' ? 'analyse'
     : screen.type === 'games-review' ? 'games'
     : screen.type === 'welcome' ? 'quick-start'
@@ -566,36 +595,6 @@ function App() {
     return gameHistory;
   })();
 
-  // Load saved simulations from the backend when viewing the Analyse tab (connected mode).
-  const simulationsLoadedRef = useRef(false);
-  useEffect(() => {
-    if (screen.type === 'analyse' && isConnectedMode && !simulationsLoadedRef.current) {
-      simulationsLoadedRef.current = true;
-      listSimulations(1, 50).then(async (res) => {
-        // Fetch full details for each simulation to get the game records
-        const records: SimulationRecord[] = [];
-        for (const item of res.simulations) {
-          try {
-            const full = await getSimulation(item.id);
-            records.push(full);
-          } catch {
-            // Skip simulations that fail to load
-          }
-        }
-        if (records.length > 0) {
-          setSimulationHistory((prev) => {
-            // Merge: add remote records that don't already exist locally
-            const existingIds = new Set(prev.map((s) => s.id));
-            const newRecords = records.filter((r) => !existingIds.has(r.id));
-            return [...newRecords, ...prev];
-          });
-        }
-      }).catch(() => {
-        // Ignore errors fetching saved simulations
-      });
-    }
-  }, [screen.type]);
-
   // Fetch simulation list for the overview in the Simulate section.
   const SIM_PAGE_SIZE = 20;
 
@@ -665,9 +664,6 @@ function App() {
             )}
             {screen.type === 'analyse' && (
               <AnalyseSection
-                games={[]}
-                simulations={simulationHistory}
-                onSelectGame={handleSelectGameForReview}
                 onStartAnalysis={handleStartGame}
               />
             )}
@@ -711,8 +707,16 @@ function App() {
                   total={remoteSimTotal}
                   pageSize={SIM_PAGE_SIZE}
                   onPageChange={isConnectedMode ? handleSimPageChange : undefined}
+                  onSelectSimulation={handleSelectSimulation}
                 />
               </SimulationSetupScreen>
+            )}
+            {screen.type === 'simulation-detail' && selectedSimulation && (
+              <SimulationDetailView
+                simulation={selectedSimulation}
+                onSelectGame={handleSelectGameForReview}
+                onBack={handleBackFromSimulationDetail}
+              />
             )}
             {screen.type === 'simulation-running' && simulation.config && (
               <SimulationView
