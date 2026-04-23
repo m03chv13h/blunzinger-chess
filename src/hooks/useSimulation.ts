@@ -27,236 +27,285 @@ export interface SimulationStanding {
   total: number;
 }
 
-export interface UseSimulationReturn {
-  /** Whether the simulation is currently running. */
-  running: boolean;
-  /** All game entries. */
+/** A single simulation instance tracked by the hook. */
+export interface SimulationInstance {
+  id: string;
+  config: GameSetupConfig;
   games: SimulationGameEntry[];
-  /** Current standing. */
   standing: SimulationStanding;
-  /** The config used for the simulation. */
-  config: GameSetupConfig | null;
-  /** Start a simulation. */
-  start: (config: GameSetupConfig, count: number) => void;
-  /** Stop the simulation. */
-  stop: () => void;
-  /** All completed game records for analysis. */
+  running: boolean;
   completedRecords: GameRecord[];
-  /** The saved SimulationRecord returned by the backend (connected mode only). */
-  savedSimulationRecord: SimulationRecord | null;
+  savedRecord: SimulationRecord | null;
+}
+
+export interface UseSimulationReturn {
+  /** All tracked simulation instances (running and recently completed). */
+  simulations: SimulationInstance[];
+  /** Whether any simulation is currently running. */
+  hasRunning: boolean;
+  /** Start a new simulation. Multiple can run concurrently. */
+  start: (config: GameSetupConfig, count: number) => void;
+  /** Stop a specific simulation by ID. */
+  stop: (id: string) => void;
+  /** Stop all running simulations. */
+  stopAll: () => void;
+  /** Remove a completed simulation from the tracked list. */
+  remove: (id: string) => void;
 }
 
 /** Polling interval for checking simulation progress in connected mode. */
 const POLL_INTERVAL_MS = 4000;
 
-export function useSimulation(): UseSimulationReturn {
-  const [running, setRunning] = useState(false);
-  const [games, setGames] = useState<SimulationGameEntry[]>([]);
-  const [config, setConfig] = useState<GameSetupConfig | null>(null);
-  const [savedSimulationRecord, setSavedSimulationRecord] = useState<SimulationRecord | null>(null);
-  const cancelledRef = useRef(false);
+/** Internal mutable state per simulation (not tracked in React state). */
+interface SimulationInternalState {
+  cancelled: boolean;
+  pollTimer: ReturnType<typeof setInterval> | null;
+  backendId: string | null;
+}
 
-  const standing: SimulationStanding = {
+function computeStanding(games: SimulationGameEntry[]): SimulationStanding {
+  return {
     whiteWins: games.filter((g) => g.record?.result.winner === 'w').length,
     blackWins: games.filter((g) => g.record?.result.winner === 'b').length,
     draws: games.filter((g) => g.record?.result.winner === 'draw').length,
     completed: games.filter((g) => g.finished).length,
     total: games.length,
   };
+}
 
-  const completedRecords = games
+function computeCompletedRecords(games: SimulationGameEntry[]): GameRecord[] {
+  return games
     .filter((g): g is SimulationGameEntry & { record: GameRecord } => g.finished && !!g.record)
     .map((g) => g.record);
+}
 
-  // Track pending simulation parameters
-  const pendingRef = useRef<{ config: GameSetupConfig; count: number } | null>(null);
-  const runningRef = useRef(false);
+export function useSimulation(): UseSimulationReturn {
+  const [instances, setInstances] = useState<SimulationInstance[]>([]);
+  const internalStateRef = useRef<Map<string, SimulationInternalState>>(new Map());
 
-  // Track active simulation ID for polling in connected mode
-  const simulationIdRef = useRef<string | null>(null);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const updateInstance = useCallback(
+    (id: string, updater: (inst: SimulationInstance) => SimulationInstance) => {
+      setInstances((prev) => prev.map((inst) => (inst.id === id ? updater(inst) : inst)));
+    },
+    [],
+  );
 
-  const start = useCallback((cfg: GameSetupConfig, count: number) => {
-    cancelledRef.current = false;
-    simulationIdRef.current = null;
-    setConfig(cfg);
-    setSavedSimulationRecord(null);
-    const initialGames: SimulationGameEntry[] = Array.from({ length: count }, (_, i) => ({
-      index: i + 1,
-      moveCount: 0,
-      finished: false,
-    }));
-    setGames(initialGames);
-    setRunning(true);
-    pendingRef.current = { config: cfg, count };
-  }, []);
+  const start = useCallback(
+    (cfg: GameSetupConfig, count: number) => {
+      const localId = crypto.randomUUID();
 
-  const stop = useCallback(() => {
-    cancelledRef.current = true;
-    simulationIdRef.current = null;
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-    setRunning(false);
-  }, []);
+      const initialGames: SimulationGameEntry[] = Array.from({ length: count }, (_, i) => ({
+        index: i + 1,
+        moveCount: 0,
+        finished: false,
+      }));
 
-  // Run simulation games.
-  // In connected mode, enqueue the batch on the backend and poll for progress.
-  // In static mode, games run locally one at a time.
-  useEffect(() => {
-    if (!running || !pendingRef.current) return;
-    if (runningRef.current) return;
+      const newInstance: SimulationInstance = {
+        id: localId,
+        config: cfg,
+        games: initialGames,
+        standing: computeStanding(initialGames),
+        running: true,
+        completedRecords: [],
+        savedRecord: null,
+      };
 
-    const { config: simConfig, count } = pendingRef.current;
-    pendingRef.current = null;
-    runningRef.current = true;
+      setInstances((prev) => [newInstance, ...prev]);
 
-    if (isConnectedMode) {
-      // Enqueue the batch on the backend and poll for progress.
-      const startBatch = async () => {
-        try {
-          const { id } = await runBatchSimulationRemote(simConfig, count);
-          if (cancelledRef.current) {
-            runningRef.current = false;
-            return;
-          }
-          simulationIdRef.current = id;
+      const state: SimulationInternalState = {
+        cancelled: false,
+        pollTimer: null,
+        backendId: null,
+      };
+      internalStateRef.current.set(localId, state);
 
-          // Start polling every 4 seconds for simulation progress
-          const poll = async () => {
-            if (cancelledRef.current || !simulationIdRef.current) return;
+      if (isConnectedMode) {
+        // Enqueue the batch on the backend and poll for progress.
+        runBatchSimulationRemote(cfg, count)
+          .then(({ id }) => {
+            if (state.cancelled) return;
+            state.backendId = id;
 
-            try {
-              const status = await getSimulationStatus(simulationIdRef.current);
-              if (cancelledRef.current) return;
+            const poll = async () => {
+              if (state.cancelled || !state.backendId) return;
 
-              // Update game entries from the returned records
-              const updatedGames: SimulationGameEntry[] = Array.from(
-                { length: count },
-                (_, i) => {
-                  const record = status.games[i];
-                  if (record) {
-                    return {
-                      index: i + 1,
-                      moveCount: record.moveCount,
-                      finished: true,
-                      resultLabel: getResultLabel(record.result),
-                      record,
-                    };
+              try {
+                const status = await getSimulationStatus(state.backendId);
+                if (state.cancelled) return;
+
+                const updatedGames: SimulationGameEntry[] = Array.from(
+                  { length: count },
+                  (_, i) => {
+                    const record = status.games[i];
+                    if (record) {
+                      return {
+                        index: i + 1,
+                        moveCount: record.moveCount,
+                        finished: true,
+                        resultLabel: getResultLabel(record.result),
+                        record,
+                      };
+                    }
+                    return { index: i + 1, moveCount: 0, finished: false };
+                  },
+                );
+
+                updateInstance(localId, (inst) => ({
+                  ...inst,
+                  games: updatedGames,
+                  standing: computeStanding(updatedGames),
+                  completedRecords: computeCompletedRecords(updatedGames),
+                }));
+
+                if (status.status === 'completed' || status.status === 'abandoned') {
+                  const simRecord: SimulationRecord = {
+                    id: status.id,
+                    completedAt: status.completedAt ?? Date.now(),
+                    config: status.config,
+                    games: status.games,
+                    standing: status.standing,
+                  };
+                  updateInstance(localId, (inst) => ({
+                    ...inst,
+                    running: false,
+                    savedRecord: simRecord,
+                  }));
+                  if (state.pollTimer) {
+                    clearInterval(state.pollTimer);
+                    state.pollTimer = null;
                   }
-                  return { index: i + 1, moveCount: 0, finished: false };
-                },
-              );
-              setGames(updatedGames);
-
-              if (status.status === 'completed' || status.status === 'abandoned') {
-                // Simulation done — build the SimulationRecord
-                const simRecord: SimulationRecord = {
-                  id: status.id,
-                  completedAt: status.completedAt ?? Date.now(),
-                  config: status.config,
-                  games: status.games,
-                  standing: status.standing,
-                };
-                setSavedSimulationRecord(simRecord);
-                simulationIdRef.current = null;
-                if (pollTimerRef.current) {
-                  clearInterval(pollTimerRef.current);
-                  pollTimerRef.current = null;
+                  internalStateRef.current.delete(localId);
                 }
-                runningRef.current = false;
-                setRunning(false);
+              } catch {
+                // Polling errors are non-fatal; retry on next interval
               }
-            } catch {
-              // Polling errors are non-fatal; retry on next interval
-            }
-          };
+            };
 
-          // Poll immediately, then every 4 seconds
-          poll();
-          pollTimerRef.current = setInterval(poll, POLL_INTERVAL_MS);
-        } catch {
-          if (cancelledRef.current) {
-            runningRef.current = false;
+            poll();
+            state.pollTimer = setInterval(poll, POLL_INTERVAL_MS);
+          })
+          .catch(() => {
+            if (state.cancelled) return;
+            // Fall back to local simulation if the backend call fails
+            const records: GameRecord[] = [];
+            for (let i = 0; i < count; i++) {
+              if (state.cancelled) break;
+              records.push(runSimulatedGame(cfg));
+            }
+            const finishedGames: SimulationGameEntry[] = records.map((record, i) => ({
+              index: i + 1,
+              moveCount: record.moveCount,
+              finished: true,
+              resultLabel: getResultLabel(record.result),
+              record,
+            }));
+            updateInstance(localId, (inst) => ({
+              ...inst,
+              games: finishedGames,
+              standing: computeStanding(finishedGames),
+              completedRecords: computeCompletedRecords(finishedGames),
+              running: false,
+            }));
+            internalStateRef.current.delete(localId);
+          });
+      } else {
+        // Static mode: run games locally one at a time
+        let currentGame = 0;
+
+        const runNext = () => {
+          if (state.cancelled || currentGame >= count) {
+            updateInstance(localId, (inst) => ({ ...inst, running: false }));
+            internalStateRef.current.delete(localId);
             return;
           }
-          // Fall back to local simulation if the backend call fails
-          const records: GameRecord[] = [];
-          for (let i = 0; i < count; i++) {
-            if (cancelledRef.current) break;
-            records.push(runSimulatedGame(simConfig));
-          }
-          const finishedGames: SimulationGameEntry[] = records.map((record, i) => ({
-            index: i + 1,
-            moveCount: record.moveCount,
-            finished: true,
-            resultLabel: getResultLabel(record.result),
-            record,
-          }));
-          setGames(finishedGames);
-          runningRef.current = false;
-          setRunning(false);
-        }
-      };
-      startBatch();
-    } else {
-      // Static mode: run games locally one at a time
-      let currentGame = 0;
 
-      const completeGame = (gameIndex: number, record: GameRecord) => {
-        setGames((prev) => {
-          const updated = [...prev];
-          updated[gameIndex] = {
-            index: gameIndex + 1,
-            moveCount: record.moveCount,
-            finished: true,
-            resultLabel: getResultLabel(record.result),
-            record,
-          };
-          return updated;
-        });
-      };
+          const gameIndex = currentGame;
+          currentGame++;
 
-      const runNext = () => {
-        if (cancelledRef.current || currentGame >= count) {
-          runningRef.current = false;
-          setRunning(false);
-          return;
-        }
+          const record = runSimulatedGame(cfg);
 
-        const gameIndex = currentGame;
-        currentGame++;
+          updateInstance(localId, (inst) => {
+            const updated = [...inst.games];
+            updated[gameIndex] = {
+              index: gameIndex + 1,
+              moveCount: record.moveCount,
+              finished: true,
+              resultLabel: getResultLabel(record.result),
+              record,
+            };
+            return {
+              ...inst,
+              games: updated,
+              standing: computeStanding(updated),
+              completedRecords: computeCompletedRecords(updated),
+            };
+          });
 
-        const record = runSimulatedGame(simConfig);
-        completeGame(gameIndex, record);
+          setTimeout(runNext, 0);
+        };
 
-        // Yield to the browser between games via setTimeout chaining
-        // so the UI can render updates between synchronous game runs.
         setTimeout(runNext, 0);
-      };
-
-      // Kick off the first game on the next microtask
-      setTimeout(runNext, 0);
-    }
-
-    return () => {
-      cancelledRef.current = true;
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
       }
-    };
-  }, [running]);
+    },
+    [updateInstance],
+  );
 
-  return {
-    running,
-    games,
-    standing,
-    config,
-    start,
-    stop,
-    completedRecords,
-    savedSimulationRecord,
-  };
+  const stop = useCallback(
+    (id: string) => {
+      const state = internalStateRef.current.get(id);
+      if (state) {
+        state.cancelled = true;
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+        internalStateRef.current.delete(id);
+      }
+      updateInstance(id, (inst) => ({ ...inst, running: false }));
+    },
+    [updateInstance],
+  );
+
+  const stopAll = useCallback(() => {
+    for (const [, state] of internalStateRef.current) {
+      state.cancelled = true;
+      if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+      }
+    }
+    internalStateRef.current.clear();
+    setInstances((prev) => prev.map((inst) => ({ ...inst, running: false })));
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    const state = internalStateRef.current.get(id);
+    if (state) {
+      state.cancelled = true;
+      if (state.pollTimer) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+      }
+      internalStateRef.current.delete(id);
+    }
+    setInstances((prev) => prev.filter((inst) => inst.id !== id));
+  }, []);
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    const stateMap = internalStateRef.current;
+    return () => {
+      for (const [, state] of stateMap) {
+        state.cancelled = true;
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+        }
+      }
+      stateMap.clear();
+    };
+  }, []);
+
+  const hasRunning = instances.some((inst) => inst.running);
+
+  return { simulations: instances, hasRunning, start, stop, stopAll, remove };
 }
