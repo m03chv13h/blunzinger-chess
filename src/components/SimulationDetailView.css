@@ -1,0 +1,89 @@
+/* ── Simulation Detail View ── */
+
+.sim-detail-back-btn {
+  background: none;
+  border: none;
+  color: #5b8def;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 8px;
+}
+
+.sim-detail-back-btn:hover {
+  text-decoration: underline;
+}
+
+.sim-detail-subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+/* ── Game list ── */
+
+.sim-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sim-detail-game-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border: 1px solid #c4d8f5;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sim-detail-game-item:hover {
+  background: #dbe8ff;
+  border-color: #5b8def;
+}
+
+.sim-detail-game-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sim-detail-game-meta {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 2px;
+}
+
+.sim-detail-game-number {
+  font-weight: 600;
+}
+
+.sim-detail-sep {
+  margin: 0 4px;
+  color: #aaa;
+}
+
+.sim-detail-variant {
+  color: #666;
+}
+
+.sim-detail-game-result {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.sim-detail-reason {
+  font-weight: 400;
+  color: #888;
+}
+
+.sim-detail-game-moves {
+  font-size: 12px;
+  color: #888;
+}

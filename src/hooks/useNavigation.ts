@@ -32,7 +32,8 @@ type ScreenType =
   | 'online-lobby'
   | 'games-review'
   | 'analyse-review'
-  | 'simulation-running';
+  | 'simulation-running'
+  | 'simulation-detail';
 
 /** Map from screen type → URL hash path segment. */
 const SCREEN_TO_PATH: Record<NavigableScreen, string> = {
@@ -69,6 +70,7 @@ const STATEFUL_SCREEN_PARENT: Record<string, NavigableScreen> = {
   'games-review': 'games',
   'analyse-review': 'analyse',
   'simulation-running': 'simulate',
+  'simulation-detail': 'simulate',
 };
 
 /**
