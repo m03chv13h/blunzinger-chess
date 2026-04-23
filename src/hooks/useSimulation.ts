@@ -79,8 +79,6 @@ function computeCompletedRecords(games: SimulationGameEntry[]): GameRecord[] {
     .map((g) => g.record);
 }
 
-let nextLocalId = 0;
-
 export function useSimulation(): UseSimulationReturn {
   const [instances, setInstances] = useState<SimulationInstance[]>([]);
   const internalStateRef = useRef<Map<string, SimulationInternalState>>(new Map());
@@ -94,7 +92,7 @@ export function useSimulation(): UseSimulationReturn {
 
   const start = useCallback(
     (cfg: GameSetupConfig, count: number) => {
-      const localId = `sim-${++nextLocalId}-${Date.now()}`;
+      const localId = crypto.randomUUID();
 
       const initialGames: SimulationGameEntry[] = Array.from({ length: count }, (_, i) => ({
         index: i + 1,
