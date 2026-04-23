@@ -41,11 +41,17 @@ const simulationJobs = new Map<string, SimulationJob>();
 /** Whether the background queue processor is currently running. */
 let processingQueue = false;
 
+/** ID of the last simulation that had a game processed (for round-robin). */
+let lastProcessedId: string | null = null;
+
 /** Grace period (ms) to keep finished jobs before cleanup. */
 const FINISHED_JOB_TTL_MS = 60_000;
 
 /**
  * Process the next pending game across all queued simulations.
+ * Uses round-robin scheduling so every queued simulation makes progress
+ * concurrently instead of running one simulation to completion before
+ * starting the next.
  * Runs one game at a time, then yields via setTimeout so the event loop
  * stays responsive for incoming gRPC calls.
  */
@@ -54,19 +60,31 @@ function processQueue(): void {
   processingQueue = true;
 
   const runNextGame = () => {
-    // Find first simulation with remaining games
-    let activeJob: SimulationJob | undefined;
-    for (const job of simulationJobs.values()) {
-      if (!job.finished) {
-        activeJob = job;
-        break;
+    // Collect unfinished jobs
+    const unfinished: [string, SimulationJob][] = [];
+    for (const entry of simulationJobs) {
+      if (!entry[1].finished) {
+        unfinished.push(entry);
       }
     }
 
-    if (!activeJob) {
+    if (unfinished.length === 0) {
       processingQueue = false;
+      lastProcessedId = null;
       return;
     }
+
+    // Round-robin: pick the next job after the one we last processed
+    let nextIndex = 0;
+    if (lastProcessedId !== null) {
+      const lastIdx = unfinished.findIndex(([id]) => id === lastProcessedId);
+      if (lastIdx >= 0) {
+        nextIndex = (lastIdx + 1) % unfinished.length;
+      }
+    }
+
+    const [jobId, activeJob] = unfinished[nextIndex];
+    lastProcessedId = jobId;
 
     // Run one game synchronously
     const record = runSimulatedGame(activeJob.config);

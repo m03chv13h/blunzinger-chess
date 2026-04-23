@@ -63,7 +63,6 @@ type AppScreen =
   | { type: 'analyse' }
   | { type: 'analyse-review'; config: GameSetupConfig }
   | { type: 'simulate' }
-  | { type: 'simulation-running' }
   | { type: 'simulation-detail' }
   | { type: 'rules' }
   | { type: 'profile' }
@@ -400,25 +399,27 @@ function App() {
     : [];
 
   const flushSimulationRecords = useCallback(() => {
-    if (isConnectedMode && simulation.savedSimulationRecord) {
-      // In connected mode, the backend already saved the simulation — just add to local history
-      setSimulationHistory((prev) => {
-        // Avoid duplicates
-        if (prev.some((s) => s.id === simulation.savedSimulationRecord!.id)) return prev;
-        return [simulation.savedSimulationRecord!, ...prev];
-      });
-    } else if (simulation.completedRecords.length > 0 && simulation.config) {
-      // Static mode: create a local simulation record
-      const simRecord = createSimulationRecord(simulation.config, simulation.completedRecords);
-      setSimulationHistory((prev) => [simRecord, ...prev]);
+    for (const sim of simulation.simulations) {
+      if (!sim.running && sim.savedRecord) {
+        // Connected mode: the backend already saved the simulation — add to local history
+        setSimulationHistory((prev) => {
+          if (prev.some((s) => s.id === sim.savedRecord!.id)) return prev;
+          return [sim.savedRecord!, ...prev];
+        });
+        simulation.remove(sim.id);
+      } else if (!sim.running && sim.completedRecords.length > 0) {
+        // Static mode: create a local simulation record
+        const simRecord = createSimulationRecord(sim.config, sim.completedRecords);
+        setSimulationHistory((prev) => {
+          if (prev.some((s) => s.id === simRecord.id)) return prev;
+          return [simRecord, ...prev];
+        });
+        simulation.remove(sim.id);
+      }
     }
-  }, [simulation.completedRecords, simulation.config, simulation.savedSimulationRecord]);
+  }, [simulation]);
 
   const handleSelectGameForReview = (record: GameRecord) => {
-    // If reviewing a game from a running simulation, flush completed records first
-    if (screen.type === 'simulation-running') {
-      flushSimulationRecords();
-    }
     const isFromAnalyse = screen.type === 'analyse';
     const isFromGames = screen.type === 'games';
     setLastConfig(record.config);
@@ -454,13 +455,6 @@ function App() {
 
   const handleStartSimulation = (config: GameSetupConfig, count: number) => {
     simulation.start(config, count);
-    setScreen({ type: 'simulation-running' });
-  };
-
-  const handleSimulationBackToSetup = () => {
-    // Flush completed simulation records into simulation history for analysis
-    flushSimulationRecords();
-    setScreen({ type: 'simulate' });
   };
 
   const handleSelectSimulation = useCallback(async (id: string) => {
@@ -492,7 +486,6 @@ function App() {
     screen.type === 'playing' ? 'playing'
     : screen.type === 'online-playing' ? 'playing'
     : screen.type === 'online-lobby' ? 'online'
-    : screen.type === 'simulation-running' ? 'simulate'
     : screen.type === 'simulation-detail' ? 'simulate'
     : screen.type === 'analyse-review' ? 'analyse'
     : screen.type === 'games-review' ? 'games'
@@ -502,20 +495,20 @@ function App() {
   // Sync URL hash with screen state and handle browser back/forward.
   const handleHashNavigate = useCallback((section: NavigableScreen) => {
     flushPendingRecord();
-    if (screen.type === 'simulation-running') {
-      simulation.stop();
+    if (section !== 'simulate') {
+      simulation.stopAll();
       flushSimulationRecords();
     }
     setScreen({ type: section });
-  }, [flushPendingRecord, flushSimulationRecords, screen.type, simulation]);
+  }, [flushPendingRecord, flushSimulationRecords, simulation]);
 
   useNavigation({ screenType: screen.type, onNavigate: handleHashNavigate });
 
   const handleNavigate = (section: NavSection) => {
     flushPendingRecord();
-    // If leaving a running simulation, stop it and flush records
-    if (screen.type === 'simulation-running') {
-      simulation.stop();
+    // If leaving the simulate section, stop simulations and flush records
+    if (screen.type === 'simulate' && section !== 'simulate') {
+      simulation.stopAll();
       flushSimulationRecords();
     }
     setScreen({ type: section });
@@ -531,13 +524,11 @@ function App() {
 
   const handleLogout = useCallback(() => {
     flushPendingRecord();
-    if (screen.type === 'simulation-running') {
-      simulation.stop();
-      flushSimulationRecords();
-    }
+    simulation.stopAll();
+    flushSimulationRecords();
     auth.logout();
     setScreen({ type: 'welcome' });
-  }, [auth, flushPendingRecord, flushSimulationRecords, screen.type, simulation]);
+  }, [auth, flushPendingRecord, flushSimulationRecords, simulation]);
 
   const handleContinueAsGuest = () => {
     auth.loginAsGuest();
@@ -698,6 +689,21 @@ function App() {
             )}
             {screen.type === 'simulate' && (
               <SimulationSetupScreen onStart={handleStartSimulation}>
+                {simulation.simulations.length > 0 && (
+                  <div className="simulation-active-list">
+                    {simulation.simulations.map((sim) => (
+                      <SimulationView
+                        key={sim.id}
+                        config={sim.config}
+                        games={sim.games}
+                        standing={sim.standing}
+                        running={sim.running}
+                        onStop={() => simulation.stop(sim.id)}
+                        onAnalyseGame={handleSelectGameForReview}
+                      />
+                    ))}
+                  </div>
+                )}
                 <SimulationsOverviewSection
                   remoteSimulations={isConnectedMode ? remoteSimList : undefined}
                   localSimulations={isStaticMode ? simulationHistory : undefined}
@@ -716,17 +722,6 @@ function App() {
                 simulation={selectedSimulation}
                 onSelectGame={handleSelectGameForReview}
                 onBack={handleBackFromSimulationDetail}
-              />
-            )}
-            {screen.type === 'simulation-running' && simulation.config && (
-              <SimulationView
-                config={simulation.config}
-                games={simulation.games}
-                standing={simulation.standing}
-                running={simulation.running}
-                onStop={simulation.stop}
-                onAnalyseGame={handleSelectGameForReview}
-                onBackToSetup={handleSimulationBackToSetup}
               />
             )}
             {screen.type === 'rules' && <RulesPage />}

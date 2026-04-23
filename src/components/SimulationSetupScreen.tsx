@@ -377,9 +377,9 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
         <button className="sim-start-btn" onClick={handleStart}>
           ▶ Start Simulation
         </button>
-
-        {children}
       </div>
+
+      {children}
     </div>
   );
 }

@@ -62,6 +62,28 @@ describe('Simulation UI', () => {
     expect(screen.getByText('🔬 Simulation')).toBeInTheDocument();
   });
 
+  it('keeps setup form visible while simulation is running', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    fireEvent.click(screen.getByText('▶ Start Simulation'));
+    // Setup form should still be visible alongside the running simulation
+    expect(screen.getByText('🔬 Simulation Setup')).toBeInTheDocument();
+    expect(screen.getByText('▶ Start Simulation')).toBeInTheDocument();
+  });
+
+  it('allows starting multiple simulations at the same time', () => {
+    fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
+    // Start first simulation
+    fireEvent.click(screen.getByText('▶ Start Simulation'));
+    // Start second simulation
+    fireEvent.click(screen.getByText('▶ Start Simulation'));
+    // Both simulation cards should be visible
+    const simHeaders = screen.getAllByText('🔬 Simulation');
+    expect(simHeaders.length).toBe(2);
+    // Both should have stop buttons
+    const stopButtons = screen.getAllByText('⏹ Stop Simulation');
+    expect(stopButtons.length).toBe(2);
+  });
+
   it('shows standing section in running view', () => {
     fireEvent.click(screen.getByRole('button', { name: /Simulate/i }));
     fireEvent.click(screen.getByText('▶ Start Simulation'));
