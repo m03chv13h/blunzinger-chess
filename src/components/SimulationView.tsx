@@ -1,7 +1,7 @@
 import type { GameSetupConfig } from '../core/blunziger/types';
 import type { GameRecord } from '../core/gameRecord';
-import { getVariantLabel, getGameTypeLabel } from '../core/gameRecord';
 import type { SimulationGameEntry, SimulationStanding } from '../hooks/useSimulation';
+import { SimulationDetailsTable } from './SimulationDetailsTable';
 import './SimulationSection.css';
 
 interface SimulationViewProps {
@@ -14,12 +14,6 @@ interface SimulationViewProps {
   /** When provided, shows a "Back to Setup" button when not running. */
   onBackToSetup?: () => void;
 }
-
-const LEVEL_LABELS: Record<string, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-};
 
 export function SimulationView({
   config,
@@ -38,21 +32,8 @@ export function SimulationView({
     <div className="simulation-card simulation-card--wide">
       <h3>🔬 Simulation</h3>
 
-      {/* ── Configuration summary ── */}
-      <div className="sim-config-summary">
-        <span className="sim-tag">{getVariantLabel(config.variantMode)}</span>
-        <span className="sim-tag">{getGameTypeLabel(config.gameType)}</span>
-        {config.botDifficultyWhite === config.botDifficultyBlack
-          ? <span className="sim-tag">{LEVEL_LABELS[config.botDifficultyWhite] ?? config.botDifficultyWhite}</span>
-          : <>
-              <span className="sim-tag">W: {LEVEL_LABELS[config.botDifficultyWhite] ?? config.botDifficultyWhite}</span>
-              <span className="sim-tag">B: {LEVEL_LABELS[config.botDifficultyBlack] ?? config.botDifficultyBlack}</span>
-            </>
-        }
-        {config.enableKingOfTheHill && <span className="sim-tag">KOTH</span>}
-        {config.enableDoubleCheckPressure && <span className="sim-tag">DCP</span>}
-        {config.enableCrazyhouse && <span className="sim-tag">Crazyhouse</span>}
-      </div>
+      {/* ── Game details table ── */}
+      <SimulationDetailsTable config={config} />
 
       {/* ── Standing ── */}
       <div className="sim-standing">

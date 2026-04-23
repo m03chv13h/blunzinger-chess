@@ -78,10 +78,11 @@ describe('SimulationDetailView', () => {
     render(
       <SimulationDetailView simulation={sim} onSelectGame={() => {}} onBack={() => {}} />,
     );
-    // The config summary section uses sim-tag class elements
-    const tags = screen.getAllByText('Classic Blunzinger');
-    expect(tags.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Report')).toBeInTheDocument();
+    expect(screen.getByText('Game Details')).toBeInTheDocument();
+    // Variant label appears in details table and per-game entries
+    const variantLabels = screen.getAllByText('Classic Blunzinger');
+    expect(variantLabels.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Report Incorrectness')).toBeInTheDocument();
   });
 
   it('shows standing info', () => {
