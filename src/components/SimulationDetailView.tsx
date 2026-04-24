@@ -1,6 +1,7 @@
 import type { GameRecord, SimulationRecord } from '../core/gameRecord';
-import { getVariantLabel, getGameTypeLabel, getResultLabel } from '../core/gameRecord';
+import { getVariantLabel, getResultLabel } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
+import { SimulationDetailsTable } from './SimulationDetailsTable';
 import './SimulationDetailView.css';
 
 interface SimulationDetailViewProps {
@@ -24,9 +25,8 @@ export function SimulationDetailView({
           ← Back to Simulations
         </button>
         <h2>🔬 Simulation Games</h2>
+        <SimulationDetailsTable config={simulation.config} />
         <div className="sim-config-summary">
-          <span className="sim-tag">{getVariantLabel(simulation.config.variantMode)}</span>
-          <span className="sim-tag">{getGameTypeLabel(simulation.config.gameType)}</span>
           <span className="sim-tag">
             W {simulation.standing.whiteWins} · B {simulation.standing.blackWins} · D {simulation.standing.draws}
           </span>
