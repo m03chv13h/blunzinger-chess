@@ -51,7 +51,6 @@
   background: #f0f4ff;
   border: 1px solid #c4d8f5;
   border-radius: 8px;
-  cursor: pointer;
   text-align: left;
   width: 100%;
   transition: background 0.15s, border-color 0.15s;
@@ -60,6 +59,15 @@
 .sim-overview-item:hover {
   background: #dbe8ff;
   border-color: #5b8def;
+}
+
+.sim-overview-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
 }
 
 /* ── Icon / spinner ── */
@@ -143,6 +151,50 @@
 
 .sim-overview-date {
   color: #999;
+}
+
+/* ── Item wrapper (holds button + expandable details) ── */
+
+.sim-overview-item-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Info toggle button ── */
+
+.sim-overview-info-toggle {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sim-overview-info-toggle:hover {
+  background: #e0ecff;
+  border-color: #5b8def;
+}
+
+/* ── Expanded details panel ── */
+
+.sim-overview-expanded {
+  padding: 8px 12px 12px 52px;
+  background: #f8fbff;
+  border: 1px solid #c4d8f5;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.sim-overview-item-wrapper .sim-overview-item {
+  border-radius: 8px;
+}
+
+.sim-overview-item-wrapper:has(.sim-overview-expanded) .sim-overview-item {
+  border-radius: 8px 8px 0 0;
 }
 
 /* ── Pagination ── */

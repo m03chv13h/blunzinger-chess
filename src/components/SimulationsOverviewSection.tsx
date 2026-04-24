@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import type { SimulationListItem } from '../services/simulationService';
 import type { SimulationRecord } from '../core/gameRecord';
 import { getVariantLabel, getGameTypeLabel } from '../core/gameRecord';
 import type { GameSetupConfig } from '../core/blunziger/types';
 import { DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import { SimulationDetailsTable } from './SimulationDetailsTable';
 import './SimulationsOverviewSection.css';
 
 /** Unified simulation item shape for display. */
@@ -89,6 +91,8 @@ export function SimulationsOverviewSection({
   onPageChange,
   onSelectSimulation,
 }: SimulationsOverviewProps) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
   // Merge remote and local items into a unified list.
   // Remote items take priority; local items fill in for static mode.
   const items: SimulationDisplayItem[] = remoteSimulations
@@ -108,6 +112,18 @@ export function SimulationsOverviewSection({
 
   const totalPages = total && pageSize ? Math.ceil(total / pageSize) : 1;
 
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="sim-overview">
       <h3 className="sim-overview-heading">📋 Your Simulations</h3>
@@ -116,48 +132,75 @@ export function SimulationsOverviewSection({
       {error && <p className="sim-overview-error">{error}</p>}
 
       <div className="sim-overview-list">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            className="sim-overview-item"
-            onClick={() => onSelectSimulation?.(item.id)}
-          >
-            <div className="sim-overview-icon">
-              {item.status === 'running' ? (
-                <span className="sim-overview-spinner" title="Running" />
-              ) : (
-                '🔬'
+        {items.map((item) => {
+          const isExpanded = expandedIds.has(item.id);
+          return (
+            <div key={item.id} className="sim-overview-item-wrapper">
+              <div className="sim-overview-item">
+                <div
+                  className="sim-overview-item-main"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectSimulation?.(item.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectSimulation?.(item.id);
+                    }
+                  }}
+                >
+                  <div className="sim-overview-icon">
+                    {item.status === 'running' ? (
+                      <span className="sim-overview-spinner" title="Running" />
+                    ) : (
+                      '🔬'
+                    )}
+                  </div>
+                  <div className="sim-overview-info">
+                    <div className="sim-overview-meta">
+                      <span className="sim-overview-variant">
+                        {getVariantLabel(item.config.variantMode)}
+                      </span>
+                      <span className="sim-overview-sep">·</span>
+                      <span className="sim-overview-gametype">
+                        {getGameTypeLabel(item.config.gameType)}
+                      </span>
+                    </div>
+                    <div className="sim-overview-standing">
+                      <span className="sim-overview-white">W {item.whiteWins}</span>
+                      <span className="sim-overview-sep">·</span>
+                      <span className="sim-overview-black">B {item.blackWins}</span>
+                      <span className="sim-overview-sep">·</span>
+                      <span className="sim-overview-draw">D {item.draws}</span>
+                    </div>
+                    <div className="sim-overview-details">
+                      {item.completedGames}/{item.gameCount} games
+                      {item.status === 'running' && (
+                        <span className="sim-overview-status sim-overview-status--running"> · Running</span>
+                      )}
+                      {item.status === 'completed' && item.completedAt && (
+                        <span className="sim-overview-date"> · {new Date(item.completedAt).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className="sim-overview-info-toggle"
+                  title={isExpanded ? 'Hide details' : 'Show details'}
+                  aria-expanded={isExpanded}
+                  onClick={() => toggleExpanded(item.id)}
+                >
+                  ℹ️
+                </button>
+              </div>
+              {isExpanded && (
+                <div className="sim-overview-expanded">
+                  <SimulationDetailsTable config={item.config} />
+                </div>
               )}
             </div>
-            <div className="sim-overview-info">
-              <div className="sim-overview-meta">
-                <span className="sim-overview-variant">
-                  {getVariantLabel(item.config.variantMode)}
-                </span>
-                <span className="sim-overview-sep">·</span>
-                <span className="sim-overview-gametype">
-                  {getGameTypeLabel(item.config.gameType)}
-                </span>
-              </div>
-              <div className="sim-overview-standing">
-                <span className="sim-overview-white">W {item.whiteWins}</span>
-                <span className="sim-overview-sep">·</span>
-                <span className="sim-overview-black">B {item.blackWins}</span>
-                <span className="sim-overview-sep">·</span>
-                <span className="sim-overview-draw">D {item.draws}</span>
-              </div>
-              <div className="sim-overview-details">
-                {item.completedGames}/{item.gameCount} games
-                {item.status === 'running' && (
-                  <span className="sim-overview-status sim-overview-status--running"> · Running</span>
-                )}
-                {item.status === 'completed' && item.completedAt && (
-                  <span className="sim-overview-date"> · {new Date(item.completedAt).toLocaleString()}</span>
-                )}
-              </div>
-            </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pagination (remote mode only) */}
