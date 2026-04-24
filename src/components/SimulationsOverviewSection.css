@@ -193,7 +193,7 @@
   border-radius: 8px;
 }
 
-.sim-overview-item-wrapper:has(.sim-overview-expanded) .sim-overview-item {
+.sim-overview-item-wrapper--expanded .sim-overview-item {
   border-radius: 8px 8px 0 0;
 }
 

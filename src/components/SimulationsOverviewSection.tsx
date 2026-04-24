@@ -135,7 +135,7 @@ export function SimulationsOverviewSection({
         {items.map((item) => {
           const isExpanded = expandedIds.has(item.id);
           return (
-            <div key={item.id} className="sim-overview-item-wrapper">
+            <div key={item.id} className={`sim-overview-item-wrapper${isExpanded ? ' sim-overview-item-wrapper--expanded' : ''}`}>
               <div className="sim-overview-item">
                 <div
                   className="sim-overview-item-main"
@@ -143,9 +143,9 @@ export function SimulationsOverviewSection({
                   tabIndex={0}
                   onClick={() => onSelectSimulation?.(item.id)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if ((e.key === 'Enter' || e.key === ' ') && onSelectSimulation) {
                       e.preventDefault();
-                      onSelectSimulation?.(item.id);
+                      onSelectSimulation(item.id);
                     }
                   }}
                 >
