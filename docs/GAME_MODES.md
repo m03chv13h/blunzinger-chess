@@ -477,16 +477,24 @@ Non-capture moves and castling are unaffected.
 
 ## 6. Bot Difficulty Levels
 
-| Level | ID | Move Selection | Rule Compliance |
-|-------|-----|---------------|----------------|
-| **Easy** | `easy` | Random legal move | May violate rules (~25% chance if checking moves exist) |
-| **Medium** | `medium` | Heuristic scoring (prefers captures, checks, central moves) | Follows rules; uses top-scoring moves with some randomness |
-| **Hard** | `hard` | Minimax with alpha-beta pruning (depth 2) | Full variant awareness; deterministic |
+All bots use the **Blunznforön engine** — a negamax search with alpha-beta pruning, quiescence
+search, and variant-aware move ordering. Difficulty is tuned through search depth, randomisation
+margin, and violation probability.
+
+| Level | ID | Search Depth | Quiescence Depth | Randomisation | Violation Probability |
+|-------|-----|-------------|-----------------|---------------|-----------------------|
+| **Easy** | `easy` | 1 | 0 | High (200 cp margin) | 25% |
+| **Medium** | `medium` | 2 | 1 | Low (50 cp margin) | 0% |
+| **Hard** | `hard` | 3 | 2 | Minimal (10 cp margin) | 0% (tactical extensions enabled) |
+
+**Randomisation margin:** moves scored within _n_ centipawns of the best move are treated as
+equally good and selected randomly. A higher margin means more varied (and weaker) play.
 
 ### Violation Reporting (Bots)
 
 - **Hard / Medium:** Always report valid violations
-- **Easy:** May miss obvious violations probabilistically
+- **Easy:** Always reports `gave_forbidden_check` violations; probabilistically reports
+  `missed_check` violations (base 15%, +25% per available checking move, capped at 90%)
 
 ---
 
@@ -711,6 +719,7 @@ During reporting phase:
 | `piece_removal_no_piece_loss` | Win | Violator has no removable pieces left |
 | `timeout` | Win | Player's clock reached 0 naturally |
 | `timeout_penalty` | Win | Violator's clock reached 0 from time reduction |
+| `disconnection` | Win | Opponent disconnected and did not reconnect within the timeout (online only) |
 | `resignation` | Win | Player resigned |
 | `stalemate` | Draw | Side to move has no legal moves, not in check |
 | `insufficient-material` | Draw | K vs K, K+B vs K, K+N vs K |
@@ -787,6 +796,8 @@ MatchConfig
 | `timeReductionSeconds` | `number` | `60` | Seconds deducted per violation |
 | `kingHuntPlyLimit` | `number` | `80` | Ply limit (King Hunt) |
 | `kingHuntGivenCheckTarget` | `number` | `5` | Check target (King Hunt) |
+| `initialFen` | `string` | `undefined` | Optional custom starting FEN; overrides default start position |
+| `chess960Index` | `number` | `undefined` | Pre-resolved Chess960 position index (0–959); set for online games so both sides share the same position |
 
 ---
 
