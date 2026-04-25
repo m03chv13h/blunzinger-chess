@@ -194,4 +194,81 @@ describe('SimulationsOverviewSection', () => {
       expect(screen.queryByText(/Page/)).not.toBeInTheDocument();
     });
   });
+
+  describe('details toggle', () => {
+    it('shows info toggle button for each simulation', () => {
+      const item = makeRemoteItem();
+      render(<SimulationsOverviewSection remoteSimulations={[item]} />);
+      expect(screen.getByTitle('Show details')).toBeInTheDocument();
+    });
+
+    it('expands details when info toggle is clicked', () => {
+      const item = makeRemoteItem();
+      render(<SimulationsOverviewSection remoteSimulations={[item]} />);
+      expect(screen.queryByText('Game Details')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTitle('Show details'));
+      expect(screen.getByText('Game Details')).toBeInTheDocument();
+    });
+
+    it('collapses details when info toggle is clicked again', () => {
+      const item = makeRemoteItem();
+      render(<SimulationsOverviewSection remoteSimulations={[item]} />);
+      fireEvent.click(screen.getByTitle('Show details'));
+      expect(screen.getByText('Game Details')).toBeInTheDocument();
+      fireEvent.click(screen.getByTitle('Hide details'));
+      expect(screen.queryByText('Game Details')).not.toBeInTheDocument();
+    });
+
+    it('does not trigger onSelectSimulation when toggling details', () => {
+      const item = makeRemoteItem({ id: 'sim-toggle' });
+      const onSelect = vi.fn();
+      render(
+        <SimulationsOverviewSection
+          remoteSimulations={[item]}
+          onSelectSimulation={onSelect}
+        />,
+      );
+      fireEvent.click(screen.getByTitle('Show details'));
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('shows config details in expanded panel', () => {
+      const item = makeRemoteItem();
+      render(<SimulationsOverviewSection remoteSimulations={[item]} />);
+      fireEvent.click(screen.getByTitle('Show details'));
+      expect(screen.getByText('Variant Mode')).toBeInTheDocument();
+      expect(screen.getByText('Game Type')).toBeInTheDocument();
+      expect(screen.getByText('Bot Difficulty (White)')).toBeInTheDocument();
+    });
+
+    it('can expand multiple simulations independently', () => {
+      const items = [
+        makeRemoteItem({ id: 'sim-a', whiteWins: 7, blackWins: 2, draws: 1 }),
+        makeRemoteItem({ id: 'sim-b', whiteWins: 3, blackWins: 5, draws: 2 }),
+      ];
+      render(<SimulationsOverviewSection remoteSimulations={items} />);
+      const toggleButtons = screen.getAllByTitle('Show details');
+      expect(toggleButtons).toHaveLength(2);
+      fireEvent.click(toggleButtons[0]);
+      expect(screen.getAllByText('Game Details')).toHaveLength(1);
+      fireEvent.click(toggleButtons[1]);
+      expect(screen.getAllByText('Game Details')).toHaveLength(2);
+    });
+
+    it('works with local simulations', () => {
+      const sim = makeLocalSimulation();
+      render(<SimulationsOverviewSection localSimulations={[sim]} />);
+      fireEvent.click(screen.getByTitle('Show details'));
+      expect(screen.getByText('Game Details')).toBeInTheDocument();
+    });
+
+    it('sets aria-expanded attribute correctly', () => {
+      const item = makeRemoteItem();
+      render(<SimulationsOverviewSection remoteSimulations={[item]} />);
+      const toggle = screen.getByTitle('Show details');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(toggle);
+      expect(screen.getByTitle('Hide details')).toHaveAttribute('aria-expanded', 'true');
+    });
+  });
 });
