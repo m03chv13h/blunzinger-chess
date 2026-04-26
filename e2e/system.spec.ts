@@ -432,7 +432,7 @@ test.describe('Analyse Section', () => {
   });
 
   test('shows empty state subtitle', async ({ page }) => {
-    await expect(page.getByText(/Analyse a specific position/i)).toBeVisible();
+    await expect(page.getByText('Analyse a specific position using the form below.')).toBeVisible();
   });
 
   test('shows analyse position form', async ({ page }) => {
