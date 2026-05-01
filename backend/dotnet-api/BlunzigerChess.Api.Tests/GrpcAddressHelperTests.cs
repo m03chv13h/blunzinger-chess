@@ -7,7 +7,7 @@ public class GrpcAddressHelperTests
     [Fact]
     public void NormalizeUrl_PrependsHttp_WhenSchemeIsMissing()
     {
-        // Render's fromService hostport value: bare hostname:port
+        // Bare hostname:port (e.g. from container orchestrator service discovery)
         var result = GrpcAddressHelper.NormalizeUrl("blunziger-node-worker:50051");
 
         Assert.Equal("http://blunziger-node-worker:50051", result);

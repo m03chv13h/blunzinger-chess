@@ -239,7 +239,7 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
 };
-// Cloud PaaS proxies (Render, etc.) use dynamic IPs; clear the default
+// Cloud PaaS proxies use dynamic IPs; clear the default
 // loopback-only lists so the middleware accepts their forwarded headers.
 // ForwardLimit = 1 (the default) still prevents chained header spoofing.
 forwardedHeadersOptions.KnownProxies.Clear();

@@ -388,8 +388,8 @@ The app supports two deployment modes controlled by the `VITE_DEPLOY_MODE` envir
 
 | Mode | Description |
 |------|-------------|
-| **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. Deployed to GitHub Pages. |
-| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Deployed to Render. |
+| **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. Deployed to Cloudflare Pages. |
+| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Backend deployed via Docker. |
 
 Features by mode:
 
@@ -579,18 +579,19 @@ cd backend/node-worker && npx tsc --noEmit
 
 ## Deployment
 
-The app deploys to two platforms:
+The frontend deploys to **Cloudflare Pages** via `.github/workflows/deploy.yml`.
 
 | Platform | Mode | Config |
 |----------|------|--------|
-| **GitHub Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
-| **Render** | Connected | `render.yaml` — frontend static site + .NET API + Node worker + PostgreSQL |
+| **Cloudflare Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
 
-The Render blueprint (`render.yaml`) provisions:
-- **Frontend** — static site with SPA rewrites
-- **.NET API** — Docker web service on port 8080
+Required GitHub Secrets for deployment:
+- `CLOUDFLARE_API_TOKEN` — API token with "Cloudflare Pages: Edit" permission
+- `CLOUDFLARE_ACCOUNT_ID` — Account ID from Cloudflare dashboard
+
+The backend services (when running in `connected` mode) are deployed via Docker:
+- **.NET API** — Docker web service on port 8080 (uses SQLite)
 - **Node Worker** — private gRPC service on port 50051
-- **PostgreSQL** — managed database
 
 ## Architecture
 
@@ -811,14 +812,14 @@ backend/
 
 ### Backend Architecture
 
-The backend is a multi-tier system deployed to Render:
+The backend is a multi-tier system deployed via Docker:
 
 ```
 ┌──────────────┐      ┌──────────────────┐      ┌─────────────────────┐
 │   Frontend   │─────▶│   .NET API       │─────▶│   Node.js Worker    │
 │   (Static)   │ REST │   (ASP.NET 10)   │ gRPC │   (TypeScript)      │
 │              │  +   │                  │      │                     │
-│              │  WS  │   PostgreSQL DB  │      │   Port 50051        │
+│              │  WS  │   SQLite DB      │      │   Port 50051        │
 └──────────────┘      └──────────────────┘      └─────────────────────┘
 ```
 

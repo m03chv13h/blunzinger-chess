@@ -15,8 +15,8 @@ const TOKEN_KEY = 'blunziger_token';
  * - Bare hostname or host:port → prepends `https://`.
  * - Full URL → used as-is.
  *
- * When deployed to Render, set `VITE_API_BASE_URL` to the **public** URL
- * of the API service (e.g. `https://blunziger-api.onrender.com`).
+ * When deployed with a backend, set `VITE_API_BASE_URL` to the **public** URL
+ * of the API service (e.g. `https://your-api-domain.com`).
  */
 function resolveApiBase(): string {
   const raw = import.meta.env.VITE_API_BASE_URL ?? '';
