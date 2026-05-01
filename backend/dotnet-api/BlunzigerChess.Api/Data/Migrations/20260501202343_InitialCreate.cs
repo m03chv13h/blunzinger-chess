@@ -15,14 +15,16 @@ namespace BlunzigerChess.Api.Data.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DisplayName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    AvatarUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    Provider = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    ProviderId = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    IsGuest = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    AvatarUrl = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true),
+                    CustomDisplayName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    CustomAvatarUrl = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true),
+                    Provider = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    ProviderId = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    IsGuest = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -33,19 +35,19 @@ namespace BlunzigerChess.Api.Data.Migrations
                 name: "Games",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    MatchConfig = table.Column<string>(type: "jsonb", nullable: false),
-                    GameStateJson = table.Column<string>(type: "jsonb", nullable: true),
-                    Result = table.Column<string>(type: "jsonb", nullable: true),
-                    Scores = table.Column<string>(type: "jsonb", nullable: true),
-                    PositionHistory = table.Column<string>(type: "jsonb", nullable: true),
-                    MoveHistory = table.Column<string>(type: "jsonb", nullable: true),
-                    FinalFen = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    MoveCount = table.Column<int>(type: "integer", nullable: false),
-                    GameMode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    MatchConfig = table.Column<string>(type: "TEXT", nullable: false),
+                    GameStateJson = table.Column<string>(type: "TEXT", nullable: true),
+                    Result = table.Column<string>(type: "TEXT", nullable: true),
+                    Scores = table.Column<string>(type: "TEXT", nullable: true),
+                    PositionHistory = table.Column<string>(type: "TEXT", nullable: true),
+                    MoveHistory = table.Column<string>(type: "TEXT", nullable: true),
+                    FinalFen = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
+                    MoveCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    GameMode = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -59,18 +61,46 @@ namespace BlunzigerChess.Api.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Simulations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    ConfigJson = table.Column<string>(type: "TEXT", nullable: false),
+                    GameCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    WhiteWins = table.Column<int>(type: "INTEGER", nullable: false),
+                    BlackWins = table.Column<int>(type: "INTEGER", nullable: false),
+                    Draws = table.Column<int>(type: "INTEGER", nullable: false),
+                    CompletedGames = table.Column<int>(type: "INTEGER", nullable: false),
+                    GamesJson = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Simulations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Simulations_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MultiplayerRooms",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
-                    HostUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    GuestUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    MatchConfig = table.Column<string>(type: "jsonb", nullable: false),
-                    CurrentGameState = table.Column<string>(type: "jsonb", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    GameId = table.Column<Guid>(type: "uuid", nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Code = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
+                    HostUserId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    GuestUserId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    MatchConfig = table.Column<string>(type: "TEXT", nullable: false),
+                    CurrentGameState = table.Column<string>(type: "TEXT", nullable: true),
+                    Status = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastActivityAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    GameId = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -99,12 +129,12 @@ namespace BlunzigerChess.Api.Data.Migrations
                 name: "MatchmakingQueue",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PreferredConfig = table.Column<string>(type: "jsonb", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    RoomId = table.Column<Guid>(type: "uuid", nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PreferredConfig = table.Column<string>(type: "TEXT", nullable: false),
+                    Status = table.Column<int>(type: "INTEGER", nullable: false),
+                    JoinedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    RoomId = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -180,11 +210,21 @@ namespace BlunzigerChess.Api.Data.Migrations
                 column: "Status");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Simulations_CreatedAt",
+                table: "Simulations",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Simulations_UserId",
+                table: "Simulations",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_Provider_ProviderId",
                 table: "Users",
                 columns: new[] { "Provider", "ProviderId" },
                 unique: true,
-                filter: "\"ProviderId\" IS NOT NULL");
+                filter: "ProviderId IS NOT NULL");
         }
 
         /// <inheritdoc />
@@ -192,6 +232,9 @@ namespace BlunzigerChess.Api.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "MatchmakingQueue");
+
+            migrationBuilder.DropTable(
+                name: "Simulations");
 
             migrationBuilder.DropTable(
                 name: "MultiplayerRooms");

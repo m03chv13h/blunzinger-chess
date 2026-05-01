@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlunzigerChess.Api.Models;
 
@@ -18,7 +17,6 @@ public class MatchmakingEntry
     public Guid UserId { get; set; }
 
     /// <summary>Preferred game configuration for matching, as JSON.</summary>
-    [Column(TypeName = "jsonb")]
     public string PreferredConfig { get; set; } = "{}";
 
     public MatchmakingStatus Status { get; set; } = MatchmakingStatus.Queued;

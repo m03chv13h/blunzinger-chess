@@ -71,3 +71,8 @@ bld/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal

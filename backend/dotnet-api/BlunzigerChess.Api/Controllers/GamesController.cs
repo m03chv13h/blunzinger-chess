@@ -63,12 +63,12 @@ public class GamesController(AppDbContext db) : ControllerBase
         }
 
         // Server-side filter: exclude spectated games (hvh / botvbot).
-        // MatchConfig is a jsonb column; use the PostgreSQL @> containment operator.
+        // Use string matching on the JSON column for SQLite compatibility.
         if (!includeSpectated)
         {
             query = query.Where(g =>
-                !EF.Functions.JsonContains(g.MatchConfig, @"{""mode"":""hvh""}") &&
-                !EF.Functions.JsonContains(g.MatchConfig, @"{""mode"":""botvbot""}"));
+                !g.MatchConfig.Contains("\"mode\":\"hvh\"") &&
+                !g.MatchConfig.Contains("\"mode\":\"botvbot\""));
         }
 
         query = query.OrderByDescending(g => g.CompletedAt ?? g.CreatedAt);

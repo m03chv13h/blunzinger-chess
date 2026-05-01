@@ -30,13 +30,15 @@ services:
     dockerContext: .
     plan: free
     healthCheckPath: /health
+    disk:
+      name: blunziger-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: blunziger-db
-          property: connectionString
+        value: "Data Source=/data/blunziger_chess.db"
       - key: NodeWorker__Url
         fromService:
           type: pserv
@@ -79,10 +81,3 @@ services:
         value: "50051"
       - key: HOST
         value: "0.0.0.0"
-
-# ── Database ────────────────────────────────────────────────────────
-databases:
-  - name: blunziger-db
-    plan: free
-    databaseName: blunziger_chess
-    user: blunziger

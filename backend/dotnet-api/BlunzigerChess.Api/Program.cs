@@ -16,13 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ─────────────────────────────────────────────────────────
 
-var connectionString = ConnectionStringHelper.Normalize(
-    builder.Configuration.GetConnectionString("DefaultConnection"));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? "Data Source=blunziger_chess.db";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(string.IsNullOrWhiteSpace(connectionString)
-        ? "Host=localhost;Database=blunziger_chess;Username=postgres;Password=postgres"
-        : connectionString));
+    options.UseSqlite(connectionString));
 
 // ── Authentication ───────────────────────────────────────────────────
 

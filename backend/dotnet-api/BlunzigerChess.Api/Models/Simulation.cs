@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlunzigerChess.Api.Models;
 
@@ -15,7 +14,6 @@ public class Simulation
     public Guid? UserId { get; set; }
 
     /// <summary>Game setup configuration as JSON (mirrors TypeScript GameSetupConfig).</summary>
-    [Column(TypeName = "jsonb")]
     public string ConfigJson { get; set; } = "{}";
 
     /// <summary>Number of games in this simulation.</summary>
@@ -34,7 +32,6 @@ public class Simulation
     public int CompletedGames { get; set; }
 
     /// <summary>All game records as a JSON array (mirrors TypeScript GameRecord[]).</summary>
-    [Column(TypeName = "jsonb")]
     public string GamesJson { get; set; } = "[]";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

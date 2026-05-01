@@ -21,7 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.Provider, e.ProviderId })
                   .IsUnique()
-                  .HasFilter("\"ProviderId\" IS NOT NULL");
+                  .HasFilter("ProviderId IS NOT NULL");
         });
 
         // Game

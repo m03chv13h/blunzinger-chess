@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlunzigerChess.Api.Models;
 
@@ -24,11 +23,9 @@ public class MultiplayerRoom
     public Guid? GuestUserId { get; set; }
 
     /// <summary>Match configuration chosen by the host, as JSON.</summary>
-    [Column(TypeName = "jsonb")]
     public string MatchConfig { get; set; } = "{}";
 
     /// <summary>Current game state as JSON (kept in sync during play).</summary>
-    [Column(TypeName = "jsonb")]
     public string? CurrentGameState { get; set; }
 
     public RoomStatus Status { get; set; } = RoomStatus.Waiting;
