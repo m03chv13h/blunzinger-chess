@@ -1,6 +1,9 @@
 import type { Env } from '../types.js';
 import { RoomStatus } from '../types.js';
 
+/** Seconds before a disconnected player forfeits. */
+const DISCONNECT_TIMEOUT_SECONDS = 20;
+
 interface ConnectionMeta {
   userId: string;
   roomCode: string;
@@ -152,16 +155,16 @@ export class GameRoom implements DurableObject {
       // Notify others
       this.broadcastAll(JSON.stringify({
         type: 'OpponentDisconnected',
-        data: { userId: meta.userId, timeoutSeconds: 20 },
+        data: { userId: meta.userId, timeoutSeconds: DISCONNECT_TIMEOUT_SECONDS },
       }));
 
       // Set a disconnect timer (20 seconds)
-      this.disconnectTimers.set(meta.userId, Date.now() + 20_000);
+      this.disconnectTimers.set(meta.userId, Date.now() + DISCONNECT_TIMEOUT_SECONDS * 1000);
 
       // Schedule alarm for disconnect timeout
       const alarm = await this.state.storage.getAlarm();
       if (!alarm) {
-        await this.state.storage.setAlarm(Date.now() + 20_000);
+        await this.state.storage.setAlarm(Date.now() + DISCONNECT_TIMEOUT_SECONDS * 1000);
       }
     } else {
       this.broadcastAll(JSON.stringify({
@@ -206,7 +209,7 @@ export class GameRoom implements DurableObject {
             data: {
               reason: 'disconnection',
               disconnectedSide,
-              detail: `${disconnectedSide === 'white' ? 'White' : 'Black'} disconnected and did not reconnect within 20 seconds.`,
+              detail: `${disconnectedSide === 'white' ? 'White' : 'Black'} disconnected and did not reconnect within ${DISCONNECT_TIMEOUT_SECONDS} seconds.`,
             },
           }));
         }

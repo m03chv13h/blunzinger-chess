@@ -23,7 +23,7 @@ new_classes = ["GameRoom", "Scheduler"]
 
 # Cron trigger for periodic background tasks (room expiry, matchmaking)
 [triggers]
-crons = ["*/1 * * * *"]
+crons = ["*/5 * * * *"]
 
 # Environment variables (set via wrangler secret or dashboard)
 # JWT_SECRET — signing key for JWTs

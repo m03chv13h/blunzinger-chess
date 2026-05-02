@@ -156,6 +156,9 @@ export interface UseGameHub {
 }
 
 /** Hub URL – resolved relative to the API base (WebSocket). */
+/** Delay (ms) before attempting automatic reconnection. */
+const RECONNECT_DELAY_MS = 3000;
+
 function getWsUrl(roomCode?: string): string {
   const base = API_BASE || window.location.origin;
   const protocol = base.startsWith('https') ? 'wss' : 'ws';
@@ -216,7 +219,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         connectInternal();
       }
-    }, 3000);
+    }, RECONNECT_DELAY_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
