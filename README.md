@@ -388,8 +388,8 @@ The app supports two deployment modes controlled by the `VITE_DEPLOY_MODE` envir
 
 | Mode | Description |
 |------|-------------|
-| **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. Deployed to Cloudflare Pages. |
-| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Backend deployed via Docker. |
+| **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. |
+| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. All deployed to Cloudflare. |
 
 Features by mode:
 
@@ -579,19 +579,62 @@ cd backend/node-worker && npx tsc --noEmit
 
 ## Deployment
 
-The frontend deploys to **Cloudflare Pages** via `.github/workflows/deploy.yml`.
+The entire application deploys to **Cloudflare** via `.github/workflows/deploy.yml`.
 
-| Platform | Mode | Config |
-|----------|------|--------|
-| **Cloudflare Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
+| Component | Cloudflare Service | Config |
+|-----------|-------------------|--------|
+| **Frontend** | Pages | Static site with SPA routing (`public/_redirects`) |
+| **Backend API** | Workers | Hono framework, `backend/cloudflare-worker/wrangler.toml` |
+| **Database** | D1 | SQLite-compatible, schema in `backend/cloudflare-worker/migrations/` |
+| **WebSocket** | Durable Objects | `GameRoom` — real-time multiplayer |
+| **Background Tasks** | Durable Objects + Cron | `Scheduler` — simulation, matchmaking, room expiry |
 
-Required GitHub Secrets for deployment:
-- `CLOUDFLARE_API_TOKEN` — API token with "Cloudflare Pages: Edit" permission
-- `CLOUDFLARE_ACCOUNT_ID` — Account ID from Cloudflare dashboard
+### Required GitHub Secrets
 
-The backend services (when running in `connected` mode) are deployed via Docker:
-- **.NET API** — Docker web service on port 8080 (uses SQLite)
-- **Node Worker** — private gRPC service on port 50051
+| Secret | Description |
+|--------|-------------|
+| `CLOUDFLARE_API_TOKEN` | API token with Pages + Workers permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID from Cloudflare dashboard |
+
+### Required GitHub Variables
+
+| Variable | Description |
+|----------|-------------|
+| `API_WORKER_URL` | Public URL of the deployed Worker (e.g. `https://blunziger-chess-api.<account>.workers.dev`) |
+
+### Worker Secrets (set via `wrangler secret put`)
+
+| Secret | Description |
+|--------|-------------|
+| `JWT_SECRET` | Signing key for JWTs (min 32 chars) |
+| `OAUTH_GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `OAUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `OAUTH_GITHUB_CLIENT_ID` | GitHub OAuth client ID |
+| `OAUTH_GITHUB_CLIENT_SECRET` | GitHub OAuth client secret |
+| `OAUTH_DISCORD_CLIENT_ID` | Discord OAuth client ID |
+| `OAUTH_DISCORD_CLIENT_SECRET` | Discord OAuth client secret |
+| `OAUTH_MICROSOFT_CLIENT_ID` | Microsoft OAuth client ID |
+| `OAUTH_MICROSOFT_CLIENT_SECRET` | Microsoft OAuth client secret |
+
+### Initial Setup
+
+```bash
+# Create the D1 database
+cd backend/cloudflare-worker
+npx wrangler d1 create blunziger-chess-db
+# Copy the database_id into wrangler.toml
+
+# Apply migrations
+npx wrangler d1 migrations apply blunziger-chess-db --remote
+
+# Set secrets
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put OAUTH_GITHUB_CLIENT_ID
+# ... etc.
+
+# Deploy
+npx wrangler deploy
+```
 
 ## Architecture
 
@@ -812,45 +855,40 @@ backend/
 
 ### Backend Architecture
 
-The backend is a multi-tier system deployed via Docker:
+The backend runs entirely on **Cloudflare Workers** with Durable Objects:
 
 ```
-┌──────────────┐      ┌──────────────────┐      ┌─────────────────────┐
-│   Frontend   │─────▶│   .NET API       │─────▶│   Node.js Worker    │
-│   (Static)   │ REST │   (ASP.NET 10)   │ gRPC │   (TypeScript)      │
-│              │  +   │                  │      │                     │
-│              │  WS  │   SQLite DB      │      │   Port 50051        │
-└──────────────┘      └──────────────────┘      └─────────────────────┘
+┌──────────────┐      ┌─────────────────────────────────────────┐
+│   Frontend   │─────▶│   Cloudflare Worker (Hono)              │
+│   (Pages)    │ REST │   ┌───────────────────────────────────┐ │
+│              │  +   │   │  D1 Database (SQLite)             │ │
+│              │  WS  │   └───────────────────────────────────┘ │
+│              │      │   ┌────────────────┐ ┌───────────────┐  │
+│              │      │   │  GameRoom DO   │ │  Scheduler DO │  │
+│              │      │   │  (WebSocket)   │ │  (Background) │  │
+│              │      │   └────────────────┘ └───────────────┘  │
+└──────────────┘      └─────────────────────────────────────────┘
 ```
 
-**.NET API** — ASP.NET 10 web API handling authentication, game persistence, multiplayer coordination, and gRPC delegation.
+**Worker API** — Hono-based REST API handling authentication, game persistence, multiplayer coordination, and simulation.
 
-| Controller | Endpoints | Purpose |
-|-----------|-----------|---------|
-| `AuthController` | `/api/auth/*` | OAuth login, guest tokens, JWT management |
-| `GamesController` | `/api/games/*` | Save, list, fetch, delete game records |
-| `LobbyController` | `/api/lobby/*` | Room creation/joining, matchmaking queue |
-| `SimulationController` | `/api/simulation/*` | Backend simulation execution |
-| `UserController` | `/api/user/*` | Profile management (display name, avatar) |
+| Route | Endpoints | Purpose |
+|-------|-----------|---------|
+| `auth` | `/api/auth/*` | OAuth login, guest tokens, JWT management |
+| `games` | `/api/games/*` | Save, list, fetch game records |
+| `lobby` | `/api/lobby/*` | Room creation/joining, matchmaking queue |
+| `simulation` | `/api/simulation/*` | Backend simulation execution |
+| `user` | `/api/user/*` | Profile management (display name, avatar) |
 
-**SignalR:** `GameHub` at `/hubs/game` for real-time multiplayer game state synchronization.
+**Durable Objects:**
+- `GameRoom` — WebSocket multiplayer rooms, move relay, disconnect handling (20s timeout)
+- `Scheduler` — Background tasks: simulation queue, room expiry, matchmaking
 
-**Services:** `AuthService` (OAuth + JWT), `MatchmakingService` (queue-based matching), `RoomExpiryService` (idle room cleanup), `EnabledOAuthProviders` (runtime OAuth discovery).
+**Database:** Cloudflare D1 (SQLite-compatible) — tables: `Users`, `Games`, `Simulations`, `MultiplayerRooms`, `MatchmakingQueue`.
 
-**Database:** Entity Framework Core with PostgreSQL — entities: `User`, `MultiplayerRoom`, `Game`, `MatchmakingEntry`.
+**Simulation:** Direct TypeScript imports from `src/core/simulation.ts` — no gRPC layer needed since the Worker is already TypeScript.
 
-**Node.js Worker** — TypeScript gRPC server reusing `src/core/` for server-side logic:
-
-| gRPC Service | Proto | Purpose |
-|---------|-------|---------|
-| `GameLogicService` | `game_logic.proto` | Move validation, rule application |
-| `BotService` | `bot.proto` | Bot move selection |
-| `EvaluationService` | `evaluation.proto` | Position evaluation |
-| `SimulationService` | `simulation.proto` | Bot-vs-bot game simulation |
-
-The worker uses JSON passthrough — the .NET API forwards raw frontend JSON strings, and the Node.js worker parses them natively using the shared TypeScript types from `src/core/`.
-
-**.NET Aspire** — Development orchestration for running all backend services locally with service discovery.
+**Legacy Backend (Docker):** The `.NET API` and `Node.js Worker` remain in `backend/dotnet-api/` and `backend/node-worker/` for local development via .NET Aspire, but are not deployed to production.
 
 ## Library Choices
 
@@ -860,7 +898,6 @@ The worker uses JSON passthrough — the .NET API forwards raw frontend JSON str
 | **TypeScript 5.9** | Apache-2.0 | Type safety (strict mode) |
 | **Vite** | MIT | Build tool & dev server |
 | **chess.js** | BSD-2-Clause | Chess move generation & validation |
-| **@microsoft/signalr** | MIT | Real-time WebSocket communication (online multiplayer) |
 | **Vitest** | MIT | Unit & component testing framework |
 | **Playwright** | Apache-2.0 | End-to-end system testing |
 

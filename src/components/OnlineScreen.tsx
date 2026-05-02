@@ -33,7 +33,7 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
-  // Connect to the SignalR hub when authenticated.
+  // Connect to the WebSocket hub when authenticated.
   useEffect(() => {
     if (authenticated && !hub.connected) {
       hub.connect().catch(() => {

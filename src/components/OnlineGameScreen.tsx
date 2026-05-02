@@ -223,7 +223,7 @@ export function OnlineGameScreen({
 
   // Initialize game and connect to hub on mount.
   // Dependencies are intentionally omitted: this effect runs exactly once
-  // to set up the game state and SignalR connection for the lifetime of
+  // to set up the game state and WebSocket connection for the lifetime of
   // this component instance.
   const initRef = useRef(false);
   useEffect(() => {

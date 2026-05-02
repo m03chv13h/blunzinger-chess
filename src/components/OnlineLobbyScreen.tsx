@@ -65,7 +65,7 @@ export function OnlineLobbyScreen({
 
     (async () => {
       try {
-        // Connect to the SignalR hub
+        // Connect to the WebSocket hub
         if (!hub.connected) {
           await hub.connect();
         }
@@ -75,7 +75,7 @@ export function OnlineLobbyScreen({
         const res = await lobby.createRoom(matchConfigJson);
         roomCodeRef.current = res.code;
 
-        // Join the SignalR room group
+        // Join the WebSocket room group
         await hub.joinRoom(res.code);
 
         // Autopair: the server paired us with an existing room as guest (black)

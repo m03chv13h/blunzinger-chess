@@ -1,18 +1,14 @@
 /**
- * useGameHub – React hook for the SignalR real-time game connection.
+ * useGameHub – React hook for real-time game WebSocket connection.
  *
- * Manages a SignalR connection to `/hubs/game`, authenticating with the
- * stored JWT.  Exposes methods that mirror the GameHub server methods
- * and callbacks for server-pushed events.
+ * Manages a WebSocket connection to `/hubs/game`, authenticating with the
+ * stored JWT via query param.  Exposes methods that mirror the GameHub
+ * server methods and callbacks for server-pushed events.
+ *
+ * Uses native WebSocket (compatible with Cloudflare Durable Objects).
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  HubConnectionBuilder,
-  HubConnectionState,
-  LogLevel,
-} from '@microsoft/signalr';
-import type { HubConnection } from '@microsoft/signalr';
 import { getToken, API_BASE } from '../services/apiClient';
 
 // ── Server → Client event payloads ──────────────────────────────────
@@ -159,109 +155,167 @@ export interface UseGameHub {
   sendPieceRemoval: (roomCode: string, square: string) => Promise<void>;
 }
 
-/** Hub URL – resolved relative to the API base. */
-const HUB_URL = API_BASE + '/hubs/game';
+/** Hub URL – resolved relative to the API base (WebSocket). */
+function getWsUrl(roomCode?: string): string {
+  const base = API_BASE || window.location.origin;
+  const protocol = base.startsWith('https') ? 'wss' : 'ws';
+  const host = base.replace(/^https?:\/\//, '');
+  const params = new URLSearchParams();
+  const token = getToken();
+  if (token) params.set('access_token', token);
+  if (roomCode) params.set('roomCode', roomCode);
+  return `${protocol}://${host}/hubs/game?${params.toString()}`;
+}
 
 export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
   const [connected, setConnected] = useState(false);
-  const connectionRef = useRef<HubConnection | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const callbacksRef = useRef(callbacks);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionalCloseRef = useRef(false);
+  const currentRoomRef = useRef<string | null>(null);
 
   // Keep callbacks ref in sync without accessing during render.
   useEffect(() => {
     callbacksRef.current = callbacks;
   });
 
-  // Build the HubConnection once.
+  const handleMessage = useCallback((event: MessageEvent) => {
+    try {
+      const msg = JSON.parse(event.data) as { type: string; data?: unknown };
+      const cb = callbacksRef.current;
+
+      switch (msg.type) {
+        case 'PlayerJoined': cb.onPlayerJoined?.(msg.data as PlayerJoinedEvent); break;
+        case 'PlayerLeft': cb.onPlayerLeft?.(msg.data as PlayerLeftEvent); break;
+        case 'OpponentDisconnected': cb.onOpponentDisconnected?.(msg.data as OpponentDisconnectedEvent); break;
+        case 'OpponentReconnected': cb.onOpponentReconnected?.(msg.data as OpponentReconnectedEvent); break;
+        case 'GameStateUpdated': cb.onGameStateUpdated?.(msg.data as GameStateUpdatedEvent); break;
+        case 'MoveRejected': cb.onMoveRejected?.(msg.data as MoveRejectedEvent); break;
+        case 'GameOver': cb.onGameOver?.(msg.data as GameOverEvent); break;
+        case 'DrawOffered': cb.onDrawOffered?.(msg.data as DrawOfferedEvent); break;
+        case 'DrawDeclined': cb.onDrawDeclined?.(); break;
+        case 'MatchFound': cb.onMatchFound?.(msg.data as MatchFoundEvent); break;
+        case 'OpponentMoved': cb.onOpponentMoved?.(msg.data as OpponentMovedEvent); break;
+        case 'OpponentDropMove': cb.onOpponentDropMove?.(msg.data as OpponentDropMoveEvent); break;
+        case 'OpponentReported': cb.onOpponentReported?.(); break;
+        case 'OpponentPieceRemoval': cb.onOpponentPieceRemoval?.(msg.data as OpponentPieceRemovalEvent); break;
+        case 'RoomExpired': cb.onRoomExpired?.(msg.data as RoomExpiredEvent); break;
+        case 'Error': cb.onError?.(typeof msg.data === 'string' ? msg.data : String(msg.data)); break;
+      }
+    } catch {
+      // Invalid JSON — ignore
+    }
+  }, []);
+
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) return;
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      if (!intentionalCloseRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        connectInternal();
+      }
+    }, 3000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const connectInternal = useCallback((roomCode?: string) => {
+    const token = getToken();
+    if (!token) return;
+
+    const url = getWsUrl(roomCode || currentRoomRef.current || undefined);
+    const ws = new WebSocket(url);
+
+    ws.onopen = () => setConnected(true);
+    ws.onmessage = handleMessage;
+    ws.onclose = () => {
+      setConnected(false);
+      if (!intentionalCloseRef.current) {
+        scheduleReconnect();
+      }
+    };
+    ws.onerror = () => {
+      setConnected(false);
+    };
+
+    wsRef.current = ws;
+  }, [handleMessage, scheduleReconnect]);
+
+  // Cleanup on unmount
   useEffect(() => {
-    const connection = new HubConnectionBuilder()
-      .withUrl(HUB_URL, {
-        accessTokenFactory: () => getToken() ?? '',
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build();
-
-    // Register event handlers – delegate to latest callbacks via ref.
-    connection.on('PlayerJoined', (e: PlayerJoinedEvent) => callbacksRef.current.onPlayerJoined?.(e));
-    connection.on('PlayerLeft', (e: PlayerLeftEvent) => callbacksRef.current.onPlayerLeft?.(e));
-    connection.on('OpponentDisconnected', (e: OpponentDisconnectedEvent) => callbacksRef.current.onOpponentDisconnected?.(e));
-    connection.on('OpponentReconnected', (e: OpponentReconnectedEvent) => callbacksRef.current.onOpponentReconnected?.(e));
-    connection.on('GameStateUpdated', (e: GameStateUpdatedEvent) => callbacksRef.current.onGameStateUpdated?.(e));
-    connection.on('MoveRejected', (e: MoveRejectedEvent) => callbacksRef.current.onMoveRejected?.(e));
-    connection.on('GameOver', (e: GameOverEvent) => callbacksRef.current.onGameOver?.(e));
-    connection.on('DrawOffered', (e: DrawOfferedEvent) => callbacksRef.current.onDrawOffered?.(e));
-    connection.on('DrawDeclined', () => callbacksRef.current.onDrawDeclined?.());
-    connection.on('MatchFound', (e: MatchFoundEvent) => callbacksRef.current.onMatchFound?.(e));
-    connection.on('OpponentMoved', (e: OpponentMovedEvent) => callbacksRef.current.onOpponentMoved?.(e));
-    connection.on('OpponentDropMove', (e: OpponentDropMoveEvent) => callbacksRef.current.onOpponentDropMove?.(e));
-    connection.on('OpponentReported', () => callbacksRef.current.onOpponentReported?.());
-    connection.on('OpponentPieceRemoval', (e: OpponentPieceRemovalEvent) => callbacksRef.current.onOpponentPieceRemoval?.(e));
-    connection.on('RoomExpired', (e: RoomExpiredEvent) => callbacksRef.current.onRoomExpired?.(e));
-    connection.on('Error', (msg: string) => callbacksRef.current.onError?.(msg));
-
-    connection.onclose(() => setConnected(false));
-    connection.onreconnected(() => setConnected(true));
-    connection.onreconnecting(() => setConnected(false));
-
-    connectionRef.current = connection;
-
     return () => {
-      connection.stop();
+      intentionalCloseRef.current = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      wsRef.current?.close();
     };
   }, []);
 
   const connect = useCallback(async () => {
-    const conn = connectionRef.current;
-    if (!conn || conn.state === HubConnectionState.Connected) return;
-    await conn.start();
-    setConnected(true);
-  }, []);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    intentionalCloseRef.current = false;
+    connectInternal();
+  }, [connectInternal]);
 
   const disconnect = useCallback(async () => {
-    const conn = connectionRef.current;
-    if (!conn) return;
-    await conn.stop();
+    intentionalCloseRef.current = true;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    wsRef.current?.close();
+    wsRef.current = null;
     setConnected(false);
+  }, []);
+
+  // ── Send helper ────────────────────────────────────────────────────
+
+  const send = useCallback((type: string, data?: unknown) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      throw new Error('Not connected to game hub');
+    }
+    ws.send(JSON.stringify({ type, data }));
   }, []);
 
   // ── Hub method wrappers ────────────────────────────────────────────
 
-  const invoke = useCallback(async (method: string, ...args: unknown[]) => {
-    const conn = connectionRef.current;
-    if (!conn || conn.state !== HubConnectionState.Connected) {
-      throw new Error('Not connected to game hub');
+  const joinRoom = useCallback(async (roomCode: string) => {
+    currentRoomRef.current = roomCode;
+    // Reconnect with roomCode so the Worker routes to the correct Durable Object
+    if (wsRef.current) {
+      wsRef.current.close();
     }
-    await conn.invoke(method, ...args);
-  }, []);
-
-  const joinRoom = useCallback((roomCode: string) => invoke('JoinRoom', roomCode), [invoke]);
-  const leaveRoom = useCallback(() => invoke('LeaveRoom'), [invoke]);
-  const makeMove = useCallback((roomCode: string, move: ChessMove) => invoke('MakeMove', roomCode, move), [invoke]);
-  const makeDropMove = useCallback((roomCode: string, drop: DropMove) => invoke('MakeDropMove', roomCode, drop), [invoke]);
-  const reportViolation = useCallback((roomCode: string) => invoke('ReportViolation', roomCode), [invoke]);
-  const selectPieceForRemoval = useCallback((roomCode: string, square: string) => invoke('SelectPieceForRemoval', roomCode, square), [invoke]);
-  const resignGame = useCallback((roomCode: string) => invoke('ResignGame', roomCode), [invoke]);
-  const offerDraw = useCallback((roomCode: string) => invoke('OfferDraw', roomCode), [invoke]);
-  const acceptDraw = useCallback((roomCode: string) => invoke('AcceptDraw', roomCode), [invoke]);
-  const declineDraw = useCallback((roomCode: string) => invoke('DeclineDraw', roomCode), [invoke]);
-  const endGame = useCallback((roomCode: string) => invoke('EndGame', roomCode), [invoke]);
+    connectInternal(roomCode);
+  }, [connectInternal]);
+  const leaveRoom = useCallback(async () => send('LeaveRoom'), [send]);
+  const makeMove = useCallback(async (roomCode: string, move: ChessMove) => send('MakeMove', { roomCode, move }), [send]);
+  const makeDropMove = useCallback(async (roomCode: string, drop: DropMove) => send('MakeDropMove', { roomCode, drop }), [send]);
+  const reportViolation = useCallback(async (roomCode: string) => send('ReportViolation', { roomCode }), [send]);
+  const selectPieceForRemoval = useCallback(async (roomCode: string, square: string) => send('SelectPieceForRemoval', { roomCode, square }), [send]);
+  const resignGame = useCallback(async (roomCode: string) => send('ResignGame', roomCode), [send]);
+  const offerDraw = useCallback(async (roomCode: string) => send('OfferDraw', { roomCode }), [send]);
+  const acceptDraw = useCallback(async (roomCode: string) => send('AcceptDraw', { roomCode }), [send]);
+  const declineDraw = useCallback(async (roomCode: string) => send('DeclineDraw', { roomCode }), [send]);
+  const endGame = useCallback(async (roomCode: string) => send('EndGame', roomCode), [send]);
 
   // ── Client-side relay methods ──────────────────────────────────────
   const sendMove = useCallback(
-    (roomCode: string, from: string, to: string, promotion?: string) =>
-      invoke('SendMove', roomCode, from, to, promotion ?? null),
-    [invoke],
+    async (roomCode: string, from: string, to: string, promotion?: string) =>
+      send('SendMove', { roomCode, from, to, promotion: promotion ?? null }),
+    [send],
   );
   const sendDropMove = useCallback(
-    (roomCode: string, pieceType: string, square: string) =>
-      invoke('SendDropMove', roomCode, pieceType, square),
-    [invoke],
+    async (roomCode: string, pieceType: string, square: string) =>
+      send('SendDropMove', { roomCode, pieceType, square }),
+    [send],
   );
-  const sendReport = useCallback((roomCode: string) => invoke('SendReport', roomCode), [invoke]);
+  const sendReport = useCallback(async (roomCode: string) => send('SendReport', { roomCode }), [send]);
   const sendPieceRemoval = useCallback(
-    (roomCode: string, square: string) => invoke('SendPieceRemoval', roomCode, square),
-    [invoke],
+    async (roomCode: string, square: string) => send('SendPieceRemoval', { roomCode, square }),
+    [send],
   );
 
   return {
