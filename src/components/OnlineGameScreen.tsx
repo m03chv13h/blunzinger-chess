@@ -14,6 +14,7 @@ import type {
 import { useEvaluation } from '../hooks/useEvaluation';
 import { useReview } from '../hooks/useReview';
 import { useMoveAnimation } from '../hooks/useMoveAnimation';
+import { usePreMoves } from '../hooks/usePreMoves';
 import type { GameRecord } from '../core/gameRecord';
 import { createGameRecord } from '../core/gameRecord';
 import { Chessboard } from './Chessboard';
@@ -268,12 +269,8 @@ export function OnlineGameScreen({
   const isMyTurn = game.state.sideToMove === playerColor && !gameIsOver;
   const canInteract = isMyTurn && !review.isReviewing;
 
-  const handleMove = useCallback((from: Square, to: Square, promotion?: string): boolean => {
-    if (!isMyTurn || review.isReviewing) return false;
-    if (selectedDropPieceRef.current) {
-      selectedDropPieceRef.current = null;
-      setSelectedDropPiece(null);
-    }
+  // Wrapper that makes a move and sends it to the hub (used for premove auto-execution)
+  const makeMoveAndSend = useCallback((from: Square, to: Square, promotion?: string): boolean => {
     const success = game.makeMove(from, to, promotion);
     if (success) {
       hub.sendMove(roomCode, from, to, promotion).catch(() => {
@@ -281,7 +278,21 @@ export function OnlineGameScreen({
       });
     }
     return success;
-  }, [isMyTurn, review.isReviewing, game, hub, roomCode]);
+  }, [game, hub, roomCode]);
+
+  // ── Pre-move state ──
+  const preMoveState = usePreMoves(isMyTurn, makeMoveAndSend, gameIsOver);
+
+  const handleMove = useCallback((from: Square, to: Square, promotion?: string): boolean => {
+    if (!isMyTurn || review.isReviewing) return false;
+    if (selectedDropPieceRef.current) {
+      selectedDropPieceRef.current = null;
+      setSelectedDropPiece(null);
+    }
+    // Clear premoves when player makes a direct move
+    preMoveState.clearPreMoves();
+    return makeMoveAndSend(from, to, promotion);
+  }, [isMyTurn, review.isReviewing, makeMoveAndSend, preMoveState]);
 
   const handleReport = useCallback(() => {
     if (!isMyTurn || review.isReviewing) return;
@@ -627,6 +638,9 @@ export function OnlineGameScreen({
               moveAnimation={!review.isReviewing ? anim.moveAnimation : null}
               dropAnimation={!review.isReviewing ? anim.dropAnimation : null}
               explosionSquares={!review.isReviewing ? anim.explosionSquares : undefined}
+              premoveSquares={!review.isReviewing ? preMoveState.premoveSquares : undefined}
+              premoveColor={!review.isReviewing && !gameIsOver ? playerColor : undefined}
+              onPreMove={!review.isReviewing && !gameIsOver ? preMoveState.addPreMove : undefined}
             />
           </div>
           {showDetails && <FenDisplay fen={displayFen} />}

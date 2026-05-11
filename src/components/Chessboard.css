@@ -256,3 +256,16 @@
     opacity: 0;
   }
 }
+
+/* Premove highlighting */
+.square.premove {
+  background-color: rgba(70, 130, 180, 0.6) !important;
+}
+
+.square.premove.light {
+  background-color: rgba(100, 170, 220, 0.7) !important;
+}
+
+.square.premove.dark {
+  background-color: rgba(50, 110, 160, 0.7) !important;
+}

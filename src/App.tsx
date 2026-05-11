@@ -45,6 +45,7 @@ import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
 import { useMoveAnimation } from './hooks/useMoveAnimation';
+import { usePreMoves } from './hooks/usePreMoves';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
 import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
@@ -364,8 +365,20 @@ function App() {
   const handleMove = (from: Square, to: Square, promotion?: string): boolean => {
     // If a drop piece is selected but user clicks the board for a regular move, deselect
     if (selectedDropPiece) setSelectedDropPiece(null);
+    // Clear premoves when the player makes a direct move
+    preMoveState.clearPreMoves();
     return game.makeMove(from, to, promotion);
   };
+
+  // ── Pre-move state ──
+  const preMoveState = usePreMoves(game.isPlayerTurn, game.makeMove, gameIsOver);
+
+  // Determine the player's color for premove highlighting (only hvbot mode)
+  const premovePlayerColor: Color | undefined = (() => {
+    if (screen.type !== 'playing') return undefined;
+    if (screen.config.mode !== 'hvbot') return undefined;
+    return screen.config.botSide === 'w' ? 'b' : 'w';
+  })();
 
   // ── Crazyhouse drop state ──
   const [selectedDropPiece, setSelectedDropPiece] = useState<CrazyhousePieceType | null>(null);
@@ -878,6 +891,9 @@ function App() {
                 moveAnimation={!review.isReviewing ? anim.moveAnimation : null}
                 dropAnimation={!review.isReviewing ? anim.dropAnimation : null}
                 explosionSquares={!review.isReviewing ? anim.explosionSquares : undefined}
+                premoveSquares={!review.isReviewing ? preMoveState.premoveSquares : undefined}
+                premoveColor={!review.isReviewing ? premovePlayerColor : undefined}
+                onPreMove={!review.isReviewing ? preMoveState.addPreMove : undefined}
               />
             </div>
             {showDetails && <FenDisplay fen={displayFen} />}
