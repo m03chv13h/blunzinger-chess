@@ -209,8 +209,8 @@ export function Chessboard({
       if (promotionData) return;
 
       // Premove mode: when board is not interactive but premove is enabled
-      const isPremoveMode = !interactive && !!premoveColor && !!onPreMove;
-      if (!interactive && !isPremoveMode) return;
+      const canQueuePremove = !interactive && !!premoveColor && !!onPreMove;
+      if (!interactive && !canQueuePremove) return;
 
       // Handle piece removal selection (normal mode only)
       if (interactive && pendingPieceRemoval && removableSquares && onPieceRemoval) {
@@ -229,7 +229,7 @@ export function Chessboard({
         // Click on non-drop square: fall through to allow normal piece selection
       }
 
-      if (isPremoveMode) {
+      if (canQueuePremove) {
         // Premove interaction
         if (selectedSquare) {
           const piece = chess.get(selectedSquare);

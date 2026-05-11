@@ -366,12 +366,12 @@ function App() {
     // If a drop piece is selected but user clicks the board for a regular move, deselect
     if (selectedDropPiece) setSelectedDropPiece(null);
     // Clear premoves when the player makes a direct move
-    preMoveState.clearPreMoves();
+    clearPreMoves();
     return game.makeMove(from, to, promotion);
   };
 
   // ── Pre-move state ──
-  const preMoveState = usePreMoves(game.isPlayerTurn, game.makeMove, gameIsOver);
+  const { premoveSquares, addPreMove, clearPreMoves } = usePreMoves(game.isPlayerTurn, game.makeMove, gameIsOver);
 
   // Determine the player's color for premove highlighting (only hvbot mode)
   const premovePlayerColor: Color | undefined = (() => {
@@ -891,9 +891,9 @@ function App() {
                 moveAnimation={!review.isReviewing ? anim.moveAnimation : null}
                 dropAnimation={!review.isReviewing ? anim.dropAnimation : null}
                 explosionSquares={!review.isReviewing ? anim.explosionSquares : undefined}
-                premoveSquares={!review.isReviewing ? preMoveState.premoveSquares : undefined}
+                premoveSquares={!review.isReviewing ? premoveSquares : undefined}
                 premoveColor={!review.isReviewing ? premovePlayerColor : undefined}
-                onPreMove={!review.isReviewing ? preMoveState.addPreMove : undefined}
+                onPreMove={!review.isReviewing ? addPreMove : undefined}
               />
             </div>
             {showDetails && <FenDisplay fen={displayFen} />}

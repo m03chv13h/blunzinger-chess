@@ -51,16 +51,10 @@ export function usePreMoves(
     if (!isPlayerTurn) return;
     if (preMovesRef.current.length === 0) return;
 
-    // Execute the first premove; remaining ones stay queued
+    // Execute the first premove; remaining ones stay queued for next turn cycle
     const [first, ...rest] = preMovesRef.current;
-    const success = makeMove(first.from, first.to, first.promotion);
-    if (success) {
-      // Move succeeded: keep rest of queue for next turn cycle
-      setPreMoves(rest);
-    } else {
-      // Premove was invalid: discard it and try the next one
-      setPreMoves(rest);
-    }
+    makeMove(first.from, first.to, first.promotion);
+    setPreMoves(rest);
   }, [isPlayerTurn, makeMove]);
 
   const addPreMove = useCallback(
@@ -75,11 +69,14 @@ export function usePreMoves(
   }, []);
 
   // Compute all highlighted squares from the premove queue
-  const premoveSquares: Square[] = [];
-  for (const pm of preMoves) {
-    if (!premoveSquares.includes(pm.from)) premoveSquares.push(pm.from);
-    if (!premoveSquares.includes(pm.to)) premoveSquares.push(pm.to);
-  }
+  const premoveSquares: Square[] = (() => {
+    const seen = new Set<Square>();
+    for (const pm of preMoves) {
+      seen.add(pm.from);
+      seen.add(pm.to);
+    }
+    return Array.from(seen);
+  })();
 
   return { preMoves, premoveSquares, addPreMove, clearPreMoves };
 }
