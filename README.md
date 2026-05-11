@@ -389,7 +389,7 @@ The app supports two deployment modes controlled by the `VITE_DEPLOY_MODE` envir
 | Mode | Description |
 |------|-------------|
 | **`static`** (default) | Standalone client — no backend required. All game logic runs client-side. Auth, online play, and persistent game history are disabled. Deployed to GitHub Pages. |
-| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Deployed to Render. |
+| **`connected`** | Full backend integration. Enables OAuth authentication, online multiplayer, game persistence, user profiles, and server-side simulation. Deployed to Render via blueprint (`render.yaml`). |
 
 Features by mode:
 
@@ -573,7 +573,6 @@ cd backend/node-worker && npx tsc --noEmit
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | **Deploy to GitHub Pages** (`deploy.yml`) | Push to `main` | Builds frontend in static mode, deploys to GitHub Pages |
-| **Deploy to Render** (`deploy-render.yml`) | Push to `main` (backend changes), or manual | Triggers Render deploy and syncs `CONNECTION_STRING` secret |
 | **Run Unit Tests** (`test.yml`) | Push to `main` | Runs Vitest frontend test suite |
 | **Build Backend** (`backend.yml`) | Push/PR touching `backend/`, `src/core/`, `src/bot/` | Builds .NET API + Aspire, runs API tests, type-checks Node worker |
 | **System Tests** (`system-tests.yml`) | After deploy, or manual trigger | Runs Playwright E2E tests against deployed or local build |
@@ -585,7 +584,7 @@ The app deploys to two platforms:
 | Platform | Mode | Config |
 |----------|------|--------|
 | **GitHub Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
-| **Render** | Connected | `render.yaml` + `.github/workflows/deploy-render.yml` — frontend static site + .NET API + Node worker + PostgreSQL |
+| **Render** | Connected | `render.yaml` blueprint — frontend static site + .NET API + Node worker + PostgreSQL |
 
 The Render blueprint (`render.yaml`) provisions:
 - **Frontend** — static site with SPA rewrites
@@ -606,22 +605,9 @@ supplied by the database provider.
    format (`Host=…;Port=…;Database=…;Username=…;Password=…;SSL Mode=Require;Trust Server Certificate=true`).
 3. Npgsql uses the normalized connection string to connect to PostgreSQL.
 
-**GitHub Secrets required for Render deployment:**
+**Render environment variable:** `CONNECTION_STRING` — configure this directly in the Render dashboard with your PostgreSQL connection URI (e.g. `postgres://user:pass@host:port/db`).
 
-| Secret | Purpose |
-|--------|---------|
-| `CONNECTION_STRING` | PostgreSQL connection URI (e.g. `postgres://user:pass@host:port/db`). Synced to Render's `CONNECTION_STRING` env var via the deploy workflow. |
-| `RENDER_SERVICE_ID` | The Render service ID for the `.NET API` service (found in Render dashboard URL). |
-| `RENDER_API_KEY` | Render API key for triggering deploys and updating env vars ([Render API docs](https://render.com/docs/api)). |
-
-**Setup steps:**
-
-1. Add the PostgreSQL connection URI to your GitHub repository secrets as `CONNECTION_STRING`.
-2. Add `RENDER_SERVICE_ID` (from the Render dashboard URL: `/services/srv-...`).
-3. Add `RENDER_API_KEY` (generate at Render → Account Settings → API Keys).
-4. The `deploy-render.yml` workflow will automatically trigger Render deployment and sync the
-   connection string on every push to `main` that touches `backend/` or `render.yaml`.
-5. You can also trigger the workflow manually via the Actions tab (`workflow_dispatch`).
+Deployment is managed via the Render dashboard using the `render.yaml` blueprint. No GitHub Actions workflow is required.
 
 ## Architecture
 
