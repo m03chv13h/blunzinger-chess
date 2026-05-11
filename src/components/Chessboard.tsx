@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chess } from 'chess.js';
 import type { Square, CrazyhousePieceType } from '../core/blunziger/types';
 import './Chessboard.css';
@@ -100,6 +100,12 @@ function createBoardView(fen: string): BoardView {
   }
 }
 
+/** Describes the most recent move for slide animation. */
+export interface MoveAnimationInfo {
+  from: Square;
+  to: Square;
+}
+
 interface ChessboardProps {
   fen: string;
   onMove: (from: Square, to: Square, promotion?: string) => boolean;
@@ -117,6 +123,12 @@ interface ChessboardProps {
   onDropSquareClick?: (square: Square) => boolean;
   /** Crazyhouse: handler when a reserve piece is dropped onto a square via drag-and-drop. */
   onReserveDrop?: (piece: CrazyhousePieceType, square: Square) => boolean;
+  /** Last move info for slide animation (from/to). */
+  moveAnimation?: MoveAnimationInfo | null;
+  /** Crazyhouse: square where a piece was just dropped (triggers drop-in animation). */
+  dropAnimation?: Square | null;
+  /** Atomic: squares affected by the last explosion (triggers explosion animation). */
+  explosionSquares?: Square[];
 }
 
 export function Chessboard({
@@ -133,10 +145,49 @@ export function Chessboard({
   dropSquares,
   onDropSquareClick,
   onReserveDrop,
+  moveAnimation,
+  dropAnimation,
+  explosionSquares,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
   const [promotionData, setPromotionData] = useState<{ from: Square; to: Square } | null>(null);
+
+  // ── Animation state ──
+  // Track a generation counter to re-trigger CSS animations when the same
+  // move type occurs consecutively on the same square.
+  const animGenRef = useRef(0);
+  const prevMoveRef = useRef<MoveAnimationInfo | null | undefined>(undefined);
+  const prevDropRef = useRef<Square | null | undefined>(undefined);
+  const prevExplosionRef = useRef<Square[] | undefined>(undefined);
+
+  if (
+    moveAnimation !== prevMoveRef.current ||
+    dropAnimation !== prevDropRef.current ||
+    explosionSquares !== prevExplosionRef.current
+  ) {
+    animGenRef.current += 1;
+    prevMoveRef.current = moveAnimation;
+    prevDropRef.current = dropAnimation;
+    prevExplosionRef.current = explosionSquares;
+  }
+
+  // Active explosion squares (cleared after animation duration)
+  const [activeExplosion, setActiveExplosion] = useState<Square[]>([]);
+  const explosionGenRef = useRef(0);
+
+  useEffect(() => {
+    if (explosionSquares && explosionSquares.length > 0) {
+      setActiveExplosion(explosionSquares);
+      const gen = ++explosionGenRef.current;
+      const timer = setTimeout(() => {
+        if (explosionGenRef.current === gen) setActiveExplosion([]);
+      }, 400);
+      return () => clearTimeout(timer);
+    } else {
+      setActiveExplosion([]);
+    }
+  }, [explosionSquares]);
 
   const chess = createBoardView(fen);
   const board = chess.board();
@@ -238,6 +289,32 @@ export function Chessboard({
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 
+            // ── Animation computations ──
+            const isMoveTarget = moveAnimation && moveAnimation.to === square;
+            const isDropAnimTarget = dropAnimation === square;
+            const isExplosionTarget = activeExplosion.includes(square);
+
+            // Compute slide offset for move animation (translate from source to destination)
+            let slideStyle: React.CSSProperties | undefined;
+            if (isMoveTarget && piece) {
+              const fromFile = FILES.indexOf(moveAnimation.from[0]);
+              const fromRank = parseInt(moveAnimation.from[1]);
+              const toFile = FILES.indexOf(square[0]);
+              const toRank = parseInt(square[1]);
+              const fileDelta = fromFile - toFile;
+              const rankDelta = toRank - fromRank;
+              // Flip direction when board is flipped
+              const dx = flipped ? -fileDelta : fileDelta;
+              const dy = flipped ? -rankDelta : rankDelta;
+              slideStyle = {
+                '--slide-x': `${dx * 100}%`,
+                '--slide-y': `${dy * 100}%`,
+              } as React.CSSProperties;
+            }
+
+            // Use animGenRef to force re-trigger of animations
+            const animKey = (isMoveTarget || isDropAnimTarget) ? `${square}-${animGenRef.current}` : square;
+
             return (
               <div
                 key={square}
@@ -250,6 +327,7 @@ export function Chessboard({
                   isRemovalTarget ? 'removal-target' : '',
                   isBestMoveHint ? 'best-move-hint' : '',
                   isDropTarget ? 'drop-target' : '',
+                  isExplosionTarget ? 'explosion' : '',
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}
@@ -272,7 +350,16 @@ export function Chessboard({
                 {fi === 0 && <span className="rank-label">{rank}</span>}
                 {ri === 7 && <span className="file-label">{file}</span>}
                 {piece && (
-                  <span className={`piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`}>
+                  <span
+                    key={animKey}
+                    className={[
+                      'piece',
+                      piece.color === 'w' ? 'white-piece' : 'black-piece',
+                      isMoveTarget ? 'piece-slide' : '',
+                      isDropAnimTarget ? 'piece-drop' : '',
+                    ].join(' ')}
+                    style={slideStyle}
+                  >
                     {PIECE_UNICODE[pieceKey]}
                   </span>
                 )}

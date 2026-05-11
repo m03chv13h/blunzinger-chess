@@ -44,6 +44,7 @@ import { getAvatarDisplay } from './components/avatarPresets';
 import { useGame } from './hooks/useGame';
 import { useEvaluation } from './hooks/useEvaluation';
 import { useReview } from './hooks/useReview';
+import { useMoveAnimation } from './hooks/useMoveAnimation';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
 import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
@@ -370,6 +371,10 @@ function App() {
   const [selectedDropPiece, setSelectedDropPiece] = useState<CrazyhousePieceType | null>(null);
   const crazyhouseEnabled = (screen.type === 'playing' || screen.type === 'analyse-review') && screen.config.enableCrazyhouse;
   const crazyhouse = game.state.crazyhouse;
+
+  // ── Move animation ──
+  const atomicEnabled = (screen.type === 'playing' || screen.type === 'analyse-review') && screen.config.enableAtomic;
+  const anim = useMoveAnimation(game.state, atomicEnabled);
 
   const handleDropSquareClick = useCallback((square: Square): boolean => {
     if (!selectedDropPiece) return false;
@@ -870,6 +875,9 @@ function App() {
                 dropSquares={!review.isReviewing ? dropSquares : undefined}
                 onDropSquareClick={!review.isReviewing ? handleDropSquareClick : undefined}
                 onReserveDrop={!review.isReviewing ? handleReserveDrop : undefined}
+                moveAnimation={!review.isReviewing ? anim.moveAnimation : null}
+                dropAnimation={!review.isReviewing ? anim.dropAnimation : null}
+                explosionSquares={!review.isReviewing ? anim.explosionSquares : undefined}
               />
             </div>
             {showDetails && <FenDisplay fen={displayFen} />}

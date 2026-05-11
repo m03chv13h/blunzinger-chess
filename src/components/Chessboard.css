@@ -181,3 +181,78 @@
 .drop-dot {
   background: rgba(76, 175, 80, 0.6) !important;
 }
+
+/* ── Move Animations ─────────────────────────────────────────────── */
+
+/* Slide animation: piece slides from source square to destination */
+.piece-slide {
+  animation: piece-slide-in 0.2s ease-out;
+}
+
+@keyframes piece-slide-in {
+  from {
+    transform: translate(var(--slide-x, 0), var(--slide-y, 0));
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+/* Drop-in animation: piece drops onto the board (Crazyhouse) */
+.piece-drop {
+  animation: piece-drop-in 0.3s ease-out;
+}
+
+@keyframes piece-drop-in {
+  0% {
+    transform: scale(0) translateY(-40%);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Explosion animation: burst effect on capture squares (Atomic) */
+.square.explosion {
+  animation: explosion-burst 0.4s ease-out;
+}
+
+.square.explosion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 160, 0, 0.9) 0%, rgba(255, 60, 0, 0.6) 40%, transparent 70%);
+  animation: explosion-ring 0.4s ease-out forwards;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes explosion-burst {
+  0% {
+    background-color: rgba(255, 200, 0, 0.8);
+  }
+  50% {
+    background-color: rgba(255, 80, 0, 0.5);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes explosion-ring {
+  0% {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
