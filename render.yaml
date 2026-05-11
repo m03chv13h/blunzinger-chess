@@ -33,10 +33,8 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: blunziger-db
-          property: connectionString
+      - key: CONNECTION_STRING
+        sync: false  # Set to external PostgreSQL connection URI
       - key: NodeWorker__Url
         fromService:
           type: pserv
@@ -79,10 +77,3 @@ services:
         value: "50051"
       - key: HOST
         value: "0.0.0.0"
-
-# ── Database ────────────────────────────────────────────────────────
-databases:
-  - name: blunziger-db
-    plan: free
-    databaseName: blunziger_chess
-    user: blunziger
