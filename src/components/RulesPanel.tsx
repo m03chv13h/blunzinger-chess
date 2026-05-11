@@ -111,19 +111,6 @@ function ReportRules({ variantMode }: { variantMode: VariantMode }) {
       ) : (
         <p><em>A valid report means the opponent missed a forced checking move.</em></p>
       )}
-
-      <h4>Blunzinger G&apos;spritzt (optional)</h4>
-      <p>
-        When enabled, a meta-reporting layer is added. If a player violates the forced-move
-        requirement and the opponent <strong>fails to report it</strong> (makes a move instead),
-        the violating player may press <strong>"Report Blunzinger G&apos;spritzt"</strong> to
-        punish the opponent for missing the report opportunity.
-      </p>
-      <ul>
-        <li><strong>Valid G&apos;spritzt report:</strong> The opponent (who missed reporting) loses immediately.</li>
-        <li><strong>Invalid G&apos;spritzt report:</strong> The reporter&apos;s G&apos;spritzt invalid report counter
-          increases. After reaching the configured threshold (default: 2), the reporter loses.</li>
-      </ul>
     </>
   );
 }
@@ -182,6 +169,14 @@ function OverlayRules() {
         stand adjacent since kings cannot capture each other. A player wins immediately by
         exploding the opponent&apos;s king without exploding their own. Atomic combines with
         all variant modes and game types.</p>
+
+      <p><strong>Blunzinger G&apos;spritzt:</strong> Available only in Report Incorrectness mode.
+        When enabled, a meta-reporting layer is added. If a player violates the forced-move
+        requirement and the opponent fails to report it (makes a move instead), the violating
+        player may press &quot;Report Blunzinger G&apos;spritzt&quot; to punish the opponent.
+        A valid G&apos;spritzt report makes the opponent lose immediately. An invalid
+        G&apos;spritzt report increments the reporter&apos;s counter; reaching the threshold
+        (default: 2) causes the reporter to lose.</p>
     </>
   );
 }

@@ -196,32 +196,6 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
           </div>
         )}
 
-        {isReportMode && (
-          <div className="sim-setup-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={config.enableGspritzt}
-                onChange={(e) => update({ enableGspritzt: e.target.checked })}
-              />
-              Blunzinger G&apos;spritzt
-            </label>
-            {config.enableGspritzt && (
-              <div className="sim-setup-group">
-                <label htmlFor="sim-gspritzt-threshold">G&apos;spritzt Invalid Report Loss Threshold</label>
-                <NumericInput
-                  id="sim-gspritzt-threshold"
-                  value={config.gspritztInvalidReportLossThreshold}
-                  onChange={(v) => update({ gspritztInvalidReportLossThreshold: v })}
-                  min={1}
-                  max={10}
-                  fallback={2}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
         {isPenaltyMode && (
           <fieldset className="sim-setup-group penalty-group">
             <legend>Penalties on missed move</legend>
@@ -398,6 +372,35 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
               Atomic Chess
             </label>
           </div>
+
+          {isReportMode && (
+            <div className="checkbox-group">
+              <label
+                title="Meta-reporting layer: if the opponent fails to report your violation, you can punish them with a G'spritzt report. Valid G'spritzt = opponent loses. Invalid G'spritzt = your counter increases; reach the threshold and you lose."
+              >
+                <input
+                  type="checkbox"
+                  checked={config.enableGspritzt}
+                  onChange={(e) => update({ enableGspritzt: e.target.checked })}
+                />
+                Blunzinger G&apos;spritzt
+              </label>
+            </div>
+          )}
+
+          {isReportMode && config.enableGspritzt && (
+            <div className="sim-setup-group">
+              <label htmlFor="sim-gspritzt-threshold">G&apos;spritzt Invalid Report Loss Threshold</label>
+              <NumericInput
+                id="sim-gspritzt-threshold"
+                value={config.gspritztInvalidReportLossThreshold}
+                onChange={(v) => update({ gspritztInvalidReportLossThreshold: v })}
+                min={1}
+                max={10}
+                fallback={2}
+              />
+            </div>
+          )}
         </fieldset>
 
         <button className="sim-start-btn" onClick={handleStart}>

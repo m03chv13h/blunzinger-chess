@@ -23,6 +23,7 @@
    - [Crazyhouse](#44-crazyhouse)
    - [Chess960](#45-chess960)
    - [Atomic Chess](#46-atomic-chess)
+   - [Blunzinger G'spritzt](#47-blunzinger-gspritzt)
 5. [Player Modes](#5-player-modes)
 6. [Bot Difficulty Levels](#6-bot-difficulty-levels)
 7. [Violation Detection](#7-violation-detection)
@@ -49,7 +50,7 @@ composable overlays:
 | **Variant Mode** | Classic Blunzinger · Reverse Blunzinger · King Hunt — Move Limit · King Hunt — Given Check Limit |
 | **Game Type** | Report Incorrectness · Penalty on Miss |
 | **Player Mode** | Human vs Human · Human vs Bot · Bot vs Bot |
-| **Overlays** (any combination) | King of the Hill · Clock · Double Check Pressure · Crazyhouse · Chess960 · Atomic Chess |
+| **Overlays** (any combination) | King of the Hill · Clock · Double Check Pressure · Crazyhouse · Chess960 · Atomic Chess · Blunzinger G'spritzt (Report Incorrectness only) |
 
 Every combination of variant mode × game type × overlay set × player mode is valid and
 fully supported by the game engine.
@@ -441,6 +442,35 @@ Non-capture moves and castling are unaffected.
 - Check scoring in King Hunt modes uses Atomic-aware detection
 - Atomic-specific checkmate/stalemate detection is needed **after** chess.js standard
   checks, because chess.js doesn't know about Atomic move restrictions
+
+---
+
+### 4.7 Blunzinger G'spritzt
+
+| Aspect | Detail |
+|--------|--------|
+| **Condition** | Only available in Report Incorrectness game type |
+| **Enable** | `enableGspritzt: true` in setup |
+| **Threshold** | `gspritztInvalidReportLossThreshold` (default: 2) |
+
+A meta-reporting layer on top of Report Incorrectness:
+
+- If a player violates the forced-move requirement and the opponent **fails to report it**
+  (makes a move instead), the violating player may press **"Report Blunzinger G'spritzt"** to
+  punish the opponent for missing the report opportunity
+- **Valid G'spritzt report:** The opponent (who missed reporting) loses immediately
+- **Invalid G'spritzt report:** The reporter's G'spritzt invalid report counter increments;
+  reaching the configured threshold (default: 2) → reporter loses
+- G'spritzt has its own separate invalid-report counter and threshold
+- The G'spritzt report window is available for exactly one move after the opponent fails to report
+
+#### Interactions with Other Overlays
+
+- **Double Check Pressure:** A severe miss (Double Check Pressure) causes immediate loss in
+  Report Incorrectness mode, so the opponent never gets a chance to miss the report → G'spritzt
+  window doesn't open for severe misses
+- **Clock / King of the Hill / Crazyhouse / Chess960 / Atomic Chess:** No special interactions;
+  G'spritzt operates independently of these overlays
 
 ---
 
