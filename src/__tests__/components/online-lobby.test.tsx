@@ -43,6 +43,7 @@ const mockHub = {
   sendMove: vi.fn().mockResolvedValue(undefined),
   sendDropMove: vi.fn().mockResolvedValue(undefined),
   sendReport: vi.fn().mockResolvedValue(undefined),
+  sendReportGspritzt: vi.fn().mockResolvedValue(undefined),
   sendPieceRemoval: vi.fn().mockResolvedValue(undefined),
 };
 

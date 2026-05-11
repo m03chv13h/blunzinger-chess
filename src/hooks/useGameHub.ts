@@ -113,6 +113,7 @@ export interface GameHubCallbacks {
   onOpponentMoved?: (event: OpponentMovedEvent) => void;
   onOpponentDropMove?: (event: OpponentDropMoveEvent) => void;
   onOpponentReported?: () => void;
+  onOpponentReportedGspritzt?: () => void;
   onOpponentPieceRemoval?: (event: OpponentPieceRemovalEvent) => void;
   onRoomExpired?: (event: RoomExpiredEvent) => void;
   onError?: (message: string) => void;
@@ -155,6 +156,8 @@ export interface UseGameHub {
   sendDropMove: (roomCode: string, pieceType: string, square: string) => Promise<void>;
   /** Relay a violation report to the opponent. */
   sendReport: (roomCode: string) => Promise<void>;
+  /** Relay a G'spritzt report to the opponent. */
+  sendReportGspritzt: (roomCode: string) => Promise<void>;
   /** Relay a piece removal selection to the opponent. */
   sendPieceRemoval: (roomCode: string, square: string) => Promise<void>;
 }
@@ -196,6 +199,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     connection.on('OpponentMoved', (e: OpponentMovedEvent) => callbacksRef.current.onOpponentMoved?.(e));
     connection.on('OpponentDropMove', (e: OpponentDropMoveEvent) => callbacksRef.current.onOpponentDropMove?.(e));
     connection.on('OpponentReported', () => callbacksRef.current.onOpponentReported?.());
+    connection.on('OpponentReportedGspritzt', () => callbacksRef.current.onOpponentReportedGspritzt?.());
     connection.on('OpponentPieceRemoval', (e: OpponentPieceRemovalEvent) => callbacksRef.current.onOpponentPieceRemoval?.(e));
     connection.on('RoomExpired', (e: RoomExpiredEvent) => callbacksRef.current.onRoomExpired?.(e));
     connection.on('Error', (msg: string) => callbacksRef.current.onError?.(msg));
@@ -259,6 +263,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     [invoke],
   );
   const sendReport = useCallback((roomCode: string) => invoke('SendReport', roomCode), [invoke]);
+  const sendReportGspritzt = useCallback((roomCode: string) => invoke('SendReportGspritzt', roomCode), [invoke]);
   const sendPieceRemoval = useCallback(
     (roomCode: string, square: string) => invoke('SendPieceRemoval', roomCode, square),
     [invoke],
@@ -282,6 +287,7 @@ export function useGameHub(callbacks: GameHubCallbacks = {}): UseGameHub {
     sendMove,
     sendDropMove,
     sendReport,
+    sendReportGspritzt,
     sendPieceRemoval,
   };
 }

@@ -472,6 +472,18 @@ public class GameHub(
         await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentReported");
     }
 
+    /// <summary>Relay a G'spritzt report to the opponent.</summary>
+    public async Task SendReportGspritzt(string roomCode)
+    {
+        var room = await GetAuthorizedRoomAsync(roomCode);
+        if (room is null) return;
+
+        room.LastActivityAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        await Clients.OthersInGroup(RoomGroup(roomCode)).SendAsync("OpponentReportedGspritzt");
+    }
+
     /// <summary>Relay a piece removal selection to the opponent.</summary>
     public async Task SendPieceRemoval(string roomCode, string square)
     {

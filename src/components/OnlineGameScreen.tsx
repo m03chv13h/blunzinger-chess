@@ -114,6 +114,10 @@ export function OnlineGameScreen({
     game.report();
   }, [game]);
 
+  const handleOpponentReportedGspritzt = useCallback(() => {
+    game.reportGspritzt();
+  }, [game]);
+
   const handleOpponentPieceRemoval = useCallback((event: OpponentPieceRemovalEvent) => {
     game.selectPieceForRemoval(event.square as Square);
   }, [game]);
@@ -214,6 +218,7 @@ export function OnlineGameScreen({
     onOpponentMoved: handleOpponentMoved,
     onOpponentDropMove: handleOpponentDropMove,
     onOpponentReported: handleOpponentReported,
+    onOpponentReportedGspritzt: handleOpponentReportedGspritzt,
     onOpponentPieceRemoval: handleOpponentPieceRemoval,
     onPlayerJoined: handlePlayerJoined,
     onOpponentDisconnected: handleOpponentDisconnected,
@@ -305,7 +310,7 @@ export function OnlineGameScreen({
   const handleReportGspritzt = useCallback(() => {
     if (!isMyTurn || review.isReviewing) return;
     game.reportGspritzt();
-    hub.sendReport(roomCode).catch(() => {
+    hub.sendReportGspritzt(roomCode).catch(() => {
       setHubError('Failed to send report');
     });
   }, [isMyTurn, review.isReviewing, game, hub, roomCode]);
@@ -439,11 +444,15 @@ export function OnlineGameScreen({
   // In online mode both players share the same state, so we adjust the
   // message to make sense from the non-reporting player's point of view.
   const perspectiveState = useMemo(() => {
-    const { lastReportFeedback, result, violationReports } = game.state;
+    const { lastReportFeedback, result, violationReports, gspritztReports } = game.state;
     if (!lastReportFeedback) return game.state;
 
     const lastReport = violationReports.length > 0
       ? violationReports[violationReports.length - 1]
+      : null;
+
+    const lastGspritztReport = gspritztReports.length > 0
+      ? gspritztReports[gspritztReports.length - 1]
       : null;
 
     // Valid report: adjust for the losing player (the violator)
@@ -453,11 +462,14 @@ export function OnlineGameScreen({
       result.winner !== 'draw' &&
       result.winner !== playerColor
     ) {
+      const isGspritzt = result.reason === 'valid-gspritzt-report';
       return {
         ...game.state,
         lastReportFeedback: {
           ...lastReportFeedback,
-          message: 'Your opponent correctly reported a rule violation.',
+          message: isGspritzt
+            ? "Your opponent correctly reported Blunzinger G'spritzt. You missed reporting a violation."
+            : 'Your opponent correctly reported a rule violation.',
         },
       };
     }
@@ -473,6 +485,21 @@ export function OnlineGameScreen({
         lastReportFeedback: {
           ...lastReportFeedback,
           message: 'Your opponent reported incorrectly.',
+        },
+      };
+    }
+
+    // Invalid G'spritzt report: adjust for the non-reporting player
+    if (
+      !lastReportFeedback.valid &&
+      lastGspritztReport &&
+      lastGspritztReport.reportingSide !== playerColor
+    ) {
+      return {
+        ...game.state,
+        lastReportFeedback: {
+          ...lastReportFeedback,
+          message: "Your opponent incorrectly reported Blunzinger G'spritzt.",
         },
       };
     }
