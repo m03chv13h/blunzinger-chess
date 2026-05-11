@@ -573,6 +573,7 @@ cd backend/node-worker && npx tsc --noEmit
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | **Deploy to GitHub Pages** (`deploy.yml`) | Push to `main` | Builds frontend in static mode, deploys to GitHub Pages |
+| **Deploy to Render** (`deploy-render.yml`) | Push to `main` (backend changes), or manual | Triggers Render deploy and syncs `CONNECTION_STRING` secret |
 | **Run Unit Tests** (`test.yml`) | Push to `main` | Runs Vitest frontend test suite |
 | **Build Backend** (`backend.yml`) | Push/PR touching `backend/`, `src/core/`, `src/bot/` | Builds .NET API + Aspire, runs API tests, type-checks Node worker |
 | **System Tests** (`system-tests.yml`) | After deploy, or manual trigger | Runs Playwright E2E tests against deployed or local build |
@@ -584,13 +585,43 @@ The app deploys to two platforms:
 | Platform | Mode | Config |
 |----------|------|--------|
 | **GitHub Pages** | Static | `.github/workflows/deploy.yml` — fully client-side, no backend |
-| **Render** | Connected | `render.yaml` — frontend static site + .NET API + Node worker + PostgreSQL |
+| **Render** | Connected | `render.yaml` + `.github/workflows/deploy-render.yml` — frontend static site + .NET API + Node worker + PostgreSQL |
 
 The Render blueprint (`render.yaml`) provisions:
 - **Frontend** — static site with SPA rewrites
 - **.NET API** — Docker web service on port 8080
 - **Node Worker** — private gRPC service on port 50051
 - **PostgreSQL** — managed database
+
+### Render Deployment & CONNECTION_STRING
+
+The `.NET API` connects to PostgreSQL using the `CONNECTION_STRING` environment variable.
+The connection string is a standard PostgreSQL URI (e.g. `postgres://user:pass@host:port/db`)
+supplied by the database provider.
+
+**How it works:**
+
+1. `Program.cs` reads `CONNECTION_STRING` from the environment (falls back to `appsettings.json`).
+2. `ConnectionStringHelper.Normalize()` converts the `postgres://` URI to ADO.NET key-value
+   format (`Host=…;Port=…;Database=…;Username=…;Password=…;SSL Mode=Require;Trust Server Certificate=true`).
+3. Npgsql uses the normalized connection string to connect to PostgreSQL.
+
+**GitHub Secrets required for Render deployment:**
+
+| Secret | Purpose |
+|--------|---------|
+| `CONNECTION_STRING` | PostgreSQL connection URI (e.g. `postgres://user:pass@host:port/db`). Synced to Render's `CONNECTION_STRING` env var via the deploy workflow. |
+| `RENDER_SERVICE_ID` | The Render service ID for the `.NET API` service (found in Render dashboard URL). |
+| `RENDER_API_KEY` | Render API key for triggering deploys and updating env vars ([Render API docs](https://render.com/docs/api)). |
+
+**Setup steps:**
+
+1. Add the PostgreSQL connection URI to your GitHub repository secrets as `CONNECTION_STRING`.
+2. Add `RENDER_SERVICE_ID` (from the Render dashboard URL: `/services/srv-...`).
+3. Add `RENDER_API_KEY` (generate at Render → Account Settings → API Keys).
+4. The `deploy-render.yml` workflow will automatically trigger Render deployment and sync the
+   connection string on every push to `main` that touches `backend/` or `render.yaml`.
+5. You can also trigger the workflow manually via the Actions tab (`workflow_dispatch`).
 
 ## Architecture
 
