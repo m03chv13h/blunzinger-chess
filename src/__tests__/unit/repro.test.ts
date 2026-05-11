@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
 import { createInitialState, applyMoveWithRules, canReport, canReportGspritzt, reportGspritzt, getCheckingMoves } from '../../core/blunziger/engine';
 
-describe('G\'spritzt with Atomic + Crazyhouse (issue #389)', () => {
+describe('G\'spritzt with Atomic + Crazyhouse', () => {
   const config = buildMatchConfig({
     ...DEFAULT_SETUP_CONFIG,
     variantMode: 'classic_blunzinger',
