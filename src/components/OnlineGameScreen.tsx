@@ -92,6 +92,7 @@ export function OnlineGameScreen({
         game.state.missedChecks,
         game.state.pieceRemovals,
         game.state.timeReductions,
+        game.state.gspritztReports,
       );
       record.isOnline = true;
       onGameComplete?.(record);
@@ -284,6 +285,14 @@ export function OnlineGameScreen({
   const handleReport = useCallback(() => {
     if (!isMyTurn || review.isReviewing) return;
     game.report();
+    hub.sendReport(roomCode).catch(() => {
+      setHubError('Failed to send report');
+    });
+  }, [isMyTurn, review.isReviewing, game, hub, roomCode]);
+
+  const handleReportGspritzt = useCallback(() => {
+    if (!isMyTurn || review.isReviewing) return;
+    game.reportGspritzt();
     hub.sendReport(roomCode).catch(() => {
       setHubError('Failed to send report');
     });
@@ -642,6 +651,7 @@ export function OnlineGameScreen({
           <GameStatus
             state={perspectiveState}
             onReport={handleReport}
+            onReportGspritzt={handleReportGspritzt}
             botThinking={false}
             clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
             clockBlackMs={review.isReviewing ? review.reviewedClockBlackMs : game.clockBlackMs}
@@ -665,6 +675,7 @@ export function OnlineGameScreen({
             gameOver={gameIsOver}
             pieceRemovals={game.state.pieceRemovals}
             timeReductions={game.state.timeReductions}
+            gspritztReports={game.state.gspritztReports}
             defaultCollapsed={!gameIsOver && !review.isReviewing}
           />
         </aside>
@@ -679,6 +690,8 @@ function formatResultReason(reason: string): string {
     case 'stalemate': return 'Stalemate';
     case 'valid-report': return 'Valid report (violation detected)';
     case 'invalid-report-threshold': return 'Too many invalid reports';
+    case 'valid-gspritzt-report': return "Valid Blunzinger G'spritzt report";
+    case 'invalid-gspritzt-report-threshold': return "Too many invalid G'spritzt reports";
     case 'draw': return 'Draw';
     case 'insufficient-material': return 'Insufficient material';
     case 'threefold-repetition': return 'Threefold repetition';

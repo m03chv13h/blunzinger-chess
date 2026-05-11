@@ -153,5 +153,6 @@ export function runSimulatedGame(config: GameSetupConfig): GameRecord {
     state.missedChecks,
     state.pieceRemovals,
     state.timeReductions,
+    state.gspritztReports,
   );
 }

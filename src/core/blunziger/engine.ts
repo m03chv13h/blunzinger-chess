@@ -17,6 +17,7 @@ import type {
   PlayerReserve,
   DropMove,
   Chess960State,
+  GspritztReportEntry,
 } from './types';
 import type { EngineId } from '../engine/types';
 import {
@@ -825,8 +826,14 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
 
   // ── Expire previous pending violation ──
   let updatedPendingViolation = state.pendingViolation;
+  let newLastExpiredViolation = state.lastExpiredViolation;
   if (updatedPendingViolation && updatedPendingViolation.reportable) {
+    if (state.config.reportConfig.enableGspritzt) {
+      newLastExpiredViolation = updatedPendingViolation;
+    }
     updatedPendingViolation = { ...updatedPendingViolation, reportable: false };
+  } else {
+    newLastExpiredViolation = null;
   }
 
   // ── Detect violation for drop move ──
@@ -1027,6 +1034,9 @@ export function applyDropMoveWithRules(state: GameState, drop: DropMove): GameSt
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)], availableRegularMoves: newViolation.requiredMoves.map((m) => m.san), availableDropMoves: (newViolation.requiredDropMoves ?? []).map(dropMoveToSan), ...(state.inExtraTurn ? { isAdditionalMove: true } : {}) }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
+    lastExpiredViolation: result ? null : newLastExpiredViolation,
+    invalidGspritztReports: state.invalidGspritztReports,
+    gspritztReports: state.gspritztReports,
     inExtraTurn: nextInExtraTurn,
     crazyhouse: newCh,
   };
@@ -1334,6 +1344,9 @@ export function createInitialState(
     missedChecks: [],
     pieceRemovals: [],
     timeReductions: [],
+    lastExpiredViolation: null,
+    invalidGspritztReports: { w: 0, b: 0 },
+    gspritztReports: [],
     inExtraTurn: false,
     crazyhouse: config.overlays.enableCrazyhouse ? createCrazyhouseState() : null,
     chess960,
@@ -1466,8 +1479,14 @@ export function applyMoveWithRules(
 
   // ── Expire previous pending violation ──
   let updatedPendingViolation = state.pendingViolation;
+  let newLastExpiredViolation = state.lastExpiredViolation;
   if (updatedPendingViolation && updatedPendingViolation.reportable) {
+    if (state.config.reportConfig.enableGspritzt) {
+      newLastExpiredViolation = updatedPendingViolation;
+    }
     updatedPendingViolation = { ...updatedPendingViolation, reportable: false };
+  } else {
+    newLastExpiredViolation = null;
   }
 
   // ── Detect violation ──
@@ -1778,6 +1797,9 @@ export function applyMoveWithRules(
       ? [...state.missedChecks, { moveIndex, violationType: newViolation.violationType, availableMoves: [...newViolation.requiredMoves.map((m) => m.san), ...(newViolation.requiredDropMoves ?? []).map(dropMoveToSan)], availableRegularMoves: newViolation.requiredMoves.map((m) => m.san), availableDropMoves: (newViolation.requiredDropMoves ?? []).map(dropMoveToSan), ...(state.inExtraTurn ? { isAdditionalMove: true } : {}) }]
       : state.missedChecks,
     timeReductions: newTimeReductions,
+    lastExpiredViolation: result ? null : newLastExpiredViolation,
+    invalidGspritztReports: state.invalidGspritztReports,
+    gspritztReports: state.gspritztReports,
     inExtraTurn: nextInExtraTurn,
     crazyhouse: newCrazyhouse,
     chess960: newChess960,
@@ -1895,6 +1917,98 @@ export function reportViolation(state: GameState, reportingSide: Color): GameSta
 }
 
 /**
+ * Can the given side report a Blunzinger G'spritzt (missed report by opponent)?
+ * Available when an expired violation exists and the reporting side is
+ * the violator whose turn it is. Only in Report Incorrectness mode with G'spritzt enabled.
+ */
+export function canReportGspritzt(state: GameState, reportingSide: Color): boolean {
+  if (state.result) return false;
+  if (!state.config.reportConfig.enableGspritzt) return false;
+  if (!state.lastExpiredViolation) return false;
+  if (state.lastExpiredViolation.violatingSide !== reportingSide) return false;
+  if (state.sideToMove !== reportingSide) return false;
+  return true;
+}
+
+/**
+ * Report a Blunzinger G'spritzt. Returns updated game state.
+ * The violator reports that the opponent failed to report their violation.
+ */
+export function reportGspritzt(state: GameState, reportingSide: Color): GameState {
+  if (state.result) return state;
+
+  if (canReportGspritzt(state, reportingSide)) {
+    const opponentSide: Color = reportingSide === 'w' ? 'b' : 'w';
+    const opponentLabel = opponentSide === 'w' ? 'White' : 'Black';
+
+    const reportEntry: GspritztReportEntry = {
+      moveIndex: state.moveHistory.length - 1,
+      reportingSide,
+      valid: true,
+    };
+
+    return {
+      ...state,
+      result: {
+        winner: reportingSide,
+        reason: 'valid-gspritzt-report',
+        detail: `${opponentLabel} failed to report a violation. Blunzinger G'spritzt!`,
+      },
+      lastExpiredViolation: null,
+      lastReportFeedback: {
+        valid: true,
+        message: `Correct! Your opponent missed reporting your violation. Blunzinger G'spritzt!`,
+      },
+      gspritztReports: [...state.gspritztReports, reportEntry],
+    };
+  }
+
+  // Invalid G'spritzt report
+  const newCounts: InvalidReportCounts = {
+    ...state.invalidGspritztReports,
+    [reportingSide]: state.invalidGspritztReports[reportingSide] + 1,
+  };
+
+  const threshold = state.config.reportConfig.gspritztInvalidReportLossThreshold;
+  const shouldLose = newCounts[reportingSide] >= threshold;
+  const sideLabel = reportingSide === 'w' ? 'White' : 'Black';
+
+  const reportEntry: GspritztReportEntry = {
+    moveIndex: state.moveHistory.length - 1,
+    reportingSide,
+    valid: false,
+  };
+
+  if (shouldLose) {
+    const opponentSide: Color = reportingSide === 'w' ? 'b' : 'w';
+    return {
+      ...state,
+      invalidGspritztReports: newCounts,
+      result: {
+        winner: opponentSide,
+        reason: 'invalid-gspritzt-report-threshold',
+        detail: `${sideLabel} made ${newCounts[reportingSide]} invalid G'spritzt report(s), reaching the threshold of ${threshold}.`,
+      },
+      lastReportFeedback: {
+        valid: false,
+        message: `Wrong! There was no missed report. ${sideLabel} loses due to reaching the G'spritzt invalid report threshold.`,
+      },
+      gspritztReports: [...state.gspritztReports, reportEntry],
+    };
+  }
+
+  return {
+    ...state,
+    invalidGspritztReports: newCounts,
+    lastReportFeedback: {
+      valid: false,
+      message: `Wrong! There was no missed report to call G'spritzt on. (${sideLabel}: ${newCounts[reportingSide]}/${threshold} invalid G'spritzt reports)`,
+    },
+    gspritztReports: [...state.gspritztReports, reportEntry],
+  };
+}
+
+/**
  * Increment invalid report counter for a player.
  */
 export function incrementInvalidReport(state: GameState, side: Color): GameState {
@@ -1953,6 +2067,7 @@ export function applyTimeout(state: GameState, losingSide: Color): GameState {
     },
     pendingPieceRemoval: null,
     pendingViolation: null,
+    lastExpiredViolation: null,
   };
 }
 

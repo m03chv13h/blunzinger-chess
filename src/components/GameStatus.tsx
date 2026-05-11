@@ -5,6 +5,7 @@ import './GameStatus.css';
 interface GameStatusProps {
   state: GameState;
   onReport: () => void;
+  onReportGspritzt?: () => void;
   botThinking: boolean;
   clockWhiteMs?: number;
   clockBlackMs?: number;
@@ -17,7 +18,7 @@ function formatClock(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBlackMs }: GameStatusProps) {
+export function GameStatus({ state, onReport, onReportGspritzt, botThinking, clockWhiteMs, clockBlackMs }: GameStatusProps) {
   const { result, sideToMove, invalidReports, config, lastReportFeedback, scores } = state;
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
@@ -26,6 +27,7 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
     state.mode === 'botvbot' ||
     (state.mode === 'hvbot' && sideToMove === state.botColor);
   const showReportButton = config.gameType === 'report_incorrectness' && !isBotTurn;
+  const showGspritztButton = config.gameType === 'report_incorrectness' && config.reportConfig.enableGspritzt && !isBotTurn;
   const showScores = isKingHuntVariant(config.variantMode);
   const showClocks = config.overlays.enableClock;
   const isKingHuntMoveLimit = config.variantMode === 'classic_king_hunt_move_limit';
@@ -129,6 +131,12 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
               🚨 Report Violation
             </button>
           )}
+
+          {showGspritztButton && onReportGspritzt && (
+            <button className="report-btn gspritzt-btn" onClick={onReportGspritzt}>
+              🍷 Report Blunzinger G&apos;spritzt
+            </button>
+          )}
         </>
       )}
 
@@ -137,6 +145,12 @@ export function GameStatus({ state, onReport, botThinking, clockWhiteMs, clockBl
           <>
             <span>Invalid reports — White: {invalidReports.w} / {config.reportConfig.invalidReportLossThreshold}</span>
             <span>Black: {invalidReports.b} / {config.reportConfig.invalidReportLossThreshold}</span>
+          </>
+        )}
+        {showGspritztButton && (
+          <>
+            <span>G&apos;spritzt reports — White: {state.invalidGspritztReports.w} / {config.reportConfig.gspritztInvalidReportLossThreshold}</span>
+            <span>Black: {state.invalidGspritztReports.b} / {config.reportConfig.gspritztInvalidReportLossThreshold}</span>
           </>
         )}
         {config.overlays.enableKingOfTheHill && (
@@ -163,6 +177,10 @@ function formatReason(reason: string): string {
       return 'Valid report (violation detected)';
     case 'invalid-report-threshold':
       return 'Too many invalid reports';
+    case 'valid-gspritzt-report':
+      return "Valid Blunzinger G'spritzt report";
+    case 'invalid-gspritzt-report-threshold':
+      return "Too many invalid G'spritzt reports";
     case 'draw':
       return 'Draw';
     case 'insufficient-material':

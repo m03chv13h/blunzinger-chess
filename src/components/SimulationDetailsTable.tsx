@@ -74,6 +74,12 @@ export function SimulationDetailsTable({ config }: SimulationDetailsTableProps) 
             <dd>{config.invalidReportLossThreshold}</dd>
           </div>
         )}
+        {isReport && (
+          <div className="sim-details-item">
+            <dt>Blunzinger G&apos;spritzt</dt>
+            <dd>{config.enableGspritzt ? `On (threshold: ${config.gspritztInvalidReportLossThreshold})` : 'Off'}</dd>
+          </div>
+        )}
         {isPenalty && penaltyLabels.length > 0 && (
           <div className="sim-details-item">
             <dt>Penalties</dt>

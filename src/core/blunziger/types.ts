@@ -41,6 +41,8 @@ export interface OverlayConfig {
 
 export interface ReportGameTypeConfig {
   invalidReportLossThreshold: number;
+  enableGspritzt: boolean;
+  gspritztInvalidReportLossThreshold: number;
 }
 
 export interface PenaltyGameTypeConfig {
@@ -142,6 +144,8 @@ export type GameResultReason =
   | 'draw'
   | 'valid-report'
   | 'invalid-report-threshold'
+  | 'valid-gspritzt-report'
+  | 'invalid-gspritzt-report-threshold'
   | 'resignation'
   | 'disconnection'
   | 'insufficient-material'
@@ -208,6 +212,15 @@ export interface ViolationReportEntry {
   /** Side that made the report. */
   reportingSide: Color;
   /** Whether the report was correct (violation existed). */
+  valid: boolean;
+}
+
+export interface GspritztReportEntry {
+  /** Index of the move in moveHistory associated with this report. */
+  moveIndex: number;
+  /** Side that made the G'spritzt report. */
+  reportingSide: Color;
+  /** Whether the report was correct (expired violation existed). */
   valid: boolean;
 }
 
@@ -353,6 +366,12 @@ export interface GameState {
   pieceRemovals: PieceRemovalEntry[];
   /** History of time reductions applied as penalty (for display in move list). */
   timeReductions: TimeReductionEntry[];
+  /** The most recently expired (unreported) violation, available for G'spritzt reporting. */
+  lastExpiredViolation: ViolationRecord | null;
+  /** Count of invalid G'spritzt reports per side. */
+  invalidGspritztReports: InvalidReportCounts;
+  /** History of all G'spritzt reports made during the game. */
+  gspritztReports: GspritztReportEntry[];
   /** True when the current side to move is in an extra (bonus) turn granted by a penalty. */
   inExtraTurn: boolean;
   /** Crazyhouse reserve state (present only when overlay is enabled). */
@@ -391,6 +410,8 @@ export interface GameSetupConfig {
   enableAtomic: boolean;
   // Report config
   invalidReportLossThreshold: number;
+  enableGspritzt: boolean;
+  gspritztInvalidReportLossThreshold: number;
   // Penalty config
   enableAdditionalMovePenalty: boolean;
   additionalMoveCount: number;
@@ -428,6 +449,8 @@ export const DEFAULT_SETUP_CONFIG: GameSetupConfig = {
   enableChess960: false,
   enableAtomic: false,
   invalidReportLossThreshold: 2,
+  enableGspritzt: false,
+  gspritztInvalidReportLossThreshold: 2,
   enableAdditionalMovePenalty: false,
   additionalMoveCount: 1,
   enablePieceRemovalPenalty: false,
@@ -474,6 +497,8 @@ export function buildMatchConfig(setup: GameSetupConfig): MatchConfig {
     },
     reportConfig: {
       invalidReportLossThreshold: setup.invalidReportLossThreshold,
+      enableGspritzt: setup.enableGspritzt,
+      gspritztInvalidReportLossThreshold: setup.gspritztInvalidReportLossThreshold,
     },
     penaltyConfig: {
       enableAdditionalMovePenalty: setup.enableAdditionalMovePenalty,
