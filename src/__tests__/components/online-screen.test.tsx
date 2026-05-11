@@ -63,6 +63,10 @@ beforeEach(() => {
   mockHub.connected = true;
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 // ── Tests ────────────────────────────────────────────────────────────
 
 describe('OnlineScreen (unauthenticated)', () => {
