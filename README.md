@@ -365,7 +365,7 @@ The bot system is powered by **Blunznforön**, the app's native custom tactical 
 |--------|--------|-------------|
 | **Heuristic** | ✅ Available | Built-in lightweight evaluator using material balance and mobility. Powers the evaluation bar and 1-ply best-move hints. |
 | **Blunznforön** | ✅ Available | Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunziger + Crazyhouse combinations. |
-| **Blunznfish** | ⏳ Coming soon | Custom engine built specifically for Blunziger Chess variants with native rule awareness. Not yet implemented. |
+| **Blunznfish** | ✅ Available | Variant-aware engine powered by Fairy-Stockfish (ffish.js). Provides native support for Atomic, Crazyhouse, King of the Hill, Chess960, and check-counting overlays. Forced-check rule is enforced by the app. |
 
 ### Blunznforön
 
@@ -382,13 +382,24 @@ Blunznforön is the app's strong custom tactical bot for all Blunziger variants 
 
 Blunznforön is the recommended engine for all Human vs Bot and Bot vs Bot games.
 
+### Blunznfish
+
+Blunznfish integrates [Fairy-Stockfish](https://github.com/fairy-stockfish/Fairy-Stockfish) via its JavaScript/WebAssembly build (ffish.js) to provide variant-aware analysis. It supports:
+
+- **Overlay-native move generation** — legal moves correctly reflect Atomic explosions, Crazyhouse drops, King of the Hill flag squares, and Chess960 castling
+- **Check-counting** for King Hunt variants via Fairy-Stockfish's `checkCounting` rule
+- **Custom variant definitions** loaded from `public/variants.ini` at initialization
+- **Graceful fallback** — if WASM cannot load, the adapter falls back to heuristic analysis
+
+**Note:** The core Blunziger forced-check rule (must give check / must avoid check) is NOT natively supported by Fairy-Stockfish. This mechanic is enforced by the app's authoritative rules engine in `core/blunziger/`. Blunznfish's value-add is overlay-specific move generation and evaluation.
+
 ### Engine Architecture
 
 Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.ts`) and are registered in a pluggable registry. Each engine can provide:
 
 - **Position analysis** — evaluate who is better with a centipawn score
 - **Best-move hints** — suggest the best move in UCI notation
-- **Variant awareness** — factor variant rules into analysis (Blunznforön, planned for Blunznfish)
+- **Variant awareness** — factor variant rules into analysis (Blunznforön, Blunznfish)
 
 Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunziger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
 
@@ -643,6 +654,7 @@ src/
 │   ├── adapters/       # Engine adapter implementations
 │   │   ├── heuristicAdapter.ts    # Built-in heuristic engine
 │   │   ├── blunznforönAdapter.ts  # Blunznforön engine adapter (available)
+│   │   ├── blunznfishAdapter.ts   # Blunznfish engine adapter (ffish.js / Fairy-Stockfish)
 │   │   └── shared.ts              # Shared utility functions
 │   └── index.ts        # Re-exports
 ├── core/bots/blunznforon/  # Blunznforön tactical bot (variant-aware search engine)

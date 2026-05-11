@@ -8,6 +8,7 @@
 import type { EngineId, EngineInfo, VariantEngineAdapter } from './types';
 import { createHeuristicAdapter } from './adapters/heuristicAdapter';
 import { createBlunznforönAdapter } from './adapters/blunznforönAdapter';
+import { createBlunznfishAdapter } from './adapters/blunznfishAdapter';
 
 // ── Factory type ─────────────────────────────────────────────────────
 
@@ -29,18 +30,7 @@ function register(factory: AdapterFactory): void {
 
 register(createHeuristicAdapter);
 register(createBlunznforönAdapter);
-
-// Blunznfish — placeholder, not yet implemented.
-infoMap.set('blunznfish', {
-  id: 'blunznfish',
-  name: 'Blunznfish',
-  description:
-    'Custom engine built specifically for Blunziger Chess variants with native rule awareness. Not yet implemented.',
-  availability: 'coming_soon',
-  supportsEvaluation: false,
-  supportsBotPlay: false,
-  supportsVariantAwareness: false,
-});
+register(createBlunznfishAdapter);
 
 // ── Public API ───────────────────────────────────────────────────────
 
