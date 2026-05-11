@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineScreen } from '../../components/OnlineScreen';
@@ -146,6 +146,31 @@ describe('OnlineScreen (authenticated, lobby view)', () => {
   it('calls refreshRooms on mount', () => {
     render(<OnlineScreen authenticated={true} />);
     expect(mockLobby.refreshRooms).toHaveBeenCalled();
+  });
+
+  it('auto-refreshes rooms every 5 seconds', () => {
+    vi.useFakeTimers();
+    render(<OnlineScreen authenticated={true} />);
+    // Called once on mount.
+    expect(mockLobby.refreshRooms).toHaveBeenCalledTimes(1);
+    // Advance by 5 seconds – should trigger a second call.
+    vi.advanceTimersByTime(5000);
+    expect(mockLobby.refreshRooms).toHaveBeenCalledTimes(2);
+    // Advance another 5 seconds – third call.
+    vi.advanceTimersByTime(5000);
+    expect(mockLobby.refreshRooms).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+
+  it('stops auto-refresh on unmount', () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<OnlineScreen authenticated={true} />);
+    expect(mockLobby.refreshRooms).toHaveBeenCalledTimes(1);
+    unmount();
+    vi.advanceTimersByTime(10000);
+    // No additional calls after unmount.
+    expect(mockLobby.refreshRooms).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
   it('shows error message when present', () => {
