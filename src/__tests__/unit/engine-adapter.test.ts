@@ -9,6 +9,7 @@ import {
 } from '../../core/engine/engineRegistry';
 import { createHeuristicAdapter } from '../../core/engine/adapters/heuristicAdapter';
 import { createBlunznforönAdapter } from '../../core/engine/adapters/blunznforönAdapter';
+import { createBlunznfishAdapter } from '../../core/engine/adapters/blunznfishAdapter';
 import { INITIAL_FEN, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
 import { createInitialState } from '../../core/blunziger/engine';
 
@@ -39,19 +40,20 @@ describe('Engine Abstraction Layer', () => {
       expect(blunznforön!.supportsVariantAwareness).toBe(true);
     });
 
-    it('should mark Blunznfish as coming_soon', () => {
+    it('should mark Blunznfish as available', () => {
       const blunznfish = getEngineInfo('blunznfish');
       expect(blunznfish).toBeDefined();
-      expect(blunznfish!.availability).toBe('coming_soon');
+      expect(blunznfish!.availability).toBe('available');
       expect(blunznfish!.name).toBe('Blunznfish');
+      expect(blunznfish!.supportsVariantAwareness).toBe(true);
     });
 
-    it('getAvailableEngineInfos should exclude non-available engines', () => {
+    it('getAvailableEngineInfos should include all available engines', () => {
       const available = getAvailableEngineInfos();
       const ids = available.map((i) => i.id);
       expect(ids).toContain('heuristic');
       expect(ids).toContain('blunznforön');
-      expect(ids).not.toContain('blunznfish');
+      expect(ids).toContain('blunznfish');
     });
 
     it('should create adapters for available engines', () => {
@@ -62,10 +64,14 @@ describe('Engine Abstraction Layer', () => {
       const blunzn = createEngineAdapter('blunznforön');
       expect(blunzn).toBeDefined();
       expect(blunzn.info.id).toBe('blunznforön');
+
+      const blunznfish = createEngineAdapter('blunznfish');
+      expect(blunznfish).toBeDefined();
+      expect(blunznfish.info.id).toBe('blunznfish');
     });
 
-    it('should throw when creating adapter for unregistered engine', () => {
-      expect(() => createEngineAdapter('blunznfish' as EngineId)).toThrow();
+    it('should throw when creating adapter for unknown engine', () => {
+      expect(() => createEngineAdapter('nonexistent' as EngineId)).toThrow();
     });
 
     it('DEFAULT_ENGINE_ID should be heuristic', () => {
@@ -184,6 +190,65 @@ describe('Engine Abstraction Layer', () => {
     });
   });
 
+  // ── Blunznfish Adapter ──────────────────────────────────────────────
+
+  describe('blunznfishAdapter', () => {
+    let adapter: VariantEngineAdapter;
+
+    beforeEach(() => {
+      adapter = createBlunznfishAdapter();
+    });
+
+    afterEach(() => {
+      adapter.dispose();
+    });
+
+    it('should initialize without error', async () => {
+      // initialize() loads ffish.js dynamically; in test env it gracefully falls back
+      await expect(adapter.initialize()).resolves.toBeUndefined();
+    });
+
+    it('should analyze the starting position (falls back to heuristic in tests)', async () => {
+      await adapter.initialize();
+      const lines = await adapter.analyzePosition({ fen: INITIAL_FEN });
+      expect(lines.length).toBeGreaterThan(0);
+      expect(lines[0].score).toBeDefined();
+      expect(lines[0].score.scoreCp).toBeDefined();
+    });
+
+    it('should return a best move from starting position', async () => {
+      await adapter.initialize();
+      const move = await adapter.getBestMove({ fen: INITIAL_FEN });
+      expect(move).not.toBeNull();
+      expect(typeof move).toBe('string');
+    });
+
+    it('should accept variant key in options', async () => {
+      await adapter.initialize();
+      const lines = await adapter.analyzePosition({
+        fen: INITIAL_FEN,
+        variantKey: 'blunziger',
+        depth: 8,
+      });
+      expect(lines.length).toBeGreaterThan(0);
+    });
+
+    it('should return empty results after dispose', async () => {
+      await adapter.initialize();
+      adapter.dispose();
+      const lines = await adapter.analyzePosition({ fen: INITIAL_FEN });
+      expect(lines).toEqual([]);
+      const move = await adapter.getBestMove({ fen: INITIAL_FEN });
+      expect(move).toBeNull();
+    });
+
+    it('should have variant awareness enabled', () => {
+      expect(adapter.info.supportsVariantAwareness).toBe(true);
+      expect(adapter.info.supportsEvaluation).toBe(true);
+      expect(adapter.info.supportsBotPlay).toBe(true);
+    });
+  });
+
   // ── Per-side Engine Selection in GameState ─────────────────────────
 
   describe('per-side engine selection', () => {
@@ -212,6 +277,7 @@ describe('Engine Abstraction Layer', () => {
     const adapterFactories: Array<{ id: EngineId; create: () => VariantEngineAdapter }> = [
       { id: 'heuristic', create: createHeuristicAdapter },
       { id: 'blunznforön', create: createBlunznforönAdapter },
+      { id: 'blunznfish', create: createBlunznfishAdapter },
     ];
 
     for (const { id, create } of adapterFactories) {
