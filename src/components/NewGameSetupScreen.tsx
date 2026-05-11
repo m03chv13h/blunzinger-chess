@@ -455,7 +455,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           {isReportMode && (
             <div className="checkbox-group">
               <label
-                title="Meta-reporting layer: if the opponent fails to report your violation, you can punish them with a G'spritzt report. Valid G'spritzt = opponent loses. Invalid G'spritzt = your counter increases; reach the threshold and you lose."
+                title="Meta-reporting layer: if the opponent fails to report your violation, you can punish them with a Blunzinger G'spritzt report. A valid report makes the opponent lose immediately. An invalid report increments your counter; reaching the threshold means you lose."
               >
                 <input
                   type="checkbox"

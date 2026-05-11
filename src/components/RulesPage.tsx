@@ -144,7 +144,7 @@ export function RulesPage() {
             <h4>Blunzinger G&apos;spritzt</h4>
             <p>A meta-reporting layer available only in Report Incorrectness mode.</p>
             <ul>
-              <li>If a player violates the forced-move requirement and the opponent <strong>fails to report it</strong> (makes a move instead), the violating player may press <strong>&quot;Report Blunzinger G&apos;spritzt&quot;</strong> to punish the opponent for missing the report opportunity.</li>
+              <li>If a player violates the forced-move requirement and the opponent <strong>fails to report it</strong> (makes a move instead), the violating player may press <strong>&ldquo;Report Blunzinger G&apos;spritzt&rdquo;</strong> to punish the opponent for missing the report opportunity.</li>
               <li><strong>Valid G&apos;spritzt report:</strong> The opponent (who missed reporting) loses immediately.</li>
               <li><strong>Invalid G&apos;spritzt report:</strong> The reporter&apos;s G&apos;spritzt invalid report counter increases. After reaching the configured threshold (default: 2), the reporter loses.</li>
               <li>G&apos;spritzt has its own separate invalid-report counter and threshold.</li>
