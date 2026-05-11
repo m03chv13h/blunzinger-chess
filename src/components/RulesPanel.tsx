@@ -99,7 +99,7 @@ function ReportRules({ variantMode }: { variantMode: VariantMode }) {
       <h4>Game Type: Report Incorrectness</h4>
       <p>
         When a player violates the forced-move requirement, the game continues.
-        The opponent may press <strong>&quot;Report Violation&quot;</strong> before making their next move.
+        The opponent may press <strong>"Report Violation"</strong> before making their next move.
       </p>
       <ul>
         <li><strong>Valid report:</strong> The violating player loses immediately.</li>
@@ -116,7 +116,7 @@ function ReportRules({ variantMode }: { variantMode: VariantMode }) {
       <p>
         When enabled, a meta-reporting layer is added. If a player violates the forced-move
         requirement and the opponent <strong>fails to report it</strong> (makes a move instead),
-        the violating player may press <strong>&quot;Report Blunzinger G&apos;spritzt&quot;</strong> to
+        the violating player may press <strong>"Report Blunzinger G&apos;spritzt"</strong> to
         punish the opponent for missing the report opportunity.
       </p>
       <ul>
