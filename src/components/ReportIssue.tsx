@@ -78,6 +78,10 @@ function buildIssueBody(
   // Game-type-specific settings
   if (config.gameType === 'report_incorrectness') {
     gameInfoLines.push(`- **Invalid Report Loss Threshold:** ${config.invalidReportLossThreshold}`);
+    gameInfoLines.push(`- **Blunzinger G'spritzt:** ${config.enableGspritzt ? 'Enabled' : 'Disabled'}`);
+    if (config.enableGspritzt) {
+      gameInfoLines.push(`- **G'spritzt Invalid Report Loss Threshold:** ${config.gspritztInvalidReportLossThreshold}`);
+    }
   } else {
     const penalties: string[] = [];
     if (config.enableAdditionalMovePenalty) penalties.push(`Additional Move (${config.additionalMoveCount})`);
