@@ -22,6 +22,8 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:8080
+# CONNECTION_STRING: external PostgreSQL connection URI (postgres://user:pass@host:port/db)
+# Supplied at runtime via secret; overrides appsettings ConnectionStrings:DefaultConnection
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "BlunzigerChess.Api.dll"]

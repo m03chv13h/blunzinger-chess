@@ -17,7 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 // ── Database ─────────────────────────────────────────────────────────
 
 var connectionString = ConnectionStringHelper.Normalize(
-    builder.Configuration.GetConnectionString("DefaultConnection"));
+    Environment.GetEnvironmentVariable("CONNECTION_STRING")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(string.IsNullOrWhiteSpace(connectionString)
