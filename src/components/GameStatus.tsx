@@ -1,5 +1,6 @@
 import type { GameState, MissedCheckEntry } from '../core/blunziger/types';
 import { isKingHuntVariant } from '../core/blunziger/types';
+import { GspritztIcon } from './GspritztIcon';
 import './GameStatus.css';
 
 interface GameStatusProps {
@@ -134,7 +135,7 @@ export function GameStatus({ state, onReport, onReportGspritzt, botThinking, clo
 
           {showGspritztButton && onReportGspritzt && (
             <button className="report-btn gspritzt-btn" onClick={onReportGspritzt}>
-              🍷 Report Blunzinger G&apos;spritzt
+              <GspritztIcon /> Report Blunzinger G&apos;spritzt
             </button>
           )}
         </>
