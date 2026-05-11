@@ -13,6 +13,7 @@ import type {
 } from '../hooks/useGameHub';
 import { useEvaluation } from '../hooks/useEvaluation';
 import { useReview } from '../hooks/useReview';
+import { useMoveAnimation } from '../hooks/useMoveAnimation';
 import type { GameRecord } from '../core/gameRecord';
 import { createGameRecord } from '../core/gameRecord';
 import { Chessboard } from './Chessboard';
@@ -314,6 +315,10 @@ export function OnlineGameScreen({
   const selectedDropPieceRef = useRef<CrazyhousePieceType | null>(null);
   const crazyhouseEnabled = config.enableCrazyhouse;
   const crazyhouse = game.state.crazyhouse;
+
+  // ── Move animation ──
+  const atomicEnabled = config.enableAtomic;
+  const anim = useMoveAnimation(game.state, atomicEnabled);
 
   const handleDropSquareClick = useCallback((square: Square): boolean => {
     if (!selectedDropPieceRef.current || !isMyTurn) return false;
@@ -619,6 +624,9 @@ export function OnlineGameScreen({
               dropSquares={canInteract ? dropSquares : undefined}
               onDropSquareClick={canInteract ? handleDropSquareClick : undefined}
               onReserveDrop={canInteract ? handleReserveDrop : undefined}
+              moveAnimation={!review.isReviewing ? anim.moveAnimation : null}
+              dropAnimation={!review.isReviewing ? anim.dropAnimation : null}
+              explosionSquares={!review.isReviewing ? anim.explosionSquares : undefined}
             />
           </div>
           {showDetails && <FenDisplay fen={displayFen} />}
