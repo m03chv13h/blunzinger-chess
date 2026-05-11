@@ -25,11 +25,14 @@ export function OnlineScreen({ authenticated, onJoinGame }: OnlineScreenProps) {
     onError: (msg) => setHubError(msg),
   });
 
-  // Fetch room list on mount (only when authenticated).
+  // Fetch room list on mount and auto-refresh every 5 seconds.
   useEffect(() => {
-    if (authenticated) {
+    if (!authenticated) return;
+    lobby.refreshRooms();
+    const interval = setInterval(() => {
       lobby.refreshRooms();
-    }
+    }, 5000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
