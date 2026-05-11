@@ -16,10 +16,14 @@ jobs:
   deploy:
     name: Trigger Render Deploy
     runs-on: ubuntu-latest
+    env:
+      CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
     steps:
       - name: Verify CONNECTION_STRING secret is configured
         run: |
-          if [ -z "${{ secrets.CONNECTION_STRING }}" ]; then
+          if [ -z "$CONNECTION_STRING" ]; then
             echo "::warning::CONNECTION_STRING secret is not set. Render will use its dashboard-configured value."
           else
             echo "CONNECTION_STRING secret is configured."
@@ -28,15 +32,11 @@ jobs:
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
+          service-id: ${{ env.RENDER_SERVICE_ID }}
+          api-key: ${{ env.RENDER_API_KEY }}
 
       - name: Update Render environment variable
-        if: ${{ secrets.CONNECTION_STRING != '' && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != '' }}
-        env:
-          CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        if: ${{ env.CONNECTION_STRING != '' && env.RENDER_API_KEY != '' && env.RENDER_SERVICE_ID != '' }}
         run: |
           set -e
           PAYLOAD=$(jq -n --arg val "$CONNECTION_STRING" '{value: $val}')
