@@ -8,6 +8,8 @@ import {
   applyMoveWithRules,
   canReport,
   reportViolation,
+  canReportGspritzt,
+  reportGspritzt,
   incrementInvalidReport,
   shouldLoseFromInvalidReports,
   opponent,
@@ -422,6 +424,133 @@ describe('Core Blunziger Engine', () => {
     it('should start with empty violationReports', () => {
       const state = createInitialState();
       expect(state.violationReports).toEqual([]);
+    });
+  });
+
+  describe("Blunzinger G'spritzt", () => {
+    const gspritztConfig: MatchConfig = buildMatchConfig({
+      ...DEFAULT_SETUP_CONFIG,
+      enableGspritzt: true,
+      gspritztInvalidReportLossThreshold: 2,
+    });
+
+    it('should start with empty G\'spritzt state', () => {
+      const state = createInitialState('hvh', gspritztConfig);
+      expect(state.lastExpiredViolation).toBeNull();
+      expect(state.invalidGspritztReports).toEqual({ w: 0, b: 0 });
+      expect(state.gspritztReports).toEqual([]);
+    });
+
+    it('should save expired violation when opponent makes move without reporting', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+, violation created
+      expect(state.pendingViolation).not.toBeNull();
+      expect(state.pendingViolation!.reportable).toBe(true);
+
+      // Black makes a move without reporting
+      state = applyMoveWithRules(state, 'e5');
+      // Now the expired violation should be saved
+      expect(state.lastExpiredViolation).not.toBeNull();
+      expect(state.lastExpiredViolation!.violatingSide).toBe('w');
+    });
+
+    it('should allow violator to report G\'spritzt after opponent misses reporting', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+      state = applyMoveWithRules(state, 'e5'); // black doesn't report
+
+      expect(canReportGspritzt(state, 'w')).toBe(true);
+      expect(canReportGspritzt(state, 'b')).toBe(false); // not the violator
+    });
+
+    it('should win when correctly reporting G\'spritzt', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+      state = applyMoveWithRules(state, 'e5'); // black doesn't report
+
+      state = reportGspritzt(state, 'w');
+      expect(state.result).not.toBeNull();
+      expect(state.result!.winner).toBe('w');
+      expect(state.result!.reason).toBe('valid-gspritzt-report');
+      expect(state.lastReportFeedback!.valid).toBe(true);
+      expect(state.lastReportFeedback!.message).toContain("G'spritzt");
+      expect(state.gspritztReports).toHaveLength(1);
+      expect(state.gspritztReports[0].valid).toBe(true);
+    });
+
+    it('should increment invalid counter on incorrect G\'spritzt report', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4'); // no violation
+      state = applyMoveWithRules(state, 'e5');
+
+      state = reportGspritzt(state, 'w');
+      expect(state.result).toBeNull();
+      expect(state.invalidGspritztReports.w).toBe(1);
+      expect(state.lastReportFeedback!.valid).toBe(false);
+      expect(state.gspritztReports).toHaveLength(1);
+      expect(state.gspritztReports[0].valid).toBe(false);
+    });
+
+    it('should lose when reaching G\'spritzt invalid report threshold', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'e5');
+
+      state = reportGspritzt(state, 'w'); // invalid #1
+      expect(state.invalidGspritztReports.w).toBe(1);
+      expect(state.result).toBeNull();
+
+      state = reportGspritzt(state, 'w'); // invalid #2 - threshold reached
+      expect(state.invalidGspritztReports.w).toBe(2);
+      expect(state.result).not.toBeNull();
+      expect(state.result!.winner).toBe('b');
+      expect(state.result!.reason).toBe('invalid-gspritzt-report-threshold');
+    });
+
+    it('should clear expired violation when violator makes their next move', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+      state = applyMoveWithRules(state, 'e5'); // black doesn't report
+      expect(state.lastExpiredViolation).not.toBeNull();
+
+      // White makes a move instead of reporting G'spritzt
+      state = applyMoveWithRules(state, 'a3');
+      expect(state.lastExpiredViolation).toBeNull();
+    });
+
+    it('should not allow G\'spritzt when feature is disabled', () => {
+      const noGspritztConfig = buildMatchConfig({
+        ...DEFAULT_SETUP_CONFIG,
+        enableGspritzt: false,
+      });
+      let state = createInitialState('hvh', noGspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+      state = applyMoveWithRules(state, 'e5'); // black doesn't report
+
+      expect(canReportGspritzt(state, 'w')).toBe(false);
+      expect(state.lastExpiredViolation).toBeNull(); // not saved when disabled
+    });
+
+    it('should not allow G\'spritzt when game is over', () => {
+      let state = createInitialState('hvh', gspritztConfig);
+      state = applyMoveWithRules(state, 'e4');
+      state = applyMoveWithRules(state, 'f5');
+      state = applyMoveWithRules(state, 'd3'); // white misses Qh5+
+      state = applyMoveWithRules(state, 'e5'); // black doesn't report
+
+      // Simulate game ending
+      state = { ...state, result: { winner: 'draw', reason: 'draw' } };
+      expect(canReportGspritzt(state, 'w')).toBe(false);
     });
   });
 
