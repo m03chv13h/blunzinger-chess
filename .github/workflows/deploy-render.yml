@@ -32,10 +32,17 @@ jobs:
           api-key: ${{ secrets.RENDER_API_KEY }}
 
       - name: Update Render environment variable
-        if: ${{ secrets.CONNECTION_STRING != '' && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != '' }}
+        if: secrets.CONNECTION_STRING != '' && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != ''
+        env:
+          CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          curl -s -X PUT \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/env-vars/CONNECTION_STRING" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          set -e
+          PAYLOAD=$(jq -n --arg val "$CONNECTION_STRING" '{value: $val}')
+          RESPONSE=$(curl -sf -X PUT \
+            "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/env-vars/CONNECTION_STRING" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"value\": \"${{ secrets.CONNECTION_STRING }}\"}"
+            -d "$PAYLOAD")
+          echo "Render env var updated successfully."
