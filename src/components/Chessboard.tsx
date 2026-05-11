@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Chess } from 'chess.js';
-import type { Square, CrazyhousePieceType } from '../core/blunziger/types';
+import type { Square, Color, CrazyhousePieceType } from '../core/blunziger/types';
 import './Chessboard.css';
 
 const PIECE_UNICODE: Record<string, string> = {
@@ -129,6 +129,12 @@ interface ChessboardProps {
   dropAnimation?: Square | null;
   /** Atomic: squares affected by the last explosion (triggers explosion animation). */
   explosionSquares?: Square[];
+  /** Premove: squares involved in queued premoves (highlighted distinctly). */
+  premoveSquares?: Square[];
+  /** Premove: the player's color — enables premove piece selection when not that player's turn. */
+  premoveColor?: Color;
+  /** Premove: callback to queue a premove (from, to, promotion). */
+  onPreMove?: (from: Square, to: Square, promotion?: string) => void;
 }
 
 export function Chessboard({
@@ -148,6 +154,9 @@ export function Chessboard({
   moveAnimation,
   dropAnimation,
   explosionSquares,
+  premoveSquares,
+  premoveColor,
+  onPreMove,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
@@ -197,19 +206,22 @@ export function Chessboard({
 
   const handleSquareClick = useCallback(
     (square: Square) => {
-      if (!interactive) return;
       if (promotionData) return;
 
-      // Handle piece removal selection
-      if (pendingPieceRemoval && removableSquares && onPieceRemoval) {
+      // Premove mode: when board is not interactive but premove is enabled
+      const canQueuePremove = !interactive && !!premoveColor && !!onPreMove;
+      if (!interactive && !canQueuePremove) return;
+
+      // Handle piece removal selection (normal mode only)
+      if (interactive && pendingPieceRemoval && removableSquares && onPieceRemoval) {
         if (removableSquares.includes(square)) {
           onPieceRemoval(square);
         }
         return;
       }
 
-      // Handle crazyhouse drop
-      if (dropSquares && dropSquares.length > 0 && onDropSquareClick) {
+      // Handle crazyhouse drop (normal mode only)
+      if (interactive && dropSquares && dropSquares.length > 0 && onDropSquareClick) {
         if (dropSquares.includes(square)) {
           onDropSquareClick(square);
           return;
@@ -217,6 +229,42 @@ export function Chessboard({
         // Click on non-drop square: fall through to allow normal piece selection
       }
 
+      if (canQueuePremove) {
+        // Premove interaction
+        if (selectedSquare) {
+          const piece = chess.get(selectedSquare);
+          // Check for pawn promotion premove
+          if (
+            piece &&
+            piece.type === 'p' &&
+            ((piece.color === 'w' && square[1] === '8') ||
+              (piece.color === 'b' && square[1] === '1'))
+          ) {
+            setPromotionData({ from: selectedSquare, to: square });
+            setSelectedSquare(null);
+            setHighlightedMoves([]);
+            return;
+          }
+          // Queue the premove
+          onPreMove(selectedSquare, square);
+          setSelectedSquare(null);
+          setHighlightedMoves([]);
+          // If clicked on own piece, re-select it for the next premove
+          const clickedPiece = chess.get(square);
+          if (clickedPiece && clickedPiece.color === premoveColor && square !== selectedSquare) {
+            setSelectedSquare(square);
+          }
+        } else {
+          const piece = chess.get(square);
+          if (piece && piece.color === premoveColor) {
+            setSelectedSquare(square);
+            setHighlightedMoves([]);
+          }
+        }
+        return;
+      }
+
+      // Normal interactive mode
       if (selectedSquare) {
         // Try to make the move
         const piece = chess.get(selectedSquare);
@@ -256,17 +304,22 @@ export function Chessboard({
         }
       }
     },
-    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData, pendingPieceRemoval, removableSquares, onPieceRemoval, dropSquares, onDropSquareClick],
+    [selectedSquare, chess, interactive, onMove, legalMovesFrom, promotionData, pendingPieceRemoval, removableSquares, onPieceRemoval, dropSquares, onDropSquareClick, premoveColor, onPreMove],
   );
 
   const handlePromotion = useCallback(
     (piece: string) => {
       if (promotionData) {
-        onMove(promotionData.from, promotionData.to, piece);
+        // In premove mode, queue the promotion as a premove
+        if (!interactive && premoveColor && onPreMove) {
+          onPreMove(promotionData.from, promotionData.to, piece);
+        } else {
+          onMove(promotionData.from, promotionData.to, piece);
+        }
         setPromotionData(null);
       }
     },
-    [promotionData, onMove],
+    [promotionData, onMove, interactive, premoveColor, onPreMove],
   );
 
   const lastMoveObj = chess.lastMove;
@@ -286,6 +339,7 @@ export function Chessboard({
             const isRemovalTarget = pendingPieceRemoval && removableSquares?.includes(square);
             const isBestMoveHint = square === bestMoveHintFrom || square === bestMoveHintTo;
             const isDropTarget = dropSquares?.includes(square);
+            const isPremove = premoveSquares?.includes(square);
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
 
@@ -328,6 +382,7 @@ export function Chessboard({
                   isBestMoveHint ? 'best-move-hint' : '',
                   isDropTarget ? 'drop-target' : '',
                   isExplosionTarget ? 'explosion' : '',
+                  isPremove ? 'premove' : '',
                 ].join(' ')}
                 data-square={square}
                 onClick={() => handleSquareClick(square)}
