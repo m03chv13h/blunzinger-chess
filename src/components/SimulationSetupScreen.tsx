@@ -196,6 +196,32 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
           </div>
         )}
 
+        {isReportMode && (
+          <div className="sim-setup-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={config.enableGspritzt}
+                onChange={(e) => update({ enableGspritzt: e.target.checked })}
+              />
+              Blunzinger G&apos;spritzt
+            </label>
+            {config.enableGspritzt && (
+              <div className="sim-setup-group">
+                <label htmlFor="sim-gspritzt-threshold">G&apos;spritzt Invalid Report Loss Threshold</label>
+                <NumericInput
+                  id="sim-gspritzt-threshold"
+                  value={config.gspritztInvalidReportLossThreshold}
+                  onChange={(v) => update({ gspritztInvalidReportLossThreshold: v })}
+                  min={1}
+                  max={10}
+                  fallback={2}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {isPenaltyMode && (
           <fieldset className="sim-setup-group penalty-group">
             <legend>Penalties on missed move</legend>

@@ -1,4 +1,4 @@
-import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, ScoreState, GameMode, VariantMode, GameType, Color } from '../core/blunziger/types';
+import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry, ScoreState, GameMode, VariantMode, GameType, Color } from '../core/blunziger/types';
 
 /** A completed game record stored for analysis. */
 export interface GameRecord {
@@ -27,6 +27,8 @@ export interface GameRecord {
   pieceRemovals: PieceRemovalEntry[];
   /** Time reductions for review. */
   timeReductions: TimeReductionEntry[];
+  /** G'spritzt reports for review. */
+  gspritztReports?: GspritztReportEntry[];
   /** Whether this game was played online (multiplayer). */
   isOnline?: boolean;
 }
@@ -45,6 +47,7 @@ export function createGameRecord(
   missedChecks: MissedCheckEntry[],
   pieceRemovals: PieceRemovalEntry[],
   timeReductions: TimeReductionEntry[],
+  gspritztReports?: GspritztReportEntry[],
 ): GameRecord {
   counter += 1;
   return {
@@ -61,6 +64,7 @@ export function createGameRecord(
     missedChecks,
     pieceRemovals,
     timeReductions,
+    gspritztReports,
   };
 }
 

@@ -19,6 +19,8 @@ import {
   applyDropMoveWithRules,
   canReport,
   reportViolation,
+  canReportGspritzt,
+  reportGspritzt,
   getLegalMoves,
   getLegalDropSquares as coreLegalDropSquares,
   applyTimeout,
@@ -38,6 +40,8 @@ export interface UseGameReturn {
   /** Get legal drop squares for a piece type (Crazyhouse). */
   getDropSquares: (piece: CrazyhousePieceType) => Square[];
   report: () => void;
+  /** Report a Blunzinger G'spritzt (opponent missed reporting a violation). */
+  reportGspritzt: () => void;
   resetGame: (
     mode?: GameMode,
     config?: MatchConfig,
@@ -49,6 +53,8 @@ export interface UseGameReturn {
     botLevelBlack?: BotLevel,
   ) => void;
   canReportNow: boolean;
+  /** Whether a G'spritzt report can be made right now. */
+  canReportGspritztNow: boolean;
   legalMovesFrom: (square: Square) => Square[];
   isPlayerTurn: boolean;
   botThinking: boolean;
@@ -385,6 +391,15 @@ export function useGame(
     }
   }, []);
 
+  const reportGspritztAction = useCallback(() => {
+    const current = stateRef.current;
+    if (!current.result) {
+      const side = current.sideToMove;
+      const newState = reportGspritzt(current, side);
+      setState(newState);
+    }
+  }, []);
+
   const selectPieceForRemoval = useCallback((square: Square): boolean => {
     const current = stateRef.current;
     if (!current.pendingPieceRemoval) return false;
@@ -462,6 +477,7 @@ export function useGame(
       missedChecks: record.missedChecks,
       pieceRemovals: record.pieceRemovals,
       timeReductions: record.timeReductions,
+      gspritztReports: record.gspritztReports ?? [],
       crazyhouse: finalCrazyhouse,
       chess960: finalChess960,
     };
@@ -481,6 +497,7 @@ export function useGame(
   }, []);
 
   const canReportNow = canReport(state, state.sideToMove);
+  const canReportGspritztNow = canReportGspritzt(state, state.sideToMove);
 
   const legalMovesFrom = useCallback(
     (square: Square): Square[] => {
@@ -619,6 +636,13 @@ export function useGame(
         return;
       }
 
+      // Bot reports G'spritzt if an expired violation exists
+      if (canReportGspritzt(current, current.sideToMove)) {
+        setState(reportGspritzt(current, current.sideToMove));
+        setBotThinking(false);
+        return;
+      }
+
       // ── Worker path: offload move computation to a background thread
       //    so the clock interval and React renders are never blocked.
       const worker = workerRef.current;
@@ -701,8 +725,10 @@ export function useGame(
     makeDropMove,
     getDropSquares,
     report,
+    reportGspritzt: reportGspritztAction,
     resetGame,
     canReportNow,
+    canReportGspritztNow,
     legalMovesFrom,
     isPlayerTurn,
     botThinking,

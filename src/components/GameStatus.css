@@ -170,6 +170,14 @@
   background: #c82333;
 }
 
+.gspritzt-btn {
+  background: #722F37;
+}
+
+.gspritzt-btn:hover {
+  background: #5a252c;
+}
+
 .report-feedback {
   padding: 8px 12px;
   border-radius: 6px;

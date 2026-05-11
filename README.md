@@ -45,6 +45,16 @@ Every variant mode supports exactly these two game types:
 - Classic / King Hunt: "report missed checking move"
 - Reverse Blunzinger: "report that the player gave check when non-checking moves were available"
 
+#### Blunzinger G'spritzt (optional)
+
+When enabled via the setup checkbox, a meta-reporting layer is added:
+
+- If a player violates the forced-move requirement and the opponent **fails to report it** (makes a move instead), the violating player may press **"Report Blunzinger G'spritzt"** to punish the opponent for missing the report opportunity
+- **Valid G'spritzt report:** The opponent (who missed reporting) loses immediately
+- **Invalid G'spritzt report:** The reporter's G'spritzt invalid report counter increments; reaching the configured threshold (default: 2) → reporter loses
+- G'spritzt has its own separate invalid-report counter and threshold
+- The G'spritzt report window is available for exactly one move after the opponent fails to report
+
 ### Penalty on Miss
 
 - A miss does not use report-based resolution

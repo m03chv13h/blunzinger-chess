@@ -271,6 +271,34 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
           </div>
         )}
 
+        {isReportMode && (
+          <div className="setup-group">
+            <div className="checkbox-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={config.enableGspritzt}
+                  onChange={(e) => update({ enableGspritzt: e.target.checked })}
+                />
+                Blunzinger G&apos;spritzt
+              </label>
+            </div>
+            {config.enableGspritzt && (
+              <div className="setup-group">
+                <label htmlFor="gspritzt-threshold-input">G&apos;spritzt Invalid Report Loss Threshold</label>
+                <NumericInput
+                  id="gspritzt-threshold-input"
+                  value={config.gspritztInvalidReportLossThreshold}
+                  onChange={(v) => update({ gspritztInvalidReportLossThreshold: v })}
+                  min={1}
+                  max={10}
+                  fallback={2}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {isPenaltyMode && (
           <fieldset className="setup-group penalty-group">
             <legend>Penalties on missed move</legend>

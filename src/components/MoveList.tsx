@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../core/blunziger/types';
+import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry } from '../core/blunziger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
+import { GspritztIcon } from './GspritztIcon';
 import { formatCategorizedMoves } from './formatViolation';
 import './MoveList.css';
 
@@ -20,6 +21,8 @@ interface MoveListProps {
   pieceRemovals?: PieceRemovalEntry[];
   /** Time reductions applied as penalty, shown as clock icons next to the offending move. */
   timeReductions?: TimeReductionEntry[];
+  /** G'spritzt reports to display as icons next to moves. */
+  gspritztReports?: GspritztReportEntry[];
   /** When true, the move list starts collapsed and shows only the header. */
   defaultCollapsed?: boolean;
 }
@@ -36,7 +39,7 @@ interface MoveRow {
   black?: MoveEntry;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], defaultCollapsed = false }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
   useEffect(() => {
@@ -66,6 +69,12 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
   const timeReductionByMove = new Map<number, TimeReductionEntry>();
   for (const tr of timeReductions) {
     timeReductionByMove.set(tr.moveIndex, tr);
+  }
+
+  // Build a lookup from moveIndex → G'spritzt report for O(1) access
+  const gspritztByMove = new Map<number, GspritztReportEntry>();
+  for (const gr of gspritztReports) {
+    gspritztByMove.set(gr.moveIndex, gr);
   }
 
   // Group moves into rows using move.color to place them in the correct column.
@@ -163,6 +172,15 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
     );
   };
 
+  /** Render a G'spritzt report icon for the given move index. */
+  const renderGspritztIcon = (moveIndex: number) => {
+    const gr = gspritztByMove.get(moveIndex);
+    if (!gr) return null;
+    return gr.valid
+      ? <span className="report-icon report-valid" title="Correct Blunzinger G'spritzt report" data-tooltip="Correct Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ✅</span>
+      : <span className="report-icon report-invalid" title="Incorrect Blunzinger G'spritzt report" data-tooltip="Incorrect Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ❌</span>;
+  };
+
   const renderMoveCell = (entry: MoveEntry | undefined, colorClass: string) => {
     if (!entry) {
       return <span className={colorClass} />;
@@ -186,6 +204,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violat
         {renderMissedCheckIcon(moveIndex)}
         {renderPieceRemovalIcons(moveIndex)}
         {renderTimeReductionIcon(moveIndex)}
+        {renderGspritztIcon(moveIndex)}
       </span>
     );
   };

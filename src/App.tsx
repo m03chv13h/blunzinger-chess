@@ -238,6 +238,7 @@ function App() {
         game.state.missedChecks,
         game.state.pieceRemovals,
         game.state.timeReductions,
+        game.state.gspritztReports,
       );
     }
   }, [gameIsOver, screen, game.state]);
@@ -878,6 +879,7 @@ function App() {
             <GameStatus
               state={game.state}
               onReport={game.report}
+              onReportGspritzt={game.reportGspritzt}
               botThinking={game.botThinking}
               clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
               clockBlackMs={review.isReviewing ? review.reviewedClockBlackMs : game.clockBlackMs}
@@ -901,6 +903,7 @@ function App() {
               gameOver={game.state.result !== null}
               pieceRemovals={game.state.pieceRemovals}
               timeReductions={game.state.timeReductions}
+              gspritztReports={game.state.gspritztReports}
               defaultCollapsed={isStandaloneReview || (!gameIsOver && !review.isReviewing)}
             />
           </aside>
