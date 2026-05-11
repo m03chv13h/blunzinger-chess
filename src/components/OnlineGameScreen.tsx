@@ -701,6 +701,8 @@ export function OnlineGameScreen({
             state={perspectiveState}
             onReport={handleReport}
             onReportGspritzt={handleReportGspritzt}
+            canReport={game.canReportNow}
+            canReportGspritzt={game.canReportGspritztNow}
             botThinking={false}
             clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
             clockBlackMs={review.isReviewing ? review.reviewedClockBlackMs : game.clockBlackMs}

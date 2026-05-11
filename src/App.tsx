@@ -904,6 +904,8 @@ function App() {
               state={game.state}
               onReport={game.report}
               onReportGspritzt={game.reportGspritzt}
+              canReport={game.canReportNow}
+              canReportGspritzt={game.canReportGspritztNow}
               botThinking={game.botThinking}
               clockWhiteMs={review.isReviewing ? review.reviewedClockWhiteMs : game.clockWhiteMs}
               clockBlackMs={review.isReviewing ? review.reviewedClockBlackMs : game.clockBlackMs}

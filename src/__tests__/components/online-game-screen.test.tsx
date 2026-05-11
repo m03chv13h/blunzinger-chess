@@ -62,6 +62,7 @@ vi.mock('../../hooks/useGame', () => ({
     reportGspritzt: vi.fn(),
     resetGame: vi.fn(),
     canReportNow: false,
+    canReportGspritztNow: false,
     legalMovesFrom: vi.fn(() => []),
     isPlayerTurn: false,
     botThinking: false,

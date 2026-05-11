@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GameStatus } from '../../components/GameStatus';
@@ -210,5 +210,63 @@ describe('GameStatus – valid-report violation details', () => {
     render(<GameStatus state={state} onReport={() => {}} botThinking={false} />);
 
     expect(screen.queryByTestId('violation-details')).not.toBeInTheDocument();
+  });
+});
+
+describe('GameStatus – report button disabled state', () => {
+  function makeReportState(overrides: Partial<GameState> = {}): GameState {
+    const config = buildMatchConfig(makeConfig({ gameType: 'report_incorrectness', enableGspritzt: true }));
+    return {
+      ...createInitialState('hvh', config),
+      ...overrides,
+    };
+  }
+
+  it('disables Report Violation button when canReport is false', () => {
+    const state = makeReportState();
+    render(<GameStatus state={state} onReport={vi.fn()} canReport={false} botThinking={false} />);
+
+    const btn = screen.getByText('🚨 Report Violation');
+    expect(btn).toBeDisabled();
+  });
+
+  it('enables Report Violation button when canReport is true', () => {
+    const state = makeReportState();
+    render(<GameStatus state={state} onReport={vi.fn()} canReport={true} botThinking={false} />);
+
+    const btn = screen.getByText('🚨 Report Violation');
+    expect(btn).not.toBeDisabled();
+  });
+
+  it('disables G\'spritzt button when canReportGspritzt is false', () => {
+    const state = makeReportState();
+    render(
+      <GameStatus state={state} onReport={vi.fn()} onReportGspritzt={vi.fn()} canReportGspritzt={false} botThinking={false} />,
+    );
+
+    const btn = screen.getByText(/Report Blunzinger G/);
+    expect(btn).toBeDisabled();
+  });
+
+  it('enables G\'spritzt button when canReportGspritzt is true', () => {
+    const state = makeReportState();
+    render(
+      <GameStatus state={state} onReport={vi.fn()} onReportGspritzt={vi.fn()} canReportGspritzt={true} botThinking={false} />,
+    );
+
+    const btn = screen.getByText(/Report Blunzinger G/);
+    expect(btn).not.toBeDisabled();
+  });
+
+  it('buttons are enabled by default when canReport props are not provided', () => {
+    const state = makeReportState();
+    render(
+      <GameStatus state={state} onReport={vi.fn()} onReportGspritzt={vi.fn()} botThinking={false} />,
+    );
+
+    const reportBtn = screen.getByText('🚨 Report Violation');
+    const gspritztBtn = screen.getByText(/Report Blunzinger G/);
+    expect(reportBtn).not.toBeDisabled();
+    expect(gspritztBtn).not.toBeDisabled();
   });
 });

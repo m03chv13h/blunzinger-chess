@@ -7,6 +7,10 @@ interface GameStatusProps {
   state: GameState;
   onReport: () => void;
   onReportGspritzt?: () => void;
+  /** Whether a regular violation report can be made right now. */
+  canReport?: boolean;
+  /** Whether a G'spritzt report can be made right now. */
+  canReportGspritzt?: boolean;
   botThinking: boolean;
   clockWhiteMs?: number;
   clockBlackMs?: number;
@@ -19,7 +23,7 @@ function formatClock(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export function GameStatus({ state, onReport, onReportGspritzt, botThinking, clockWhiteMs, clockBlackMs }: GameStatusProps) {
+export function GameStatus({ state, onReport, onReportGspritzt, canReport: canReportProp, canReportGspritzt: canReportGspritztProp, botThinking, clockWhiteMs, clockBlackMs }: GameStatusProps) {
   const { result, sideToMove, invalidReports, config, lastReportFeedback, scores } = state;
 
   const sideLabel = (s: 'w' | 'b') => (s === 'w' ? 'White' : 'Black');
@@ -128,13 +132,13 @@ export function GameStatus({ state, onReport, onReportGspritzt, botThinking, clo
           )}
 
           {showReportButton && (
-            <button className="report-btn" onClick={onReport}>
+            <button className="report-btn" onClick={onReport} disabled={canReportProp === false}>
               🚨 Report Violation
             </button>
           )}
 
           {showGspritztButton && onReportGspritzt && (
-            <button className="report-btn gspritzt-btn" onClick={onReportGspritzt}>
+            <button className="report-btn gspritzt-btn" onClick={onReportGspritzt} disabled={canReportGspritztProp === false}>
               <GspritztIcon /> Report Blunzinger G&apos;spritzt
             </button>
           )}
