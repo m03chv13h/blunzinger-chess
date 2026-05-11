@@ -32,7 +32,7 @@ jobs:
           api-key: ${{ secrets.RENDER_API_KEY }}
 
       - name: Update Render environment variable
-        if: secrets.CONNECTION_STRING != '' && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != ''
+        if: ${{ secrets.CONNECTION_STRING != '' && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != '' }}
         env:
           CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
