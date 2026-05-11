@@ -45,16 +45,6 @@ Every variant mode supports exactly these two game types:
 - Classic / King Hunt: "report missed checking move"
 - Reverse Blunzinger: "report that the player gave check when non-checking moves were available"
 
-#### Blunzinger G'spritzt (optional)
-
-When enabled via the setup checkbox, a meta-reporting layer is added:
-
-- If a player violates the forced-move requirement and the opponent **fails to report it** (makes a move instead), the violating player may press **"Report Blunzinger G'spritzt"** to punish the opponent for missing the report opportunity
-- **Valid G'spritzt report:** The opponent (who missed reporting) loses immediately
-- **Invalid G'spritzt report:** The reporter's G'spritzt invalid report counter increments; reaching the configured threshold (default: 2) → reporter loses
-- G'spritzt has its own separate invalid-report counter and threshold
-- The G'spritzt report window is available for exactly one move after the opponent fails to report
-
 ### Penalty on Miss
 
 - A miss does not use report-based resolution
@@ -86,7 +76,7 @@ If a move produces an immediate terminal result (checkmate, King of the Hill, et
 - Only relevant when Clock overlay is enabled
 - Default: 60 seconds
 
-## C) Overlays / Options (6)
+## C) Overlays / Options (7)
 
 All variant modes and both game types can be extended with:
 
@@ -191,6 +181,16 @@ Atomic positions are evaluated with additional heuristics:
 
 **Bot support:**
 Bots only select Atomic-legal moves. The Blunznforön engine filters illegal Atomic captures from all candidate move lists, including the variant-aware filtering pipeline. Immediate king explosion wins are prioritized.
+
+### Blunzinger G'spritzt (Optional)
+
+A meta-reporting layer available only in **Report Incorrectness** game type. When enabled via the setup checkbox:
+
+- If a player violates the forced-move requirement and the opponent **fails to report it** (makes a move instead), the violating player may press **"Report Blunzinger G'spritzt"** to punish the opponent for missing the report opportunity
+- **Valid G'spritzt report:** The opponent (who missed reporting) loses immediately
+- **Invalid G'spritzt report:** The reporter's G'spritzt invalid report counter increments; reaching the configured threshold (default: 2) → reporter loses
+- G'spritzt has its own separate invalid-report counter and threshold
+- The G'spritzt report window is available for exactly one move after the opponent fails to report
 
 ## Termination / Precedence
 
