@@ -313,7 +313,11 @@ export function overlayConfigToProto(oc: OverlayConfig): ProtoMsg {
 }
 
 export function protoToReportConfig(pm: ProtoMsg): ReportGameTypeConfig {
-  return { invalidReportLossThreshold: pm?.invalid_report_loss_threshold ?? 2 };
+  return {
+    invalidReportLossThreshold: pm?.invalid_report_loss_threshold ?? 2,
+    enableGspritzt: pm?.enable_gspritzt ?? false,
+    gspritztInvalidReportLossThreshold: pm?.gspritzt_invalid_report_loss_threshold ?? 2,
+  };
 }
 
 export function protoToPenaltyConfig(pm: ProtoMsg): PenaltyGameTypeConfig {
@@ -352,7 +356,11 @@ export function matchConfigToProto(mc: MatchConfig): ProtoMsg {
     variant_mode: TS_VARIANT_TO_PROTO[mc.variantMode],
     game_type: TS_GAME_TYPE_TO_PROTO[mc.gameType],
     overlays: overlayConfigToProto(mc.overlays),
-    report_config: { invalid_report_loss_threshold: mc.reportConfig.invalidReportLossThreshold },
+    report_config: {
+      invalid_report_loss_threshold: mc.reportConfig.invalidReportLossThreshold,
+      enable_gspritzt: mc.reportConfig.enableGspritzt,
+      gspritzt_invalid_report_loss_threshold: mc.reportConfig.gspritztInvalidReportLossThreshold,
+    },
     penalty_config: {
       enable_additional_move_penalty: mc.penaltyConfig.enableAdditionalMovePenalty,
       additional_move_count: mc.penaltyConfig.additionalMoveCount,
@@ -586,6 +594,9 @@ export function protoToGameState(pm: ProtoMsg): GameState {
     plyCount: pm.ply_count ?? 0,
     positionHistory: (pm.position_history ?? []).map(protoToPositionHistoryEntry),
     violationReports: (pm.violation_reports ?? []).map(protoToViolationReportEntry),
+    lastExpiredViolation: protoToViolationRecord(pm.last_expired_violation),
+    invalidGspritztReports: protoToInvalidReportCounts(pm.invalid_gspritzt_reports),
+    gspritztReports: (pm.gspritzt_reports ?? []).map(protoToViolationReportEntry),
     missedChecks: (pm.missed_checks ?? []).map(protoToMissedCheckEntry),
     pieceRemovals: (pm.piece_removals ?? []).map(protoToPieceRemovalEntry),
     timeReductions: (pm.time_reductions ?? []).map(protoToTimeReductionEntry),
@@ -625,6 +636,13 @@ export function gameStateToProto(gs: GameState): ProtoMsg {
       move_index: vr.moveIndex,
       reporting_side: TS_COLOR_TO_PROTO[vr.reportingSide],
       valid: vr.valid,
+    })),
+    last_expired_violation: violationRecordToProto(gs.lastExpiredViolation),
+    invalid_gspritzt_reports: { w: gs.invalidGspritztReports.w, b: gs.invalidGspritztReports.b },
+    gspritzt_reports: gs.gspritztReports.map((gr) => ({
+      move_index: gr.moveIndex,
+      reporting_side: TS_COLOR_TO_PROTO[gr.reportingSide],
+      valid: gr.valid,
     })),
     missed_checks: gs.missedChecks.map((mc) => ({
       move_index: mc.moveIndex,
@@ -674,6 +692,8 @@ export function protoToGameSetupConfig(pm: ProtoMsg): GameSetupConfig {
     enableChess960: pm.enable_chess960 ?? false,
     enableAtomic: pm.enable_atomic ?? false,
     invalidReportLossThreshold: pm.invalid_report_loss_threshold ?? 2,
+    enableGspritzt: pm.enable_gspritzt ?? false,
+    gspritztInvalidReportLossThreshold: pm.gspritzt_invalid_report_loss_threshold ?? 2,
     enableAdditionalMovePenalty: pm.enable_additional_move_penalty ?? false,
     additionalMoveCount: pm.additional_move_count ?? 1,
     enablePieceRemovalPenalty: pm.enable_piece_removal_penalty ?? false,
@@ -708,6 +728,8 @@ export function gameSetupConfigToProto(cfg: GameSetupConfig): ProtoMsg {
     enable_chess960: cfg.enableChess960,
     enable_atomic: cfg.enableAtomic,
     invalid_report_loss_threshold: cfg.invalidReportLossThreshold,
+    enable_gspritzt: cfg.enableGspritzt,
+    gspritzt_invalid_report_loss_threshold: cfg.gspritztInvalidReportLossThreshold,
     enable_additional_move_penalty: cfg.enableAdditionalMovePenalty,
     additional_move_count: cfg.additionalMoveCount,
     enable_piece_removal_penalty: cfg.enablePieceRemovalPenalty,
