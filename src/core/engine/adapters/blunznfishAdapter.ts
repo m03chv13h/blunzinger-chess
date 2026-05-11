@@ -99,20 +99,11 @@ function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): st
   try {
     board = new ffish.Board(variant, fen, is960);
     const movesStr = board.legalMoves();
-    if (!movesStr) {
-      board.delete();
-      return null;
-    }
+    if (!movesStr) return null;
 
     const moves = movesStr.split(' ').filter(Boolean);
-    if (moves.length === 0) {
-      board.delete();
-      return null;
-    }
-    if (moves.length === 1) {
-      board.delete();
-      return moves[0];
-    }
+    if (moves.length === 0) return null;
+    if (moves.length === 1) return moves[0];
 
     const isWhite = fen.split(' ')[1] === 'w';
     let bestMove = moves[0];
@@ -124,7 +115,6 @@ function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): st
       if (board.isGameOver()) {
         // Game-ending move — this is likely checkmate or variant win
         board.pop();
-        board.delete();
         return move;
       }
 
@@ -138,12 +128,12 @@ function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): st
       board.pop();
     }
 
-    board.delete();
     return bestMove;
   } catch {
-    board?.delete();
     // ffish failed for this position — fall back to heuristic
     return findBestMoveUci(fen);
+  } finally {
+    board?.delete();
   }
 }
 
@@ -176,9 +166,11 @@ export function createBlunznfishAdapter(): VariantEngineAdapter {
     async initialize(): Promise<void> {
       if (initialized) return;
       try {
-        // Load ffish via dynamic Function-based import to prevent bundler/test-runner
-        // from statically resolving the module. ffish.js is a WASM module that can
-        // only run in browser environments with WebAssembly support.
+        // Load ffish via dynamic Function-based import to prevent the bundler and
+        // test runner (vitest) from statically resolving and pre-loading the module.
+        // ffish.js is a WASM module that crashes vitest's jsdom worker process.
+        // This is safe: the argument is a compile-time constant string literal, no
+        // user input is involved, and the import target is the known 'ffish' package.
         const loadFfish: () => Promise<{ default: unknown }> = new Function(
           'return import("ffish")',
         ) as () => Promise<{ default: unknown }>;
