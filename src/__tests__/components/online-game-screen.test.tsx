@@ -26,6 +26,7 @@ const mockHub = {
   sendMove: vi.fn().mockResolvedValue(undefined),
   sendDropMove: vi.fn().mockResolvedValue(undefined),
   sendReport: vi.fn().mockResolvedValue(undefined),
+  sendReportGspritzt: vi.fn().mockResolvedValue(undefined),
   sendPieceRemoval: vi.fn().mockResolvedValue(undefined),
   resignGame: vi.fn().mockResolvedValue(undefined),
   offerDraw: vi.fn().mockResolvedValue(undefined),
@@ -58,6 +59,7 @@ vi.mock('../../hooks/useGame', () => ({
     makeDropMove: vi.fn(() => false),
     getDropSquares: vi.fn(() => []),
     report: vi.fn(),
+    reportGspritzt: vi.fn(),
     resetGame: vi.fn(),
     canReportNow: false,
     legalMovesFrom: vi.fn(() => []),
@@ -218,6 +220,92 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
 
     expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
     expect(screen.getByText('Your opponent correctly reported a rule violation.')).toBeInTheDocument();
+  });
+
+  it('shows adjusted feedback when opponent correctly reported G\'spritzt and player lost', () => {
+    const originalMessage = "Correct! Your opponent missed reporting your violation. Blunzinger G'spritzt!";
+    mockGameState = makeGameState({
+      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: "Black failed to report a violation. Blunzinger G'spritzt!" },
+      lastReportFeedback: { valid: true, message: originalMessage },
+      gspritztReports: [{ moveIndex: 1, reportingSide: 'w', valid: true }],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
+    expect(screen.getByText("Your opponent correctly reported Blunzinger G'spritzt. You missed reporting a violation.")).toBeInTheDocument();
+  });
+
+  it('shows original feedback when the player themselves won via valid G\'spritzt report', () => {
+    const originalMessage = "Correct! Your opponent missed reporting your violation. Blunzinger G'spritzt!";
+    mockGameState = makeGameState({
+      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: "Black failed to report a violation. Blunzinger G'spritzt!" },
+      lastReportFeedback: { valid: true, message: originalMessage },
+      gspritztReports: [{ moveIndex: 1, reportingSide: 'w', valid: true }],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="w"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Winner should see the original reporter message
+    expect(screen.getByText(originalMessage)).toBeInTheDocument();
+  });
+
+  it('shows adjusted feedback when opponent incorrectly reported G\'spritzt', () => {
+    const originalMessage = "Wrong! There was no missed report to call G'spritzt on. (White: 1/2 invalid G'spritzt reports)";
+    mockGameState = makeGameState({
+      lastReportFeedback: { valid: false, message: originalMessage },
+      gspritztReports: [{ moveIndex: 1, reportingSide: 'w', valid: false }],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
+    expect(screen.getByText("Your opponent incorrectly reported Blunzinger G'spritzt.")).toBeInTheDocument();
+  });
+
+  it('does not adjust feedback when the player themselves reported G\'spritzt incorrectly', () => {
+    const originalMessage = "Wrong! There was no missed report to call G'spritzt on. (Black: 1/2 invalid G'spritzt reports)";
+    mockGameState = makeGameState({
+      lastReportFeedback: { valid: false, message: originalMessage },
+      gspritztReports: [{ moveIndex: 1, reportingSide: 'b', valid: false }],
+    });
+
+    render(
+      <OnlineGameScreen
+        config={reportConfig}
+        roomCode="TEST"
+        playerColor="b"
+        opponentName="Opponent"
+        onLeaveGame={vi.fn()}
+      />,
+    );
+
+    // Reporter should see the original feedback message
+    expect(screen.getByText(originalMessage)).toBeInTheDocument();
   });
 });
 
