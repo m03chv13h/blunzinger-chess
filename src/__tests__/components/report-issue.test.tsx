@@ -369,6 +369,54 @@ describe('ReportIssue', () => {
     expect(body).not.toContain('Engine');
   });
 
+  it('includes gspritzt enabled status in the issue body', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          gameType: 'report_incorrectness',
+          enableGspritzt: true,
+          gspritztInvalidReportLossThreshold: 3,
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain("Blunzinger G'spritzt");
+    expect(body).toContain('Enabled');
+    expect(body).toContain("G'spritzt Invalid Report Loss Threshold");
+    expect(body).toContain('3');
+  });
+
+  it('shows gspritzt as disabled when not enabled', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <ReportIssue
+        config={makeConfig({
+          gameType: 'report_incorrectness',
+          enableGspritzt: false,
+        })}
+        fen="startpos"
+        moveHistory={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Open on GitHub/i }));
+
+    const body = getIssueBody(openSpy.mock.calls[0][0] as string);
+    expect(body).toContain("Blunzinger G'spritzt");
+    expect(body).toContain('Disabled');
+    expect(body).not.toContain("G'spritzt Invalid Report Loss Threshold");
+  });
+
   it('omits penalties line when no penalties are enabled', () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
