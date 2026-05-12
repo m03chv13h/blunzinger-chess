@@ -83,4 +83,12 @@ export interface VariantEngineAdapter {
    * Release resources (terminate workers, free WASM memory).
    */
   dispose(): void;
+
+  /**
+   * Whether the engine natively supports the mustCheck (forced-check) rule.
+   * When true, the engine's legal move generation already filters moves
+   * according to the Blunziger forced-check mechanic. Optional — defaults
+   * to false when not implemented.
+   */
+  readonly mustCheckSupported?: boolean;
 }
