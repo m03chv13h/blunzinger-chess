@@ -6,32 +6,32 @@
 }
 
 .analyse-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   max-width: 600px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
 }
 
 .analyse-card h2 {
   margin: 0 0 8px 0;
   font-size: 22px;
   text-align: center;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .analyse-subtitle {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0 0 16px 0;
 }
 
 .analyse-empty {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 14px;
   padding: 20px 0;
   line-height: 1.6;
@@ -48,8 +48,8 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -58,8 +58,8 @@
 }
 
 .analyse-game-item:hover {
-  background: #e8f0fe;
-  border-color: #5b8def;
+  background: var(--bg-accent);
+  border-color: var(--accent-color);
 }
 
 .analyse-game-info {
@@ -70,23 +70,23 @@
 .analyse-game-meta {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-heading);
   margin-bottom: 2px;
 }
 
 .analyse-separator {
   margin: 0 4px;
-  color: #999;
+  color: var(--text-dimmed);
 }
 
 .analyse-gametype {
   font-weight: 400;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .analyse-game-mode {
   font-size: 12px;
-  color: #555;
+  color: var(--text-secondary);
   margin-bottom: 2px;
 }
 
@@ -98,25 +98,25 @@
 
 .analyse-reason {
   font-weight: 400;
-  color: #666;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .result-white {
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .result-black {
-  color: #444;
+  color: var(--text-secondary);
 }
 
 .result-draw {
-  color: #777;
+  color: var(--text-faint);
 }
 
 .analyse-game-details {
   font-size: 11px;
-  color: #999;
+  color: var(--text-dimmed);
 }
 
 /* ── Section headings ── */
@@ -124,10 +124,10 @@
 .analyse-section-heading {
   font-size: 15px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--text-heading);
   margin: 20px 0 10px 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .analyse-section-heading:first-of-type {
@@ -141,8 +141,8 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: #f0f4ff;
-  border: 1px solid #c4d8f5;
+  background: var(--bg-accent);
+  border: 1px solid var(--panel-collapse-border);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -151,8 +151,8 @@
 }
 
 .analyse-sim-item:hover {
-  background: #dbe8ff;
-  border-color: #5b8def;
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
 }
 
 .analyse-sim-icon {
@@ -181,7 +181,7 @@
   display: inline-block;
   background: none;
   border: none;
-  color: #5b8def;
+  color: var(--accent-color);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -191,7 +191,7 @@
 }
 
 .analyse-back-btn:hover {
-  color: #3a6bd4;
+  color: var(--accent-hover);
 }
 
 /* ── Reuse simulation tags ── */
@@ -241,7 +241,7 @@
 
 .analyse-remote-loading {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   padding: 12px 0;
 }
@@ -264,8 +264,8 @@
 }
 
 .analyse-pagination button {
-  background: #f0f4ff;
-  border: 1px solid #c4d8f5;
+  background: var(--bg-accent);
+  border: 1px solid var(--panel-collapse-border);
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 12px;
@@ -276,8 +276,8 @@
 }
 
 .analyse-pagination button:hover:not(:disabled) {
-  background: #dbe8ff;
-  border-color: #5b8def;
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
 }
 
 .analyse-pagination button:disabled {
@@ -287,5 +287,5 @@
 
 .analyse-page-info {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }

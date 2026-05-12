@@ -1,7 +1,122 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #213547;
-  background-color: #f5f5f5;
+  --bg-page: #f5f5f5;
+  --bg-card: #fff;
+  --bg-panel: #f8f9fa;
+  --bg-input: #fff;
+  --bg-hover: #e2e8f0;
+  --bg-accent: #f0f4ff;
+  --text-primary: #213547;
+  --text-heading: #1a1a2e;
+  --text-secondary: #555;
+  --text-muted: #666;
+  --text-faint: #888;
+  --text-dimmed: #999;
+  --border-color: #ddd;
+  --border-input: #ccc;
+  --border-strong: #333;
+  --card-shadow: rgba(0, 0, 0, 0.08);
+  --accent-color: #5b8def;
+  --accent-hover: #4a7cde;
+  --success-color: #28a745;
+  --success-hover: #218838;
+  --move-list-bg: #fafafa;
+  --move-even-bg: #f0f0f0;
+  --move-active-bg: #4a90d9;
+  --move-hover-bg: #d0e4f7;
+  --panel-collapse-bg: #f0f4ff;
+  --panel-collapse-border: #d0d8e8;
+  --panel-collapse-text: #4a5568;
+  --review-bg: #eef4fb;
+  --review-border: #4a90d9;
+  --review-text: #2c5f8a;
+  --sidebar-bg: #1a1a2e;
+  --sidebar-text: #c0c0d0;
+  --sidebar-hover: #2d2d4a;
+  --sidebar-active: #3a3a5c;
+  --sidebar-border: #2d2d4a;
+  --sidebar-active-accent: #5b8def;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg-page: #121218;
+  --bg-card: #1e1e2a;
+  --bg-panel: #252535;
+  --bg-input: #2a2a3c;
+  --bg-hover: #35354a;
+  --bg-accent: #252540;
+  --text-primary: #d8d8e0;
+  --text-heading: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #8888a0;
+  --text-faint: #707088;
+  --text-dimmed: #606078;
+  --border-color: #3a3a50;
+  --border-input: #4a4a60;
+  --border-strong: #888;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --accent-color: #5b8def;
+  --accent-hover: #4a7cde;
+  --success-color: #2ea043;
+  --success-hover: #238636;
+  --move-list-bg: #1e1e2a;
+  --move-even-bg: #252535;
+  --move-active-bg: #3a6bc5;
+  --move-hover-bg: #2a3f5e;
+  --panel-collapse-bg: #252540;
+  --panel-collapse-border: #3a3a5c;
+  --panel-collapse-text: #a0a0c0;
+  --review-bg: #1a2a3e;
+  --review-border: #3a6bc5;
+  --review-text: #7aacde;
+  --sidebar-bg: #0e0e18;
+  --sidebar-text: #b0b0c0;
+  --sidebar-hover: #22223a;
+  --sidebar-active: #2e2e4a;
+  --sidebar-border: #22223a;
+  --sidebar-active-accent: #5b8def;
+  color-scheme: dark;
+}
+
+[data-theme="blunznstyle"] {
+  --bg-page: #140808;
+  --bg-card: #1f0e0e;
+  --bg-panel: #281414;
+  --bg-input: #2e1818;
+  --bg-hover: #3a2020;
+  --bg-accent: #2e1518;
+  --text-primary: #e0c8c0;
+  --text-heading: #f0d8c8;
+  --text-secondary: #b89888;
+  --text-muted: #a07868;
+  --text-faint: #886050;
+  --text-dimmed: #785848;
+  --border-color: #4a2228;
+  --border-input: #5a3038;
+  --border-strong: #8b4040;
+  --card-shadow: rgba(60, 10, 10, 0.4);
+  --accent-color: #b83040;
+  --accent-hover: #982838;
+  --success-color: #8b6020;
+  --success-hover: #7a5018;
+  --move-list-bg: #1f0e0e;
+  --move-even-bg: #281414;
+  --move-active-bg: #8b2232;
+  --move-hover-bg: #3a1820;
+  --panel-collapse-bg: #2e1518;
+  --panel-collapse-border: #4a2228;
+  --panel-collapse-text: #b89088;
+  --review-bg: #2a1218;
+  --review-border: #8b2232;
+  --review-text: #d07070;
+  --sidebar-bg: #0e0505;
+  --sidebar-text: #c09888;
+  --sidebar-hover: #2a1212;
+  --sidebar-active: #3a1818;
+  --sidebar-border: #2a1212;
+  --sidebar-active-accent: #b83040;
+  color-scheme: dark;
 }
 
 body {
@@ -11,4 +126,14 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+select, input, textarea, button {
+  color: inherit;
+  font: inherit;
+}
+
+select, input[type="number"], input[type="text"], textarea {
+  background-color: var(--bg-input);
+  border-color: var(--border-input);
 }

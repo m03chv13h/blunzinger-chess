@@ -2,17 +2,17 @@
   width: 220px;
   max-height: min(80vw, 560px);
   overflow-y: auto;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-input);
   border-radius: 8px;
   padding: 8px;
-  background: #fafafa;
+  background: var(--move-list-bg);
 }
 
 .move-list h3 {
   margin: 0 0 8px 0;
   font-size: 14px;
   text-align: center;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 4px;
 }
 
@@ -27,14 +27,14 @@
 .move-header {
   font-weight: 600;
   font-size: 12px;
-  color: #555;
-  border-bottom: 1px solid #ddd;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 4px;
   margin-bottom: 2px;
 }
 
 .move-header .move-number {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .move-list-content {
@@ -43,7 +43,7 @@
 }
 
 .no-moves {
-  color: #999;
+  color: var(--text-dimmed);
   text-align: center;
   font-style: italic;
 }
@@ -57,11 +57,11 @@
 }
 
 .move-pair:nth-child(even) {
-  background: #f0f0f0;
+  background: var(--move-even-bg);
 }
 
 .move-number {
-  color: #888;
+  color: var(--text-faint);
   text-align: right;
 }
 
@@ -75,11 +75,11 @@
 }
 
 .move-clickable:hover {
-  background: #d0e4f7;
+  background: var(--move-hover-bg);
 }
 
 .move-active {
-  background: #4a90d9;
+  background: var(--move-active-bg);
   color: #fff;
   border-radius: 3px;
   font-weight: 600;

@@ -53,14 +53,13 @@
   font-weight: 600;
   margin-bottom: 12px;
   padding: 6px 10px;
-  background: #f0f4f8;
+  background: var(--bg-panel);
   border-radius: 6px;
 }
 
 .move-limit-display {
   font-size: 12px;
-  color: #666;
-  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .extra-turn-indicator {
@@ -119,7 +118,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid #333;
+  border: 2px solid var(--border-strong);
 }
 
 .white-dot {
@@ -133,8 +132,7 @@
 .thinking {
   font-size: 14px;
   font-weight: 400;
-  color: #888;
-  animation: pulse 1s infinite;
+  color: var(--text-faint);
 }
 
 @keyframes pulse {
@@ -203,9 +201,9 @@
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   padding-top: 8px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
 }
 
 /* ── Violation details (valid-report result panel) ───────────── */

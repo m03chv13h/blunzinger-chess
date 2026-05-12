@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import type { ThemeMode } from '../hooks/useTheme';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import './Sidebar.css';
 
@@ -17,9 +18,13 @@ interface SidebarProps {
   userAvatar?: ReactNode;
   /** Logout handler (connected mode only). */
   onLogout?: () => void;
+  /** Current theme mode. */
+  theme?: ThemeMode;
+  /** Theme change handler. */
+  onThemeChange?: (theme: ThemeMode) => void;
 }
 
-export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, userName, userAvatar, onLogout }: SidebarProps) {
+export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, userName, userAvatar, onLogout, theme, onThemeChange }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNav = (section: NavSection) => {
@@ -115,6 +120,24 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
             </button>
           </li>
         </ul>
+
+        <div className="sidebar-theme">
+          <label className="sidebar-theme-label" htmlFor="theme-select">
+            <span className="sidebar-icon">🎨</span>
+            Theme
+          </label>
+          <select
+            id="theme-select"
+            className="sidebar-theme-select"
+            value={theme ?? 'system'}
+            onChange={(e) => onThemeChange?.(e.target.value as ThemeMode)}
+          >
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="blunznstyle">🩸 Blunznstyle</option>
+          </select>
+        </div>
 
         {isConnected && userName && (
           <div className="sidebar-user">

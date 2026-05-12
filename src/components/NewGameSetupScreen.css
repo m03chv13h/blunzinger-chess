@@ -6,20 +6,20 @@
 }
 
 .setup-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
 }
 
 .setup-card h2 {
   margin: 0 0 20px 0;
   font-size: 22px;
   text-align: center;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .setup-group {
@@ -31,14 +31,14 @@
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 4px;
-  color: #444;
+  color: var(--text-secondary);
 }
 
 .setup-group select,
 .setup-group input[type="number"] {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 14px;
 }
@@ -52,7 +52,7 @@
 }
 
 .start-game-btn {
-  background: #28a745;
+  background: var(--success-color);
   color: white;
   border: none;
   padding: 12px 20px;
@@ -66,12 +66,12 @@
 }
 
 .start-game-btn:hover {
-  background: #218838;
+  background: var(--success-hover);
 }
 
 .mode-description {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   margin-top: 4px;
   line-height: 1.4;
 }
