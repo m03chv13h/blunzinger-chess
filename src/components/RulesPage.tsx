@@ -153,6 +153,94 @@ export function RulesPage() {
           </div>
         </section>
 
+        {/* Bot Engines & Difficulty */}
+        <section className="rules-section">
+          <h3>Bot Engines &amp; Difficulty</h3>
+
+          <p className="rules-mode-desc" style={{ marginBottom: 12 }}>
+            Bot behaviour depends on the selected engine. Each engine implements difficulty
+            levels differently.
+          </p>
+
+          <div className="rules-mode-block">
+            <h4>Blunznforön (default)</h4>
+            <p className="rules-mode-desc">
+              Custom tactical bot with negamax search, alpha-beta pruning, quiescence search,
+              and variant-aware move ordering.
+            </p>
+            <table className="rules-difficulty-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Search Depth</th>
+                  <th>Quiescence</th>
+                  <th>Randomisation</th>
+                  <th>Violation Prob.</th>
+                  <th>Tactical Ext.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Easy</strong></td>
+                  <td>1</td>
+                  <td>0</td>
+                  <td>High (200 cp)</td>
+                  <td>25%</td>
+                  <td>No</td>
+                </tr>
+                <tr>
+                  <td><strong>Medium</strong></td>
+                  <td>2</td>
+                  <td>1</td>
+                  <td>Low (50 cp)</td>
+                  <td>0%</td>
+                  <td>No</td>
+                </tr>
+                <tr>
+                  <td><strong>Hard</strong></td>
+                  <td>3</td>
+                  <td>2</td>
+                  <td>Minimal (10 cp)</td>
+                  <td>0%</td>
+                  <td>Yes</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="rules-mode-block">
+            <h4>Blunznfish</h4>
+            <p className="rules-mode-desc">
+              Powered by custom Fairy-Stockfish (ffish.js) WASM with native mustCheck support.
+              Uses variant-aware legal move generation with heuristic scoring.
+            </p>
+            <ul>
+              <li>All difficulty levels use 1-ply variant-aware move generation.</li>
+              <li>Strength comes from native variant rule enforcement rather than deeper search.</li>
+              <li>Falls back to heuristic analysis when WASM is unavailable.</li>
+            </ul>
+          </div>
+
+          <div className="rules-mode-block">
+            <h4>Heuristic</h4>
+            <p className="rules-mode-desc">
+              Lightweight built-in evaluator using material balance and mobility.
+              All difficulty levels use the same 1-ply evaluation.
+            </p>
+          </div>
+
+          <div className="rules-mode-block">
+            <h4>Violation Reporting</h4>
+            <p className="rules-mode-desc">
+              Shared across all engines:
+            </p>
+            <ul>
+              <li><strong>Hard / Medium:</strong> Always report valid violations.</li>
+              <li><strong>Easy:</strong> Always reports <em>gave forbidden check</em>; probabilistically reports <em>missed check</em> (base 15%, +25% per available checking move, capped at 90%).</li>
+            </ul>
+          </div>
+        </section>
+
         {/* Player Modes */}
         <section className="rules-section">
           <h3>Player Modes</h3>
