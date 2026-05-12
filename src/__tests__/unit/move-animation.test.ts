@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useMoveAnimation } from '../../hooks/useMoveAnimation';
 import { createInitialState, applyMoveWithRules, applyDropMoveWithRules } from '../../core/blunziger/engine';
 import { buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameState, DropMove, Square } from '../../core/blunziger/types';
+import type { DropMove, Square } from '../../core/blunziger/types';
 
 function makeConfig(overrides: Partial<typeof DEFAULT_SETUP_CONFIG> = {}) {
   return buildMatchConfig({ ...DEFAULT_SETUP_CONFIG, ...overrides });

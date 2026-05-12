@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { render } from '@testing-library/react';
 import { Chessboard } from '../../components/Chessboard';
 import type { MoveAnimationInfo } from '../../components/Chessboard';
 import type { Square } from '../../core/blunziger/types';
