@@ -48,6 +48,7 @@ import { useMoveAnimation } from './hooks/useMoveAnimation';
 import { usePreMoves } from './hooks/usePreMoves';
 import { useSimulation } from './hooks/useSimulation';
 import { useAuth } from './hooks/useAuth';
+import { useTheme } from './hooks/useTheme';
 import { useGameHistory, gameListItemToRecord } from './hooks/useGameHistory';
 import type { GameFilters } from './services/gamesService';
 import { useUserProfile } from './hooks/useUserProfile';
@@ -72,6 +73,7 @@ type AppScreen =
 
 function App() {
   const auth = useAuth();
+  const { theme, setTheme } = useTheme();
   // Determine initial screen from URL hash, falling back to defaults.
   const [screen, setScreen] = useState<AppScreen>(() => {
     if (isStaticMode) {
@@ -660,6 +662,8 @@ function App() {
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
+            theme={theme}
+            onThemeChange={setTheme}
           />
           <div className="app-with-sidebar">
             <main className="app-main">
@@ -767,6 +771,8 @@ function App() {
             userName={userProfile.profile?.displayName ?? auth.user?.displayName}
             userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
             onLogout={isConnectedMode ? handleLogout : undefined}
+            theme={theme}
+            onThemeChange={setTheme}
           />
           <div className="app-with-sidebar">
             <main className="app-main">
@@ -802,6 +808,8 @@ function App() {
           userName={userProfile.profile?.displayName ?? auth.user?.displayName}
           userAvatar={getAvatarDisplay(userProfile.profile?.avatarUrl)}
           onLogout={isConnectedMode ? handleLogout : undefined}
+          theme={theme}
+          onThemeChange={setTheme}
         />
       <div className="app-with-sidebar">
         <main className="app-main">

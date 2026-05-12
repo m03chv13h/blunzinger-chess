@@ -1,14 +1,14 @@
 .game-summary {
   padding: 12px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 
 .game-summary h3 {
   margin: 0 0 10px 0;
   font-size: 15px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 6px;
 }
 
@@ -25,12 +25,12 @@
 }
 
 .summary-item dt {
-  color: #666;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .summary-item dd {
   margin: 0;
   font-weight: 600;
-  color: #333;
+  color: var(--text-heading);
 }

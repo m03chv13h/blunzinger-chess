@@ -3,29 +3,29 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-page);
   padding: 20px;
 }
 
 .welcome-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 36px 40px;
   max-width: 420px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
   text-align: center;
 }
 
 .welcome-card h1 {
   margin: 0 0 4px 0;
   font-size: 28px;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .welcome-subtitle {
-  color: #666;
+  color: var(--text-muted);
   font-size: 14px;
   margin: 0 0 28px 0;
 }
@@ -37,7 +37,7 @@
 .welcome-section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #888;
+  color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 10px 0;
@@ -47,10 +47,10 @@
   display: block;
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #fff;
-  color: #1a1a2e;
+  background: var(--bg-card);
+  color: var(--text-heading);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -59,8 +59,8 @@
 }
 
 .welcome-btn:hover {
-  background: #f0f0f5;
-  border-color: #bbb;
+  background: var(--bg-hover);
+  border-color: var(--border-input);
 }
 
 .provider-icon {
@@ -80,14 +80,14 @@
 }
 
 .welcome-btn--guest {
-  background: #5b8def;
+  background: var(--accent-color);
   color: #fff;
-  border-color: #5b8def;
+  border-color: var(--accent-color);
 }
 
 .welcome-btn--guest:hover {
-  background: #4a7cde;
-  border-color: #4a7cde;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .welcome-divider {
@@ -95,7 +95,7 @@
   align-items: center;
   gap: 12px;
   margin: 20px 0;
-  color: #999;
+  color: var(--text-dimmed);
   font-size: 12px;
 }
 
@@ -103,7 +103,7 @@
 .welcome-divider::after {
   content: '';
   flex: 1;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-color);
 }
 
 .welcome-error {
@@ -113,7 +113,7 @@
 }
 
 .welcome-loading {
-  color: #888;
+  color: var(--text-faint);
   font-size: 14px;
   margin-top: 8px;
 }

@@ -6,25 +6,25 @@
 }
 
 .rules-page-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   max-width: 640px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
 }
 
 .rules-page-card h2 {
   margin: 0 0 8px 0;
   font-size: 22px;
   text-align: center;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .rules-page-intro {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0 0 20px 0;
   line-height: 1.5;
@@ -36,29 +36,29 @@
 
 .rules-section h3 {
   font-size: 17px;
-  color: #1a1a2e;
+  color: var(--text-heading);
   margin: 0 0 12px 0;
   padding-bottom: 4px;
-  border-bottom: 2px solid #5b8def;
+  border-bottom: 2px solid var(--accent-color);
 }
 
 .rules-mode-block {
   margin-bottom: 12px;
   padding: 10px 12px;
-  background: #f8f9fa;
+  background: var(--bg-panel);
   border-radius: 6px;
-  border-left: 3px solid #5b8def;
+  border-left: 3px solid var(--accent-color);
 }
 
 .rules-mode-block h4 {
   margin: 0 0 4px 0;
   font-size: 14px;
-  color: #333;
+  color: var(--text-heading);
 }
 
 .rules-mode-desc {
   font-size: 13px;
-  color: #555;
+  color: var(--text-secondary);
   margin: 0 0 6px 0;
   line-height: 1.4;
 }
@@ -91,16 +91,16 @@
 .rules-difficulty-table th,
 .rules-difficulty-table td {
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   text-align: left;
 }
 
 .rules-difficulty-table th {
-  background: #e9ecef;
+  background: var(--bg-panel);
   font-weight: 600;
-  color: #333;
+  color: var(--text-heading);
 }
 
 .rules-difficulty-table td {
-  color: #555;
+  color: var(--text-secondary);
 }

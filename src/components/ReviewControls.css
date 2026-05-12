@@ -1,8 +1,8 @@
 .review-controls {
-  border: 2px solid #4a90d9;
+  border: 2px solid var(--review-border);
   border-radius: 8px;
   padding: 8px 12px;
-  background: #eef4fb;
+  background: var(--review-bg);
   text-align: center;
 }
 
@@ -10,7 +10,7 @@
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 6px;
-  color: #2c5f8a;
+  color: var(--review-text);
 }
 
 .review-nav-buttons {
@@ -24,9 +24,9 @@
   width: 36px;
   height: 30px;
   font-size: 14px;
-  border: 1px solid #aaa;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background: #fff;
+  background: var(--bg-card);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -35,7 +35,7 @@
 }
 
 .review-btn:hover:not(:disabled) {
-  background: #d0e4f7;
+  background: var(--move-hover-bg);
 }
 
 .review-btn:disabled {
@@ -48,5 +48,5 @@
   font-size: 13px;
   min-width: 50px;
   text-align: center;
-  color: #333;
+  color: var(--text-heading);
 }
