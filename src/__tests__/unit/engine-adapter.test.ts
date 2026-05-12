@@ -247,6 +247,13 @@ describe('Engine Abstraction Layer', () => {
       expect(adapter.info.supportsEvaluation).toBe(true);
       expect(adapter.info.supportsBotPlay).toBe(true);
     });
+
+    it('should expose mustCheckSupported property (false in test env without WASM)', async () => {
+      await adapter.initialize();
+      // In test environment, ffish.js cannot load (no WASM), so mustCheckSupported
+      // should be false. In browser with a custom WASM build it may be true.
+      expect(adapter.mustCheckSupported).toBe(false);
+    });
   });
 
   // ── Per-side Engine Selection in GameState ─────────────────────────
