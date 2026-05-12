@@ -1,17 +1,22 @@
 /**
  * Blunznfish engine adapter — Fairy-Stockfish (ffish.js) powered variant-aware engine.
  *
- * Uses ffish.js (WebAssembly build of Fairy-Stockfish) for variant-aware legal
- * move generation and position analysis. The engine supports overlays like
- * Atomic, Crazyhouse, King of the Hill, Chess960, and check-counting (King Hunt)
- * natively via custom variant definitions in variants.ini.
+ * Uses a custom-built ffish.js WASM (v0.1) that adds `mustCheck` support to
+ * Fairy-Stockfish. This enables native forced-check enforcement: when a
+ * checking move exists, only checking moves are returned as legal.
  *
- * The Blunziger forced-check rule (mustCheck) is configured in variants.ini with
- * `mustCheck = true`. When the ffish WASM build supports this option natively,
- * it will only generate legal moves that give check (when checking moves exist),
- * matching the Classic Blunzinger rule. When the WASM build does not support
- * mustCheck, the engine falls back to advisory-only mode and the app's
- * authoritative rules in `core/blunziger/` enforce the mechanic.
+ * Supported overlays via custom variant definitions in variants.ini:
+ *   - mustCheck (forced-check rule) — ✅ native in blunznfish WASM v0.1
+ *   - Atomic (blastOnCapture)       — ✅ native (must inherit from :chess, not :atomic)
+ *   - Crazyhouse (piece drops)      — ✅ native
+ *   - King of the Hill (flag)       — ✅ native
+ *   - Chess960                      — ✅ native
+ *   - Check counting (King Hunt)    — ✅ native
+ *
+ * Reverse Blunzinger (must avoid giving check) is NOT supported natively by
+ * ffish. The app's authoritative rules in `core/blunziger/` enforce that
+ * mechanic. For Reverse mode, the engine provides standard chess move
+ * generation and the app filters moves client-side.
  *
  * When ffish.js cannot be loaded (e.g. in test environments without WASM support),
  * the adapter gracefully falls back to heuristic analysis.
@@ -56,13 +61,12 @@ interface FfishModule {
  * The variantKey is passed via AnalyzePositionOptions.variantKey and is
  * constructed by the caller based on the active MatchConfig overlays.
  *
- * Supported ffish variant keys (defined in public/variants.ini):
- *   - "chess"                       — standard chess (default)
+ * Supported ffish variant keys with mustCheck (defined in public/variants.ini):
+ *   - "chess"                       — standard chess (default, no mustCheck)
  *   - "blunziger"                   — base Blunziger (mustCheck = true)
- *   - "blunziger_reverse"           — Reverse Blunziger (mustCheckReverse = true)
  *   - "blunziger_kinghunt"          — King Hunt with check counting + mustCheck
  *   - "blunziger_koth"              — King of the Hill + mustCheck
- *   - "blunziger_atomic"            — Atomic Chess + mustCheck
+ *   - "blunziger_atomic"            — Atomic (blastOnCapture) + mustCheck
  *   - "blunziger_crazyhouse"        — Crazyhouse + mustCheck
  *   - "blunziger_960"               — Chess960 + mustCheck
  *   - "blunziger_koth_atomic"       — KotH + Atomic + mustCheck
@@ -71,10 +75,10 @@ interface FfishModule {
  *   - "blunziger_atomic_crazyhouse" — Atomic + Crazyhouse + mustCheck
  *   - "blunziger_960_crazyhouse"    — Chess960 + Crazyhouse + mustCheck
  *   - "blunziger_960_koth"          — Chess960 + KotH + mustCheck
- *   - "blunziger_reverse_koth"      — Reverse + KotH
- *   - "blunziger_reverse_atomic"    — Reverse + Atomic
- *   - "blunziger_reverse_crazyhouse"— Reverse + Crazyhouse
- *   - "blunziger_reverse_960"       — Reverse + Chess960
+ *
+ * Reverse Blunzinger does NOT have native mustCheck support in ffish.
+ * The app uses "chess" as the variant key for Reverse mode and enforces
+ * the reverse forced-check rule entirely in core/blunziger/.
  */
 function resolveVariant(variantKey?: string): string {
   return variantKey ?? 'chess';
@@ -121,7 +125,7 @@ const INFO: EngineInfo = {
   id: 'blunznfish',
   name: 'Blunznfish',
   description:
-    'Variant-aware engine powered by Fairy-Stockfish (ffish.js). Provides native support for Atomic, Crazyhouse, King of the Hill, Chess960, check-counting overlays, and mustCheck (forced-check) when supported by the WASM build.',
+    'Variant-aware engine powered by custom Fairy-Stockfish (ffish.js) WASM build with native mustCheck (forced-check) support. Also supports Atomic, Crazyhouse, King of the Hill, Chess960, and check-counting overlays.',
   availability: 'available',
   supportsEvaluation: true,
   supportsBotPlay: true,
