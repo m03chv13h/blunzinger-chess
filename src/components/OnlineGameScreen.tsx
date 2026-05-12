@@ -465,8 +465,15 @@ export function OnlineGameScreen({
       const isGspritzt = result.reason === 'valid-gspritzt-report';
       return {
         ...game.state,
+        result: isGspritzt
+          ? {
+              ...result,
+              detail: "You failed to report your opponent's violation. Blunzinger G'spritzt!",
+            }
+          : result,
         lastReportFeedback: {
           ...lastReportFeedback,
+          valid: false,
           message: isGspritzt
             ? "Your opponent correctly reported Blunzinger G'spritzt. You missed reporting a violation."
             : 'Your opponent correctly reported a rule violation.',
@@ -688,8 +695,8 @@ export function OnlineGameScreen({
                   {formatResultReason(game.state.result.reason)}
                 </p>
               )}
-              {game.state.result?.detail && (
-                <p className="online-game-result-detail">{game.state.result.detail}</p>
+              {perspectiveState.result?.detail && (
+                <p className="online-game-result-detail">{perspectiveState.result.detail}</p>
               )}
               <button className="online-game-leave-btn" onClick={onLeaveGame}>
                 ← Back to Lobby

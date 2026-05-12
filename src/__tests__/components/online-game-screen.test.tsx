@@ -224,8 +224,9 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
 
   it('shows adjusted feedback when opponent correctly reported G\'spritzt and player lost', () => {
     const originalMessage = "Correct! Your opponent missed reporting your violation. Blunzinger G'spritzt!";
+    const originalDetail = "Black failed to report a violation. Blunzinger G'spritzt!";
     mockGameState = makeGameState({
-      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: "Black failed to report a violation. Blunzinger G'spritzt!" },
+      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: originalDetail },
       lastReportFeedback: { valid: true, message: originalMessage },
       gspritztReports: [{ moveIndex: 1, reportingSide: 'w', valid: true }],
     });
@@ -242,12 +243,17 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
 
     expect(screen.queryByText(originalMessage)).not.toBeInTheDocument();
     expect(screen.getByText("Your opponent correctly reported Blunzinger G'spritzt. You missed reporting a violation.")).toBeInTheDocument();
+    // Detail text should be perspective-adjusted for the losing player (shown in both result banner and GameStatus)
+    expect(screen.queryByText(originalDetail)).not.toBeInTheDocument();
+    const adjustedDetails = screen.getAllByText("You failed to report your opponent's violation. Blunzinger G'spritzt!");
+    expect(adjustedDetails.length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows original feedback when the player themselves won via valid G\'spritzt report', () => {
     const originalMessage = "Correct! Your opponent missed reporting your violation. Blunzinger G'spritzt!";
+    const originalDetail = "Black failed to report a violation. Blunzinger G'spritzt!";
     mockGameState = makeGameState({
-      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: "Black failed to report a violation. Blunzinger G'spritzt!" },
+      result: { winner: 'w', reason: 'valid-gspritzt-report', detail: originalDetail },
       lastReportFeedback: { valid: true, message: originalMessage },
       gspritztReports: [{ moveIndex: 1, reportingSide: 'w', valid: true }],
     });
@@ -262,8 +268,10 @@ describe('OnlineGameScreen – perspective-aware report feedback', () => {
       />,
     );
 
-    // Winner should see the original reporter message
+    // Winner should see the original reporter message and detail (appears in both result banner and GameStatus)
     expect(screen.getByText(originalMessage)).toBeInTheDocument();
+    const detailElements = screen.getAllByText(originalDetail);
+    expect(detailElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows adjusted feedback when opponent incorrectly reported G\'spritzt', () => {
