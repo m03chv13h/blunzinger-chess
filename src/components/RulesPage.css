@@ -80,3 +80,27 @@
   line-height: 1.5;
   margin: 4px 0;
 }
+
+.rules-difficulty-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.rules-difficulty-table th,
+.rules-difficulty-table td {
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.rules-difficulty-table th {
+  background: #e9ecef;
+  font-weight: 600;
+  color: #333;
+}
+
+.rules-difficulty-table td {
+  color: #555;
+}

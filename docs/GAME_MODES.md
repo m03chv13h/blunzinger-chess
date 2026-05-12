@@ -507,20 +507,68 @@ A meta-reporting layer on top of Report Incorrectness:
 
 ## 6. Bot Difficulty Levels
 
-All bots use the **Blunznforön engine** — a negamax search with alpha-beta pruning, quiescence
+Bot behaviour depends on the selected **engine**. Each engine implements difficulty levels
+differently. The three available engines are described below.
+
+### 6.1 Blunznforön (default)
+
+Blunznforön is a native custom tactical bot with negamax search, alpha-beta pruning, quiescence
 search, and variant-aware move ordering. Difficulty is tuned through search depth, randomisation
 margin, and violation probability.
 
-| Level | ID | Search Depth | Quiescence Depth | Randomisation | Violation Probability |
-|-------|-----|-------------|-----------------|---------------|-----------------------|
-| **Easy** | `easy` | 1 | 0 | High (200 cp margin) | 25% |
-| **Medium** | `medium` | 2 | 1 | Low (50 cp margin) | 0% |
-| **Hard** | `hard` | 3 | 2 | Minimal (10 cp margin) | 0% (tactical extensions enabled) |
+| Level | ID | Search Depth | Quiescence Depth | Randomisation | Violation Probability | Tactical Extensions |
+|-------|-----|-------------|-----------------|---------------|-----------------------|---------------------|
+| **Easy** | `easy` | 1 | 0 | High (200 cp margin) | 25% | No |
+| **Medium** | `medium` | 2 | 1 | Low (50 cp margin) | 0% | No |
+| **Hard** | `hard` | 3 | 2 | Minimal (10 cp margin) | 0% | Yes |
 
 **Randomisation margin:** moves scored within _n_ centipawns of the best move are treated as
 equally good and selected randomly. A higher margin means more varied (and weaker) play.
 
+**Tactical extensions:** when enabled, the search is extended in positions involving checks or
+captures, allowing the engine to see deeper into tactical sequences.
+
+**Violation probability:** at Easy level, the bot intentionally makes variant-rule violations
+25% of the time (e.g. missing a forced check). Medium and Hard bots always play legal
+variant-rule moves.
+
+### 6.2 Blunznfish
+
+Blunznfish is powered by a custom Fairy-Stockfish (ffish.js) WASM build with native
+`mustCheck` support. It uses ffish for variant-aware legal move generation and combines it
+with heuristic position evaluation.
+
+Blunznfish does **not** have difficulty-specific search depths or randomisation. All difficulty
+levels use the same 1-ply variant-aware move generation with heuristic scoring. The difficulty
+configuration from Blunznforön (search depth, quiescence, randomisation margin) is **not**
+applied when the Blunznfish engine is selected.
+
+| Level | Search | Evaluation | Variant Awareness |
+|-------|--------|------------|-------------------|
+| **Easy** | 1-ply (ffish legal moves) | Heuristic scoring | Native via ffish WASM |
+| **Medium** | 1-ply (ffish legal moves) | Heuristic scoring | Native via ffish WASM |
+| **Hard** | 1-ply (ffish legal moves) | Heuristic scoring | Native via ffish WASM |
+
+Blunznfish's strength comes from native variant rule enforcement (mustCheck, Atomic,
+Crazyhouse, King of the Hill, Chess960, check counting) rather than deeper search.
+When ffish.js cannot be loaded (e.g. missing WASM support), it falls back to heuristic-only
+analysis.
+
+### 6.3 Heuristic
+
+The heuristic engine is a built-in lightweight evaluator using material balance and mobility.
+It powers the evaluation bar and 1-ply best-move hints. Like Blunznfish, it does not
+differentiate between difficulty levels — all levels use the same 1-ply evaluation.
+
+| Level | Search | Evaluation | Variant Awareness |
+|-------|--------|------------|-------------------|
+| **Easy** | 1-ply | Material + mobility | No |
+| **Medium** | 1-ply | Material + mobility | No |
+| **Hard** | 1-ply | Material + mobility | No |
+
 ### Violation Reporting (Bots)
+
+Violation reporting behaviour is shared across all engines:
 
 - **Hard / Medium:** Always report valid violations
 - **Easy:** Always reports `gave_forbidden_check` violations; probabilistically reports
