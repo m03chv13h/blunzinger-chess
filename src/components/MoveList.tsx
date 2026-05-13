@@ -11,6 +11,10 @@ interface MoveListProps {
   highlightedMoveIndex?: number;
   /** Called when the user clicks a move in the list. */
   onMoveClick?: (moveIndex: number) => void;
+  /** Called when the user presses ArrowLeft to go to the previous move. */
+  onNavigatePrev?: () => void;
+  /** Called when the user presses ArrowRight to go to the next move. */
+  onNavigateNext?: () => void;
   /** Violation reports to display as icons next to moves. */
   violationReports?: ViolationReportEntry[];
   /** Missed-check violations to display as blutwurst icons next to moves. */
@@ -39,12 +43,28 @@ interface MoveRow {
   black?: MoveEntry;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], defaultCollapsed = false }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavigatePrev, onNavigateNext, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
   useEffect(() => {
     setCollapsed(defaultCollapsed);
   }, [defaultCollapsed]);
+
+  // Arrow key navigation for previous/next move
+  useEffect(() => {
+    if (!onNavigatePrev && !onNavigateNext) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && onNavigatePrev) {
+        e.preventDefault();
+        onNavigatePrev();
+      } else if (e.key === 'ArrowRight' && onNavigateNext) {
+        e.preventDefault();
+        onNavigateNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onNavigatePrev, onNavigateNext]);
   // Build a lookup from moveIndex → report validity for O(1) access
   const reportByMove = new Map<number, ViolationReportEntry>();
   for (const r of violationReports) {

@@ -726,6 +726,8 @@ export function OnlineGameScreen({
             moves={game.state.moveHistory}
             highlightedMoveIndex={review.isReviewing ? review.highlightedMoveIndex : -1}
             onMoveClick={review.isReviewing ? handleMoveListClick : undefined}
+            onNavigatePrev={review.isReviewing ? review.goToPrev : undefined}
+            onNavigateNext={review.isReviewing ? review.goToNext : undefined}
             violationReports={game.state.violationReports}
             missedChecks={game.state.missedChecks}
             gameOver={gameIsOver}

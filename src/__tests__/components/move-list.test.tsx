@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MoveList } from '../../components/MoveList';
@@ -579,5 +579,40 @@ describe('MoveList – defaultCollapsed sync', () => {
     // Game ends: defaultCollapsed becomes false, content stays visible
     rerender(<MoveList moves={moves} defaultCollapsed={false} />);
     expect(screen.getByText('#')).toBeInTheDocument();
+  });
+});
+
+describe('MoveList – keyboard navigation', () => {
+  it('calls onNavigatePrev when ArrowLeft is pressed', () => {
+    const onPrev = vi.fn();
+    render(<MoveList moves={[w('e4'), b('e5')]} onNavigatePrev={onPrev} />);
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(onPrev).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onNavigateNext when ArrowRight is pressed', () => {
+    const onNext = vi.fn();
+    render(<MoveList moves={[w('e4'), b('e5')]} onNavigateNext={onNext} />);
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call callbacks for other keys', () => {
+    const onPrev = vi.fn();
+    const onNext = vi.fn();
+    render(<MoveList moves={[w('e4'), b('e5')]} onNavigatePrev={onPrev} onNavigateNext={onNext} />);
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(onPrev).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  it('does not listen for keys when callbacks are not provided', () => {
+    const { unmount } = render(<MoveList moves={[w('e4'), b('e5')]} />);
+    // Should not throw
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    unmount();
   });
 });
