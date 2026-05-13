@@ -1,12 +1,12 @@
 /**
  * Blunznfish engine adapter — Fairy-Stockfish (ffish.js) powered variant-aware engine.
  *
- * Uses a custom-built ffish.js WASM (v0.1) that adds `mustCheck` support to
+ * Uses a custom-built ffish.js WASM that adds `mustCheck` support to
  * Fairy-Stockfish. This enables native forced-check enforcement: when a
  * checking move exists, only checking moves are returned as legal.
  *
  * Supported overlays via custom variant definitions in variants.ini:
- *   - mustCheck (forced-check rule) — ✅ native in blunznfish WASM v0.1
+ *   - mustCheck (forced-check rule) — ✅ native in blunznfish WASM
  *   - Atomic (blastOnCapture)       — ✅ native (must inherit from :chess, not :atomic)
  *   - Crazyhouse (piece drops)      — ✅ native
  *   - King of the Hill (flag)       — ✅ native
@@ -23,6 +23,13 @@
  *
  * IMPORTANT: This engine is **advisory only**. The app's authoritative rules
  * (violations, penalties, overlays) remain in `core/blunziger/`.
+ *
+ * ## Updating the ffish WASM
+ *
+ * 1. Replace `public/ffish.js` and `public/ffish.wasm` with the new build files.
+ * 2. Update `FFISH_WASM_VERSION` below to match the new version.
+ * 3. Update `src/core/engine/ffish.d.ts` if the API changed.
+ * 4. Run `npm test` to verify compatibility.
  */
 
 import type {
@@ -31,27 +38,14 @@ import type {
   AnalyzePositionOptions,
   EngineLine,
 } from '../types';
-import { evaluateBasePosition } from '../../evaluation/evaluatePosition';
+import type { FairyStockfish, FfishBoard } from '../ffish';
 import { findBestMoveUci, heuristicAnalysis } from './shared';
 
-// ── ffish module type (subset used by this adapter) ──────────────────
-
-interface FfishBoard {
-  legalMoves(): string;
-  push(uciMove: string): boolean;
-  pop(): void;
-  fen(): string;
-  isGameOver(): boolean;
-  isCheck(): boolean;
-  turn(): boolean;
-  delete(): void;
-}
-
-interface FfishModule {
-  Board: { new (variant?: string, fen?: string, is960?: boolean): FfishBoard };
-  loadVariantConfig(config: string): void;
-  validateFen(fen: string, variant?: string): number;
-}
+/**
+ * Current ffish WASM build version. Update this when replacing the WASM files
+ * in public/ so the version is traceable.
+ */
+export const FFISH_WASM_VERSION = '0.1';
 
 // ── Variant key resolution ───────────────────────────────────────────
 
@@ -99,7 +93,7 @@ function resolveVariant(variantKey?: string): string {
  * From this position Bxf7+ gives check. In standard chess White has ~30 legal
  * moves. With mustCheck enforced, only checking moves are returned.
  */
-function detectMustCheckSupport(ffish: FfishModule): boolean {
+function detectMustCheckSupport(ffish: FairyStockfish): boolean {
   const testFen = 'r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4';
   let board: FfishBoard | null = null;
   try {
@@ -132,13 +126,87 @@ const INFO: EngineInfo = {
   supportsVariantAwareness: true,
 };
 
+// ── ffish-native position evaluation ─────────────────────────────────
+
+/** Standard piece values in centipawns (lowercase piece letters). */
+const PIECE_CP: Record<string, number> = {
+  p: 100,
+  n: 320,
+  b: 330,
+  r: 500,
+  q: 900,
+  k: 0,
+};
+
+/** Threshold in centipawns below which the position is considered equal. */
+const EQUAL_THRESHOLD_CP = 25;
+
+/**
+ * Parse material balance from a FEN string (pure string manipulation,
+ * no chess.js dependency). Returns score from White's perspective.
+ */
+function materialFromFen(fen: string): number {
+  const placement = fen.split(' ')[0];
+  let material = 0;
+  for (const ch of placement) {
+    const lower = ch.toLowerCase();
+    const value = PIECE_CP[lower];
+    if (value !== undefined && value > 0) {
+      material += ch === lower ? -value : value; // lowercase = black, uppercase = white
+    }
+  }
+  return material;
+}
+
+/**
+ * Evaluate a position using ffish's variant-aware capabilities.
+ *
+ * Uses ffish for:
+ *   - Game-over / result detection (checkmate, stalemate, variant end)
+ *   - Check detection
+ *   - Legal move count (mobility)
+ *   - Capture detection (for move ordering)
+ *
+ * Material is parsed directly from the FEN (no chess.js needed).
+ *
+ * Returns centipawn score from White's perspective.
+ */
+function ffishEvaluatePosition(board: FfishBoard): { scoreCp: number; mateIn: number | null } {
+  // Terminal states
+  if (board.isGameOver()) {
+    const result = board.result();
+    if (result === '1-0') return { scoreCp: 10000, mateIn: 0 };
+    if (result === '0-1') return { scoreCp: -10000, mateIn: 0 };
+    return { scoreCp: 0, mateIn: null }; // draw
+  }
+
+  const fen = board.fen();
+  const material = materialFromFen(fen);
+
+  // Mobility — use ffish's variant-aware legal move count
+  const currentMobility = board.numberLegalMoves();
+  const isWhiteTurn = board.turn(); // true = white
+
+  // Check bonus — being in check is bad for the side to move
+  const checkPenalty = board.isCheck() ? 50 : 0;
+
+  // Simple mobility-based evaluation from the current side's perspective
+  // We use a single-side mobility count with a scaling factor
+  const mobilityScore = currentMobility * 3;
+  const mobilityFromWhite = isWhiteTurn ? mobilityScore : -mobilityScore;
+  const checkFromWhite = isWhiteTurn ? -checkPenalty : checkPenalty;
+
+  const scoreCp = material + mobilityFromWhite + checkFromWhite;
+  return { scoreCp, mateIn: null };
+}
+
 // ── ffish-based analysis ─────────────────────────────────────────────
 
 /**
  * Find best move using ffish's variant-aware legal move generation
- * combined with heuristic position evaluation.
+ * and ffish-native position evaluation.
  */
-function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): string | null {
+function ffishBestMove(ffish: FairyStockfish, fen: string, variantKey?: string): string | null {
   const variant = resolveVariant(variantKey);
   const is960 = variant.includes('960');
   let board: FfishBoard | null = null;
@@ -164,10 +232,10 @@ function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): st
         return move;
       }
 
-      // Evaluate resulting position with heuristic
-      const score = evaluateBasePosition(board.fen()).scoreCp;
-      if (isWhite ? score > bestScore : score < bestScore) {
-        bestScore = score;
+      // Evaluate resulting position with ffish-native evaluation
+      const eval_ = ffishEvaluatePosition(board);
+      if (isWhite ? eval_.scoreCp > bestScore : eval_.scoreCp < bestScore) {
+        bestScore = eval_.scoreCp;
         bestMove = move;
       }
 
@@ -184,25 +252,46 @@ function ffishBestMove(ffish: FfishModule, fen: string, variantKey?: string): st
 }
 
 /**
- * Analyze position using ffish for move generation and heuristic for scoring.
+ * Analyze position using ffish for both move generation and evaluation.
+ * No heuristic fallback when ffish is available — fully ffish-native.
  */
-function ffishAnalysis(ffish: FfishModule, fen: string, variantKey?: string): EngineLine[] {
-  const bestMove = ffishBestMove(ffish, fen, variantKey);
-  const base = heuristicAnalysis(fen);
-  if (bestMove && base.length > 0) {
-    return [{
-      ...base[0],
-      bestMove,
-      pv: [bestMove],
-    }];
+function ffishAnalysis(ffish: FairyStockfish, fen: string, variantKey?: string): EngineLine[] {
+  const variant = resolveVariant(variantKey);
+  const is960 = variant.includes('960');
+  let board: FfishBoard | null = null;
+  try {
+    board = new ffish.Board(variant, fen, is960);
+    const eval_ = ffishEvaluatePosition(board);
+    const bestMove = ffishBestMove(ffish, fen, variantKey);
+
+    return [
+      {
+        bestMove,
+        pv: bestMove ? [bestMove] : [],
+        score: {
+          scoreCp: eval_.scoreCp,
+          mateIn: eval_.mateIn,
+          favoredSide:
+            eval_.scoreCp > EQUAL_THRESHOLD_CP
+              ? 'white'
+              : eval_.scoreCp < -EQUAL_THRESHOLD_CP
+                ? 'black'
+                : 'equal',
+        },
+      },
+    ];
+  } catch {
+    // ffish failed — fall back to heuristic for this analysis
+    return heuristicAnalysis(fen);
+  } finally {
+    board?.delete();
   }
-  return base;
 }
 
 // ── Adapter factory ──────────────────────────────────────────────────
 
 export function createBlunznfishAdapter(): VariantEngineAdapter {
-  let ffish: FfishModule | null = null;
+  let ffish: FairyStockfish | null = null;
   let disposed = false;
   let initialized = false;
   let mustCheckSupported = false;
@@ -227,14 +316,14 @@ export function createBlunznfishAdapter(): VariantEngineAdapter {
         if (!response.ok) throw new Error(`Failed to load /ffish.js: ${response.status}`);
         const ffishCode = await response.text();
 
-        ffish = await new Promise<FfishModule>((resolve, reject) => {
+        ffish = await new Promise<FairyStockfish>((resolve, reject) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const win = window as any;
           const prev = win['Module'];
           win['Module'] = {
             locateFile: (file: string) => `/${file}`,
             onRuntimeInitialized: () => {
-              const mod = win['Module'] as FfishModule;
+              const mod = win['Module'] as FairyStockfish;
               if (prev !== undefined) {
                 win['Module'] = prev;
               } else {
