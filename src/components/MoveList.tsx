@@ -54,6 +54,11 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
   useEffect(() => {
     if (!onNavigatePrev && !onNavigateNext) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept arrows when user is typing in an input/textarea
+      const tag = (document.activeElement as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable) {
+        return;
+      }
       if (e.key === 'ArrowLeft' && onNavigatePrev) {
         e.preventDefault();
         onNavigatePrev();
