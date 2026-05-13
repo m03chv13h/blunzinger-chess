@@ -675,6 +675,7 @@ export function OnlineGameScreen({
               premoveSquares={!review.isReviewing ? preMoveState.premoveSquares : undefined}
               premoveColor={!review.isReviewing && !gameIsOver ? playerColor : undefined}
               onPreMove={!review.isReviewing && !gameIsOver ? preMoveState.addPreMove : undefined}
+              preMoves={!review.isReviewing ? preMoveState.preMoves : undefined}
             />
           </div>
           {showDetails && <FenDisplay fen={displayFen} />}

@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Chess } from 'chess.js';
 import type { Square, Color, CrazyhousePieceType } from '../core/blunziger/types';
+import type { PreMove } from '../hooks/usePreMoves';
 import './Chessboard.css';
 
 const PIECE_UNICODE: Record<string, string> = {
@@ -135,6 +136,8 @@ interface ChessboardProps {
   premoveColor?: Color;
   /** Premove: callback to queue a premove (from, to, promotion). */
   onPreMove?: (from: Square, to: Square, promotion?: string) => void;
+  /** Premove: full premove queue for showing ghost pieces at destinations. */
+  preMoves?: PreMove[];
 }
 
 export function Chessboard({
@@ -157,6 +160,7 @@ export function Chessboard({
   premoveSquares,
   premoveColor,
   onPreMove,
+  preMoves,
 }: ChessboardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [highlightedMoves, setHighlightedMoves] = useState<Square[]>([]);
@@ -200,6 +204,56 @@ export function Chessboard({
 
   const chess = createBoardView(fen);
   const board = chess.board();
+
+  // ── Premove ghost pieces ──
+  // Compute a map of squares to ghost pieces (pieces shown at premove destinations)
+  // and a set of squares where original pieces should be dimmed (premove sources).
+  const premoveGhosts = useMemo(() => {
+    if (!preMoves || preMoves.length === 0) return { ghosts: new Map<string, string>(), dimmed: new Set<string>() };
+
+    const ghosts = new Map<string, string>(); // square → pieceKey (e.g. "wN")
+    const dimmed = new Set<string>(); // squares whose pieces are "leaving"
+
+    // Track piece positions through the premove chain
+    // pieceAt: maps square → pieceKey after applying premoves sequentially
+    const pieceAt = new Map<string, string>();
+
+    for (const pm of preMoves) {
+      // Determine what piece is at the "from" square considering previous premoves in chain
+      let pieceKey: string | undefined;
+      if (pieceAt.has(pm.from)) {
+        pieceKey = pieceAt.get(pm.from)!;
+        pieceAt.delete(pm.from);
+      } else {
+        // Look up from the actual board
+        const file = pm.from.charCodeAt(0) - 'a'.charCodeAt(0);
+        const rank = 8 - parseInt(pm.from[1]);
+        if (rank >= 0 && rank < 8 && file >= 0 && file < 8) {
+          const cell = board[rank][file];
+          if (cell) {
+            pieceKey = `${cell.color}${cell.type.toUpperCase()}`;
+          }
+        }
+      }
+
+      if (pieceKey) {
+        // Handle promotion: override the piece type
+        if (pm.promotion) {
+          const color = pieceKey[0];
+          pieceKey = `${color}${pm.promotion.toUpperCase()}`;
+        }
+        pieceAt.set(pm.to, pieceKey);
+        dimmed.add(pm.from);
+      }
+    }
+
+    // Convert final positions to ghosts map
+    for (const [sq, pk] of pieceAt) {
+      ghosts.set(sq, pk);
+    }
+
+    return { ghosts, dimmed };
+  }, [preMoves, board]);
 
   const displayRanks = flipped ? [...RANKS].reverse() : RANKS;
   const displayFiles = flipped ? [...FILES].reverse() : FILES;
@@ -342,6 +396,8 @@ export function Chessboard({
             const isPremove = premoveSquares?.includes(square);
 
             const pieceKey = piece ? `${piece.color}${piece.type.toUpperCase()}` : '';
+            const isPremoveDimmed = premoveGhosts.dimmed.has(square);
+            const ghostPieceKey = premoveGhosts.ghosts.get(square);
 
             // ── Animation computations ──
             const isMoveTarget = moveAnimation && moveAnimation.to === square;
@@ -412,10 +468,22 @@ export function Chessboard({
                       piece.color === 'w' ? 'white-piece' : 'black-piece',
                       isMoveTarget ? 'piece-slide' : '',
                       isDropAnimTarget ? 'piece-drop' : '',
+                      isPremoveDimmed ? 'piece-premove-dimmed' : '',
                     ].join(' ')}
                     style={slideStyle}
                   >
                     {PIECE_UNICODE[pieceKey]}
+                  </span>
+                )}
+                {ghostPieceKey && (
+                  <span
+                    className={[
+                      'piece',
+                      'piece-premove-ghost',
+                      ghostPieceKey[0] === 'w' ? 'white-piece' : 'black-piece',
+                    ].join(' ')}
+                  >
+                    {PIECE_UNICODE[ghostPieceKey]}
                   </span>
                 )}
                 {isHighlighted && !piece && <span className="move-dot" />}
