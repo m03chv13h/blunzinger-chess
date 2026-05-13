@@ -135,7 +135,7 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
             <option value="system">System</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
-            <option value="blunznstyle">🩸 Blunznstyle</option>
+            <option value="blunznstyle">Blunznstyle</option>
           </select>
         </div>
 
