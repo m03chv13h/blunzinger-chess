@@ -135,11 +135,20 @@ const PIECE_CP: Record<string, number> = {
   b: 330,
   r: 500,
   q: 900,
-  k: 0,
+  k: 0, // kings are excluded from material counting (value 0)
 };
 
 /** Threshold in centipawns below which the position is considered equal. */
 const EQUAL_THRESHOLD_CP = 25;
+
+/** Score assigned to a won position (checkmate or variant win). */
+const MATE_SCORE_CP = 10000;
+
+/** Penalty applied when the side to move is in check. */
+const CHECK_PENALTY_CP = 50;
+
+/** Centipawn weight per legal move for mobility evaluation. */
+const MOBILITY_WEIGHT_CP = 3;
 
 /**
  * Parse material balance from a FEN string (pure string manipulation,
@@ -175,8 +184,8 @@ function ffishEvaluatePosition(board: FfishBoard): { scoreCp: number; mateIn: nu
   // Terminal states
   if (board.isGameOver()) {
     const result = board.result();
-    if (result === '1-0') return { scoreCp: 10000, mateIn: 0 };
-    if (result === '0-1') return { scoreCp: -10000, mateIn: 0 };
+    if (result === '1-0') return { scoreCp: MATE_SCORE_CP, mateIn: 0 };
+    if (result === '0-1') return { scoreCp: -MATE_SCORE_CP, mateIn: 0 };
     return { scoreCp: 0, mateIn: null }; // draw
   }
 
@@ -188,11 +197,11 @@ function ffishEvaluatePosition(board: FfishBoard): { scoreCp: number; mateIn: nu
   const isWhiteTurn = board.turn(); // true = white
 
   // Check bonus — being in check is bad for the side to move
-  const checkPenalty = board.isCheck() ? 50 : 0;
+  const checkPenalty = board.isCheck() ? CHECK_PENALTY_CP : 0;
 
   // Simple mobility-based evaluation from the current side's perspective
   // We use a single-side mobility count with a scaling factor
-  const mobilityScore = currentMobility * 3;
+  const mobilityScore = currentMobility * MOBILITY_WEIGHT_CP;
   const mobilityFromWhite = isWhiteTurn ? mobilityScore : -mobilityScore;
   const checkFromWhite = isWhiteTurn ? -checkPenalty : checkPenalty;
 
