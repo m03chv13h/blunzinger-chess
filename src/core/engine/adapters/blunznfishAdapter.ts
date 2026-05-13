@@ -213,22 +213,49 @@ export function createBlunznfishAdapter(): VariantEngineAdapter {
     async initialize(): Promise<void> {
       if (initialized) return;
       try {
-        // Load ffish via dynamic Function-based import to prevent the bundler and
-        // test runner (vitest) from statically resolving and pre-loading the module.
-        // ffish.js is a WASM module that crashes vitest's jsdom worker process.
-        // This is safe: the argument is a compile-time constant string literal, no
-        // user input is involved, and the import target is the known 'ffish' package.
-        const loadFfish: () => Promise<{ default: unknown }> = new Function(
-          'return import("ffish")',
-        ) as () => Promise<{ default: unknown }>;
-        const mod = await loadFfish();
-        const Module = (mod.default ?? mod) as (opts: Record<string, unknown>) => Promise<FfishModule>;
-        ffish = await Module({
-          locateFile: (file: string) => {
-            // In browser: serve from public/
-            if (typeof window !== 'undefined') return `/${file}`;
-            return file;
-          },
+        // Load ffish.js and ffish.wasm from public/ — no npm dependency needed.
+        // ffish.js is the Emscripten JS glue that initialises the WASM module.
+        // We fetch the script text and evaluate it with a pre-configured Module
+        // object so the Emscripten code picks up locateFile and the runtime-init
+        // callback. This fails fast in test environments (jsdom) where fetch to
+        // localhost is not available, triggering the graceful heuristic fallback.
+        if (typeof window === 'undefined') {
+          throw new Error('ffish requires a browser environment');
+        }
+
+        const response = await fetch('/ffish.js');
+        if (!response.ok) throw new Error(`Failed to load /ffish.js: ${response.status}`);
+        const ffishCode = await response.text();
+
+        ffish = await new Promise<FfishModule>((resolve, reject) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const win = window as any;
+          const prev = win['Module'];
+          win['Module'] = {
+            locateFile: (file: string) => `/${file}`,
+            onRuntimeInitialized: () => {
+              const mod = win['Module'] as FfishModule;
+              if (prev !== undefined) {
+                win['Module'] = prev;
+              } else {
+                delete win['Module'];
+              }
+              resolve(mod);
+            },
+          };
+
+          try {
+            // Evaluate the Emscripten JS glue — it reads the pre-configured
+            // window.Module and begins loading the WASM.
+            new Function(ffishCode)();
+          } catch (e) {
+            if (prev !== undefined) {
+              win['Module'] = prev;
+            } else {
+              delete win['Module'];
+            }
+            reject(e);
+          }
         });
 
         // Load custom variant definitions
