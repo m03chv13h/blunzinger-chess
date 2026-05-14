@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Chessboard } from '../../components/Chessboard';
 import type { MoveAnimationInfo } from '../../components/Chessboard';
-import type { Square } from '../../core/blunziger/types';
+import type { Square } from '../../core/blunzinger/types';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
 const noopMove = () => false;

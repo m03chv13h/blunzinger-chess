@@ -1,4 +1,4 @@
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
 import type { GameRecord } from '../core/gameRecord';
 import type { SimulationGameEntry, SimulationStanding } from '../hooks/useSimulation';
 import { SimulationDetailsTable } from './SimulationDetailsTable';

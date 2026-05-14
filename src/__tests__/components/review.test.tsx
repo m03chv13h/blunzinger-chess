@@ -6,9 +6,9 @@ import {
   applyMoveWithRules,
   applyPieceRemoval,
   reportViolation,
-} from '../../core/blunziger/engine';
-import type { GameState } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { GameState } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunzinger/types';
 import { evaluateGameState } from '../../core/evaluation/evaluate';
 import { createGameRecord } from '../../core/gameRecord';
 import App from '../../App';

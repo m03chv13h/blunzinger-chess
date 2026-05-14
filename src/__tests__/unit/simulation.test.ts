@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runSimulatedGame } from '../../core/simulation';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameSetupConfig } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { GameSetupConfig } from '../../core/blunzinger/types';
 
 describe('runSimulatedGame', () => {
   it('produces a completed game record with a result', () => {

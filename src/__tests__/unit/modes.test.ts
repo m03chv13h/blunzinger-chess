@@ -13,14 +13,14 @@ import {
   applyPieceRemoval,
   selectBestPieceForRemoval,
   getCheckCreatingRemovals,
-} from '../../core/blunziger/engine';
-import type { MatchConfig, Square, GameState } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { MatchConfig, Square, GameState } from '../../core/blunzinger/types';
 import {
   VARIANT_MODE_DEFINITIONS,
   getVariantModeDefinition,
   buildMatchConfig,
   DEFAULT_SETUP_CONFIG,
-} from '../../core/blunziger/types';
+} from '../../core/blunzinger/types';
 import { selectBotMove } from '../../bot/botEngine';
 
 // ── Mode Registry / Preset Tests ──────────────────────────────────────
@@ -68,7 +68,7 @@ describe('Mode registry & presets', () => {
   });
 
   it('old standalone modes are not variant modes', () => {
-    expect(() => getVariantModeDefinition('blitz_blunziger' as never)).toThrow('Unknown variant mode');
+    expect(() => getVariantModeDefinition('blitz_blunzinger' as never)).toThrow('Unknown variant mode');
     expect(() => getVariantModeDefinition('double_check_pressure' as never)).toThrow('Unknown variant mode');
     expect(() => getVariantModeDefinition('king_hunter' as never)).toThrow('Unknown variant mode');
   });
@@ -1854,7 +1854,7 @@ describe('Report Incorrectness + clock regression', () => {
 
 // ── Piece Removal Check Violation Tests ───────────────────────────────
 
-describe('Piece removal check violation (classic blunziger)', () => {
+describe('Piece removal check violation (classic blunzinger)', () => {
   // FEN: Black rook on e8, Black king on h8, White pawns on a2 + e2, White king on e1.
   // Removing e2 exposes White king to Black rook on e8 (check).
   // Removing a2 does not create check.
@@ -2017,7 +2017,7 @@ describe('Piece removal check violation (classic blunziger)', () => {
   });
 });
 
-describe('Piece removal check violation (reverse blunziger)', () => {
+describe('Piece removal check violation (reverse blunzinger)', () => {
   // Same FEN: Removing e2 creates check, removing a2 does not.
   const testFen = '4r2k/8/8/8/8/8/P3P3/4K3 b - - 0 1';
 

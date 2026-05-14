@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import type { GameSetupConfig, VariantMode, GameType, BotLevel } from '../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
+import type { GameSetupConfig, VariantMode, GameType, BotLevel } from '../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunzinger/types';
 import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';

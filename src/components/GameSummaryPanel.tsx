@@ -1,5 +1,5 @@
-import type { GameSetupConfig } from '../core/blunziger/types';
-import { getVariantModeDefinition } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
+import { getVariantModeDefinition } from '../core/blunzinger/types';
 import { getEngineInfo } from '../core/engine/engineRegistry';
 import { formatMsToTime } from '../utils/timeFormat';
 import './GameSummaryPanel.css';

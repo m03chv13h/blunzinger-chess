@@ -40,8 +40,8 @@ import type {
   DropMove,
   CrazyhousePieceType,
   GameSetupConfig,
-} from '../../../src/core/blunziger/types.js';
-import type { Chess960State } from '../../../src/core/blunziger/chess960.js';
+} from '../../../src/core/blunzinger/types.js';
+import type { Chess960State } from '../../../src/core/blunzinger/chess960.js';
 import type { EngineId } from '../../../src/core/engine/types.js';
 
 // ── Proto enum → TS type maps ────────────────────────────────────────

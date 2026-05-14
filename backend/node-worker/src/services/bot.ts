@@ -6,7 +6,7 @@
 
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../../../../src/bot/botEngine.js';
-import { selectBestPieceForRemoval } from '../../../../src/core/blunziger/engine.js';
+import { selectBestPieceForRemoval } from '../../../../src/core/blunzinger/engine.js';
 import {
   protoToBotLevel,
   protoToMatchConfig,

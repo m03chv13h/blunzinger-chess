@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { GameState } from '../core/blunziger/types';
+import type { GameState } from '../core/blunzinger/types';
 import type { EvaluationResult } from '../core/evaluation/types';
 import { evaluateGameState } from '../core/evaluation/evaluate';
 

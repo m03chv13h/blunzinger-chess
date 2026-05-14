@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GameStatus } from '../../components/GameStatus';
-import { createInitialState } from '../../core/blunziger/engine';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
-import type { GameState, MissedCheckEntry, GameSetupConfig } from '../../core/blunziger/types';
+import { createInitialState } from '../../core/blunzinger/engine';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunzinger/types';
+import type { GameState, MissedCheckEntry, GameSetupConfig } from '../../core/blunzinger/types';
 
 function makeConfig(overrides: Partial<GameSetupConfig> = {}): GameSetupConfig {
   return { ...DEFAULT_SETUP_CONFIG, ...overrides };

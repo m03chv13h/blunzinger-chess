@@ -4,8 +4,8 @@ import {
   DEFAULT_SETUP_CONFIG,
   INITIAL_FEN,
   EMPTY_RESERVE,
-} from '../../core/blunziger/types';
-import type { GameState, MatchConfig, DropMove } from '../../core/blunziger/types';
+} from '../../core/blunzinger/types';
+import type { GameState, MatchConfig, DropMove } from '../../core/blunzinger/types';
 import {
   createInitialState,
   applyMoveWithRules,
@@ -16,7 +16,7 @@ import {
   getCheckingDropMoves,
   getNonCheckingDropMoves,
   isAtomicEnabled,
-} from '../../core/blunziger/engine';
+} from '../../core/blunzinger/engine';
 import {
   getExplosionSquares,
   applyExplosionToFen,
@@ -29,7 +29,7 @@ import {
   doesAtomicMoveExplodeOpponentKing,
   doesAtomicMoveGiveCheck,
   fenHasKing,
-} from '../../core/blunziger/atomic';
+} from '../../core/blunzinger/atomic';
 import { selectBotMove } from '../../bot/botEngine';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -674,7 +674,7 @@ describe('Atomic edge cases', () => {
   });
 });
 
-// ── Atomic + Crazyhouse + Blunziger Drop Violation Detection ─────────
+// ── Atomic + Crazyhouse + Blunzinger Drop Violation Detection ─────────
 
 describe('Atomic + Crazyhouse drop violation detection', () => {
   // Helper: create a state with Atomic + Crazyhouse + variant mode at a specific FEN

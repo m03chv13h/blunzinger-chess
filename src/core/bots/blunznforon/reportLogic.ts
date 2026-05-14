@@ -6,7 +6,7 @@
  * Easy level uses probabilistic reporting.
  */
 
-import type { BotLevel, ViolationRecord } from '../../blunziger/types';
+import type { BotLevel, ViolationRecord } from '../../blunzinger/types';
 
 /** Baseline probability that easy bot reports a missed-check violation. */
 const EASY_BASE_REPORT_PROBABILITY = 0.15;

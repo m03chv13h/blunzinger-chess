@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { GameState, ScoreState, PositionHistoryEntry, CrazyhouseState, Chess960State } from '../core/blunziger/types';
+import type { GameState, ScoreState, PositionHistoryEntry, CrazyhouseState, Chess960State } from '../core/blunzinger/types';
 
 export interface ReviewStep {
   index: number;

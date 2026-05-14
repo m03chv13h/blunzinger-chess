@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineGameScreen } from '../../components/OnlineGameScreen';
-import { createInitialState } from '../../core/blunziger/engine';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
-import type { GameState, GameSetupConfig } from '../../core/blunziger/types';
+import { createInitialState } from '../../core/blunzinger/engine';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunzinger/types';
+import type { GameState, GameSetupConfig } from '../../core/blunzinger/types';
 import type { GameHubCallbacks } from '../../hooks/useGameHub';
 
 // ── Mocks ────────────────────────────────────────────────────────────

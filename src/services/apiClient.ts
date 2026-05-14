@@ -1,12 +1,12 @@
 /**
- * Base HTTP client for the Blunziger Chess backend API.
+ * Base HTTP client for the Blunzinger Chess backend API.
  *
  * Handles JWT token storage, automatic Authorization headers,
  * and response deserialization.  All service modules (auth, lobby)
  * call through this client.
  */
 
-const TOKEN_KEY = 'blunziger_token';
+const TOKEN_KEY = 'blunzinger_token';
 
 /**
  * Resolve the API base URL from the environment.
@@ -16,7 +16,7 @@ const TOKEN_KEY = 'blunziger_token';
  * - Full URL → used as-is.
  *
  * When deployed to Render, set `VITE_API_BASE_URL` to the **public** URL
- * of the API service (e.g. `https://blunziger-api.onrender.com`).
+ * of the API service (e.g. `https://blunzinger-api.onrender.com`).
  */
 function resolveApiBase(): string {
   const raw = import.meta.env.VITE_API_BASE_URL ?? '';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { GameSetupConfig } from '../core/blunziger/types';
-import type { Color } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
+import type { Color } from '../core/blunzinger/types';
 import { isStaticMode } from '../config/deployMode';
 import { useLobby } from '../hooks/useLobby';
 import { useGameHub } from '../hooks/useGameHub';

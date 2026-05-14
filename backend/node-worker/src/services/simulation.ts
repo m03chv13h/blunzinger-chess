@@ -18,7 +18,7 @@ import {
   moveToProto,
 } from '../mapping.js';
 import type { GameRecord } from '../../../../src/core/gameRecord.js';
-import type { GameSetupConfig } from '../../../../src/core/blunziger/types.js';
+import type { GameSetupConfig } from '../../../../src/core/blunzinger/types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Call<T> = ServerUnaryCall<T, any>;

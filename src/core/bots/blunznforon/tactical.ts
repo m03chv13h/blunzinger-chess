@@ -11,15 +11,15 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Move, MatchConfig, DropMove, CrazyhouseState, Color } from '../../blunziger/types';
-import { isKingHuntVariant } from '../../blunziger/types';
+import type { Move, MatchConfig, DropMove, CrazyhouseState, Color } from '../../blunzinger/types';
+import { isKingHuntVariant } from '../../blunzinger/types';
 import {
   isKingOfTheHillEnabled,
   isHillSquare,
   getCheckingMoves,
   getCheckingDropMoves,
   doesDropGiveCheck,
-} from '../../blunziger/engine';
+} from '../../blunzinger/engine';
 
 /** Large bonus for immediate wins. */
 export const MATE_SCORE = 100000;

@@ -9,10 +9,10 @@ import type {
   Square,
   CrazyhousePieceType,
   DropMove,
-} from '../core/blunziger/types';
+} from '../core/blunzinger/types';
 import type { EngineId } from '../core/engine/types';
 import type { GameRecord } from '../core/gameRecord';
-import { DEFAULT_CONFIG, buildMatchConfig } from '../core/blunziger/types';
+import { DEFAULT_CONFIG, buildMatchConfig } from '../core/blunzinger/types';
 import {
   createInitialState,
   applyMoveWithRules,
@@ -28,7 +28,7 @@ import {
   selectBestPieceForRemoval,
   isAtomicEnabled,
   determineNoMoveResult,
-} from '../core/blunziger/engine';
+} from '../core/blunzinger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 import type { BotActionRequest, BotActionResponse, BotActionResult } from '../bot/botWorker';
 

@@ -1,4 +1,4 @@
-# Blunziger Chess — Complete Game Modes & Combinations Reference
+# Blunzinger Chess — Complete Game Modes & Combinations Reference
 
 > A deep analysis of every variant mode, game type, overlay, player mode, and their
 > interactions — including all corner cases and edge-case behaviors.
@@ -41,7 +41,7 @@
 
 ## 1. Overview
 
-Blunziger Chess layers **forced-check variant rules** on top of standard chess. A game
+Blunzinger Chess layers **forced-check variant rules** on top of standard chess. A game
 is fully configured by choosing three independent axes and then optionally enabling
 composable overlays:
 
@@ -60,7 +60,7 @@ fully supported by the game engine.
 ## 2. Variant Modes
 
 Variant modes define the **core forced-move mechanic** — the central rule that
-distinguishes Blunziger Chess from standard chess.
+distinguishes Blunzinger Chess from standard chess.
 
 ### 2.1 Classic Blunzinger
 
@@ -1070,6 +1070,6 @@ King Hunt settings (if a King Hunt variant is selected):
 
 ---
 
-*This document is generated from the source code in `src/core/blunziger/types.ts`,
-`src/core/blunziger/engine.ts`, `src/components/RulesPage.tsx`, and
+*This document is generated from the source code in `src/core/blunzinger/types.ts`,
+`src/core/blunzinger/engine.ts`, `src/components/RulesPage.tsx`, and
 `src/components/RulesPanel.tsx`. For the latest rules, always refer to the source code.*

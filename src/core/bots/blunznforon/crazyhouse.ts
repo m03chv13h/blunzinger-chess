@@ -10,12 +10,12 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Color, CrazyhouseState, CrazyhousePieceType, DropMove, MatchConfig } from '../../blunziger/types';
-import { isKingHuntVariant } from '../../blunziger/types';
+import type { Color, CrazyhouseState, CrazyhousePieceType, DropMove, MatchConfig } from '../../blunzinger/types';
+import { isKingHuntVariant } from '../../blunzinger/types';
 import {
   doesDropGiveCheck,
   applyDropToFen,
-} from '../../blunziger/engine';
+} from '../../blunzinger/engine';
 
 /** Piece values in centipawns for reserve evaluation. */
 const RESERVE_CP: Record<CrazyhousePieceType, number> = {

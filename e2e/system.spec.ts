@@ -50,7 +50,7 @@ async function expandLeftPanel(page: import('@playwright/test').Page) {
 test.describe('Smoke', () => {
   test('app loads and shows the correct title', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle('Blunziger Chess');
+    await expect(page).toHaveTitle('Blunzinger Chess');
   });
 });
 

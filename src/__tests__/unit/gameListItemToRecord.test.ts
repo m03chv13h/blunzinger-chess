@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gameListItemToRecord } from '../../hooks/useGameHistory';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
 import type { GameListItem } from '../../services/gamesService';
 
 describe('gameListItemToRecord', () => {

@@ -12,15 +12,15 @@ import {
   getLegalMoves,
   createCrazyhouseState,
   getRemovablePieces,
-} from '../../core/blunziger/engine';
+} from '../../core/blunzinger/engine';
 import {
   getAllEngineInfos,
   getAvailableEngineInfos,
   getEngineInfo,
   createEngineAdapter,
 } from '../../core/engine/engineRegistry';
-import type { MatchConfig, ViolationRecord, CrazyhouseState, Color } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunziger/types';
+import type { MatchConfig, ViolationRecord, CrazyhouseState, Color } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunzinger/types';
 
 // ── Helper: build configs ────────────────────────────────────────────
 

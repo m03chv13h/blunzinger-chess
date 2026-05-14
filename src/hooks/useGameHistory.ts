@@ -12,7 +12,7 @@ import type { SaveGameRequest, GameListItem, GameDetail, PaginatedGames } from '
 import type { GameFilters } from '../services/gamesService';
 import { saveGame, listGames, getGame } from '../services/gamesService';
 import type { GameRecord } from '../core/gameRecord';
-import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Move } from '../core/blunziger/types';
+import type { GameSetupConfig, GameResult, ScoreState, PositionHistoryEntry, Move } from '../core/blunzinger/types';
 
 /** Convert a backend GameDetail (JSON strings) to a GameRecord for review. */
 export function gameDetailToRecord(detail: GameDetail): GameRecord {

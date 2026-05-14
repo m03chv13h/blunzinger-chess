@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { GameSetupConfig } from '../core/blunziger/types';
-import { getVariantModeDefinition } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
+import { getVariantModeDefinition } from '../core/blunzinger/types';
 import type { Move } from 'chess.js';
 import './ReportIssue.css';
 

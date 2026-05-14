@@ -26,7 +26,7 @@ export function WelcomeScreen({
   return (
     <div className="welcome-screen">
       <div className="welcome-card">
-        <h1><BlutwurstIcon /> Blunziger Chess</h1>
+        <h1><BlutwurstIcon /> Blunzinger Chess</h1>
         <p className="welcome-subtitle">
           A chess variant where every check counts.
         </p>

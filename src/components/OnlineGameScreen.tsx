@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { GameSetupConfig, Square, CrazyhousePieceType, Color } from '../core/blunziger/types';
-import { buildMatchConfig } from '../core/blunziger/types';
+import type { GameSetupConfig, Square, CrazyhousePieceType, Color } from '../core/blunzinger/types';
+import { buildMatchConfig } from '../core/blunzinger/types';
 import { useGame } from '../hooks/useGame';
 import { useGameHub } from '../hooks/useGameHub';
 import type {

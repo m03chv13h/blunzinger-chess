@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnlineLobbyScreen } from '../../components/OnlineLobbyScreen';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
 
 // Force connected mode for lobby tests.
 vi.mock('../../config/deployMode', () => ({

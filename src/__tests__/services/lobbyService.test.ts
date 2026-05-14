@@ -14,7 +14,7 @@ const store: Record<string, string> = {};
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k]);
-  store['blunziger_token'] = 'test-jwt';
+  store['blunzinger_token'] = 'test-jwt';
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, val: string) => { store[key] = val; },

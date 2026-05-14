@@ -13,8 +13,8 @@
 
 import { Chess } from 'chess.js';
 import type { EvaluationResult } from './types';
-import type { GameState, Move } from '../blunziger/types';
-import { isReverseForcedCheckMode } from '../blunziger/types';
+import type { GameState, Move } from '../blunzinger/types';
+import { isReverseForcedCheckMode } from '../blunzinger/types';
 import { evaluateBasePosition } from './evaluatePosition';
 import { evaluateVariantAdjustments } from './evaluateVariant';
 import {
@@ -25,11 +25,11 @@ import {
   isKingOfTheHillEnabled,
   isHillSquare,
   isAtomicEnabled,
-} from '../blunziger/engine';
+} from '../blunzinger/engine';
 import {
   doesAtomicMoveExplodeOpponentKing,
   applyExplosionToFen,
-} from '../blunziger/atomic';
+} from '../blunzinger/atomic';
 
 /**
  * Evaluate the full game state including variant-aware adjustments.

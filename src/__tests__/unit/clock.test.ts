@@ -3,9 +3,9 @@ import {
   createInitialState,
   applyMoveWithRules,
   applyTimeout,
-} from '../../core/blunziger/engine';
-import type { MatchConfig, ClockState, Square } from '../../core/blunziger/types';
-import { buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { MatchConfig, ClockState, Square } from '../../core/blunzinger/types';
+import { buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

@@ -6,8 +6,8 @@
  * - Given Check Limit: proximity to target check count
  */
 
-import type { Color } from '../../blunziger/types';
-import { getCheckingMoves } from '../../blunziger/engine';
+import type { Color } from '../../blunzinger/types';
+import { getCheckingMoves } from '../../blunzinger/engine';
 
 /** Side sign helper. */
 function sideSign(side: Color): number {

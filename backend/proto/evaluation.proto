@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package blunziger_chess;
+package blunzinger_chess;
 
-option csharp_namespace = "BlunzigerChess.Proto";
+option csharp_namespace = "BlunzingerChess.Proto";
 
 import "common.proto";
 

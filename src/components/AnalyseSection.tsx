@@ -1,4 +1,4 @@
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
 import { AnalysePositionForm } from './AnalysePositionForm';
 import './AnalyseSection.css';
 

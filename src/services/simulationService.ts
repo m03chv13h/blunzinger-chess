@@ -8,7 +8,7 @@
  */
 
 import { apiFetch } from './apiClient';
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
 import type { GameRecord, SimulationRecord } from '../core/gameRecord';
 
 /**

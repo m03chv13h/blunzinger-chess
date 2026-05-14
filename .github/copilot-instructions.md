@@ -1,8 +1,8 @@
-# Copilot Instructions for Blunziger Chess
+# Copilot Instructions for Blunzinger Chess
 
 ## Project Overview
 
-Blunziger Chess is a browser-based chess variant application built with React and TypeScript. It layers custom variant rules (forced checks, reverse checks, King Hunt scoring), game types (report-based or penalty-based), and overlays (King of the Hill, clock, Double Check Pressure) on top of standard chess via chess.js.
+Blunzinger Chess is a browser-based chess variant application built with React and TypeScript. It layers custom variant rules (forced checks, reverse checks, King Hunt scoring), game types (report-based or penalty-based), and overlays (King of the Hill, clock, Double Check Pressure) on top of standard chess via chess.js.
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ Blunziger Chess is a browser-based chess variant application built with React an
 
 ```
 src/
-├── core/blunziger/    # Pure TypeScript game logic — NO React or DOM dependencies
+├── core/blunzinger/    # Pure TypeScript game logic — NO React or DOM dependencies
 ├── core/evaluation/   # Pure TypeScript evaluation system — variant-aware
 ├── core/engine/       # External engine adapter abstraction and registry
 ├── core/gameRecord.ts # Game history/replay record type
@@ -38,7 +38,7 @@ src/
 
 ### Separation of Concerns
 
-- **`core/blunziger/`** contains all game rules as pure, deterministic, stateless functions. It has zero React or browser dependencies and is designed for future server-side reuse. Never add React or DOM imports here.
+- **`core/blunzinger/`** contains all game rules as pure, deterministic, stateless functions. It has zero React or browser dependencies and is designed for future server-side reuse. Never add React or DOM imports here.
 - **`core/evaluation/`** contains pure evaluation functions. Combines base chess evaluation with variant-aware adjustments.
 - **`bot/`** depends only on `core/` and `chess.js`.
 - **`hooks/`** bridges core logic to React state (game state, clocks, evaluation memoization, review navigation).

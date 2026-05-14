@@ -5,8 +5,8 @@ import { SimulationsOverviewSection } from '../../components/SimulationsOverview
 import type { SimulationListItem } from '../../services/simulationService';
 import type { SimulationRecord } from '../../core/gameRecord';
 import type { GameRecord } from '../../core/gameRecord';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { ScoreState } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { ScoreState } from '../../core/blunzinger/types';
 
 function makeRemoteItem(overrides: Partial<SimulationListItem> = {}): SimulationListItem {
   const config = { ...DEFAULT_SETUP_CONFIG, mode: 'botvbot' as const };

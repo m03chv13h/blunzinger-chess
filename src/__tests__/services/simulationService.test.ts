@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runSimulatedGameRemote, runBatchSimulationRemote, getSimulationStatus, listSimulations, getSimulation } from '../../services/simulationService';
-import type { GameSetupConfig } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
+import type { GameSetupConfig } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
@@ -9,7 +9,7 @@ const store: Record<string, string> = {};
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k]);
-  store['blunziger_token'] = 'test-jwt';
+  store['blunzinger_token'] = 'test-jwt';
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, val: string) => { store[key] = val; },

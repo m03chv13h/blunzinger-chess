@@ -1,7 +1,7 @@
 /**
  * Game Logic gRPC service implementation.
  *
- * Wraps the pure functions from core/blunziger/engine.ts for gRPC consumption.
+ * Wraps the pure functions from core/blunzinger/engine.ts for gRPC consumption.
  */
 
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
@@ -18,8 +18,8 @@ import {
   getNonCheckingMoves,
   getRemovablePieces,
   getCrazyhouseDropMoves,
-} from '../../../../src/core/blunziger/engine.js';
-import { buildMatchConfig } from '../../../../src/core/blunziger/types.js';
+} from '../../../../src/core/blunzinger/engine.js';
+import { buildMatchConfig } from '../../../../src/core/blunzinger/types.js';
 import {
   protoToGameState,
   gameStateToProto,
@@ -84,7 +84,7 @@ export const gameLogicHandlers = {
     try {
       const req = call.request as { state: unknown; square: string };
       const state = protoToGameState(req.state);
-      const newState = applyPieceRemoval(state, req.square as import('../../../../src/core/blunziger/types.js').Square);
+      const newState = applyPieceRemoval(state, req.square as import('../../../../src/core/blunzinger/types.js').Square);
       callback(null, { state: gameStateToProto(newState) });
     } catch (err) {
       callback(toGrpcError(err));

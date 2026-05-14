@@ -17,18 +17,18 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Color, MatchConfig } from '../../blunziger/types';
+import type { Color, MatchConfig } from '../../blunzinger/types';
 import {
   isClassicForcedCheck,
   isReverseForcedCheckMode,
   isKingHuntVariant,
-} from '../../blunziger/types';
+} from '../../blunzinger/types';
 import {
   getCheckingMoves,
   getNonCheckingMoves,
   getLegalMoves,
   isHillSquare,
-} from '../../blunziger/engine';
+} from '../../blunzinger/engine';
 import { evaluateReserves, evaluateKingVulnerabilityToDrops } from './crazyhouse';
 import { evaluateKingHuntMoveLimit, evaluateKingHuntGivenCheckLimit } from './kingHunt';
 import { evaluateClockPressure } from './clock';
@@ -192,7 +192,7 @@ export function evaluatePositionFull(
   const config = ctx.config;
   const mode = config.variantMode;
 
-  // Classic Blunziger: check pressure
+  // Classic Blunzinger: check pressure
   if (isClassicForcedCheck(mode) && !isReverseForcedCheckMode(mode)) {
     const atomic = config.overlays.enableAtomic || undefined;
     const checkingMoves = getCheckingMoves(fen, null, atomic);
@@ -204,7 +204,7 @@ export function evaluatePositionFull(
     }
   }
 
-  // Reverse Blunziger: non-checking pressure
+  // Reverse Blunzinger: non-checking pressure
   if (isReverseForcedCheckMode(mode)) {
     const atomic = config.overlays.enableAtomic || undefined;
     const checkingMoves = getCheckingMoves(fen, null, atomic);

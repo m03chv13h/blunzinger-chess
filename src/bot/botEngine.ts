@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color, Chess960State } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Square, ViolationRecord, CrazyhouseState, DropMove, Color, Chess960State } from '../core/blunzinger/types';
 import {
   getLegalMoves,
   getCheckingMoves,
@@ -8,8 +8,8 @@ import {
   doesDropGiveCheck,
   isKingOfTheHillEnabled,
   isHillSquare,
-} from '../core/blunziger/engine';
-import { isKingHuntVariant } from '../core/blunziger/types';
+} from '../core/blunzinger/engine';
+import { isKingHuntVariant } from '../core/blunzinger/types';
 import {
   selectBlunznforonMove,
   selectBlunznforonDrop,

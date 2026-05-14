@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { VariantMode, GameType } from '../core/blunziger/types';
-import { getVariantModeDefinition } from '../core/blunziger/types';
+import type { VariantMode, GameType } from '../core/blunzinger/types';
+import { getVariantModeDefinition } from '../core/blunzinger/types';
 import './RulesPanel.css';
 
 interface RulesPanelProps {

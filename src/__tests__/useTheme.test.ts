@@ -18,7 +18,7 @@ describe('useTheme', () => {
     const { result } = renderHook(() => useTheme());
     act(() => result.current.setTheme('dark'));
     expect(result.current.theme).toBe('dark');
-    expect(localStorage.getItem('blunziger-chess-theme')).toBe('dark');
+    expect(localStorage.getItem('blunzinger-chess-theme')).toBe('dark');
   });
 
   it('resolvedTheme matches mode when explicitly set', () => {
@@ -43,7 +43,7 @@ describe('useTheme', () => {
   });
 
   it('reads stored theme from localStorage', () => {
-    localStorage.setItem('blunziger-chess-theme', 'blunznstyle');
+    localStorage.setItem('blunzinger-chess-theme', 'blunznstyle');
     const { result } = renderHook(() => useTheme());
     expect(result.current.theme).toBe('blunznstyle');
     expect(result.current.resolvedTheme).toBe('blunznstyle');

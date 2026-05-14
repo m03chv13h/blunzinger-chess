@@ -1,5 +1,5 @@
 /**
- * Blunziger Chess Node.js gRPC Worker
+ * Blunzinger Chess Node.js gRPC Worker
  *
  * Internal gRPC service exposing the game logic engine, bot, evaluation,
  * and simulation capabilities to the .NET API backend.
@@ -50,7 +50,7 @@ async function main() {
 
   // Get service definitions from loaded protos
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pkg = (proto: any) => proto.blunziger_chess;
+  const pkg = (proto: any) => proto.blunzinger_chess;
 
   const gameLogicService = pkg(gameLogicProto).GameLogicService;
   const botService = pkg(botProto).BotService;
@@ -92,7 +92,7 @@ async function main() {
         console.error('Failed to start gRPC server:', err);
         process.exit(1);
       }
-      console.log(`Blunziger Chess Node Worker listening on ${HOST}:${port}`);
+      console.log(`Blunzinger Chess Node Worker listening on ${HOST}:${port}`);
     },
   );
 }

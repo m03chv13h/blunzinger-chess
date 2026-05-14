@@ -3,14 +3,14 @@
  *
  * Blunznforön is a variant-aware search bot that uses negamax with
  * alpha-beta pruning, quiescence search, and tactical extensions.
- * It is especially strong in Crazyhouse + Blunziger combinations.
+ * It is especially strong in Crazyhouse + Blunzinger combinations.
  *
  * The engine adapter provides advisory evaluation and best-move hints
  * for the evaluation bar. Bot-play is handled by the bot module at
  * `core/bots/blunznforon/`.
  *
  * IMPORTANT: This engine is **advisory only**.  The app's authoritative rules
- * (violations, penalties, overlays) remain in `core/blunziger/`.
+ * (violations, penalties, overlays) remain in `core/blunzinger/`.
  */
 
 import type {
@@ -25,7 +25,7 @@ const INFO: EngineInfo = {
   id: 'blunznforön',
   name: 'Blunznforön',
   description:
-    'Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunziger + Crazyhouse combinations.',
+    'Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunzinger + Crazyhouse combinations.',
   availability: 'available',
   supportsEvaluation: true,
   supportsBotPlay: true,

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SimulationDetailsTable } from '../../components/SimulationDetailsTable';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameSetupConfig } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { GameSetupConfig } from '../../core/blunzinger/types';
 
 function makeConfig(overrides: Partial<GameSetupConfig> = {}): GameSetupConfig {
   return {
