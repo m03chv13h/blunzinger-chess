@@ -373,7 +373,7 @@ function App() {
   };
 
   // ── Pre-move state ──
-  const { premoveSquares, addPreMove, clearPreMoves } = usePreMoves(game.isPlayerTurn, game.makeMove, gameIsOver);
+  const { preMoves, premoveSquares, addPreMove, clearPreMoves } = usePreMoves(game.isPlayerTurn, game.makeMove, gameIsOver);
 
   // Determine the player's color for premove highlighting (only hvbot mode)
   const premovePlayerColor: Color | undefined = (() => {
@@ -902,6 +902,7 @@ function App() {
                 premoveSquares={!review.isReviewing ? premoveSquares : undefined}
                 premoveColor={!review.isReviewing ? premovePlayerColor : undefined}
                 onPreMove={!review.isReviewing ? addPreMove : undefined}
+                preMoves={!review.isReviewing ? preMoves : undefined}
               />
             </div>
             {showDetails && <FenDisplay fen={displayFen} />}

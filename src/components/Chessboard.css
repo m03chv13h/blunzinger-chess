@@ -269,3 +269,11 @@
 .square.premove.dark {
   background-color: rgba(50, 110, 160, 0.7) !important;
 }
+
+.piece-premove-ghost {
+  opacity: 0.5;
+}
+
+.piece-premove-dimmed {
+  opacity: 0.3;
+}
