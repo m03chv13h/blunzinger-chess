@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MoveList } from '../../components/MoveList';
 import type { Move, Color } from 'chess.js';
-import type { MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../../core/blunziger/types';
+import type { MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry } from '../../core/blunzinger/types';
 
 /** Minimal Move stub – includes color for column placement. */
 function move(san: string, color: Color): Move {

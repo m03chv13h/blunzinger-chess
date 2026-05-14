@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
 import type { GameRecord, SimulationRecord } from '../core/gameRecord';
 import { getResultLabel } from '../core/gameRecord';
 import { runSimulatedGame } from '../core/simulation';

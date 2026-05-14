@@ -17,9 +17,9 @@ import {
   reportViolation,
   dropMoveToSan,
   getCheckingMoves,
-} from '../../core/blunziger/engine';
-import type { GameState, MatchConfig, DropMove, CrazyhouseState } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig, EMPTY_RESERVE } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { GameState, MatchConfig, DropMove, CrazyhouseState } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, EMPTY_RESERVE } from '../../core/blunzinger/types';
 import { evaluateGameState } from '../../core/evaluation/evaluate';
 import { evaluateCrazyhouse } from '../../core/evaluation/evaluateVariant';
 import { selectBotDropMove } from '../../bot/botEngine';
@@ -389,7 +389,7 @@ describe('Crazyhouse Overlay', () => {
     });
   });
 
-  describe('Drop interacts with Blunziger rules', () => {
+  describe('Drop interacts with Blunzinger rules', () => {
     it('classic: drop violation when checking drop available but non-checking drop played', () => {
       // Position where a checking drop exists via queen
       const ch: CrazyhouseState = {

@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SimulationDetailView } from '../../components/SimulationDetailView';
 import type { GameRecord, SimulationRecord } from '../../core/gameRecord';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameSetupConfig, ScoreState } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { GameSetupConfig, ScoreState } from '../../core/blunzinger/types';
 
 function makeGameRecord(overrides: Partial<GameRecord> = {}): GameRecord {
   return {

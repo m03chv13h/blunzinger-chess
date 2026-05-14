@@ -10,7 +10,7 @@
  */
 
 import { selectBotMove, selectBotDropMove } from './botEngine';
-import type { Move, BotLevel, MatchConfig, Color, CrazyhouseState, DropMove, Chess960State } from '../core/blunziger/types';
+import type { Move, BotLevel, MatchConfig, Color, CrazyhouseState, DropMove, Chess960State } from '../core/blunzinger/types';
 
 // ── Message types ────────────────────────────────────────────────────
 

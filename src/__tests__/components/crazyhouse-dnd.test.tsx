@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CrazyhouseReserve, CrazyhouseReserves } from '../../components/CrazyhouseReserve';
 import { Chessboard } from '../../components/Chessboard';
-import type { PlayerReserve, Square } from '../../core/blunziger/types';
-import { EMPTY_RESERVE } from '../../core/blunziger/types';
+import type { PlayerReserve, Square } from '../../core/blunzinger/types';
+import { EMPTY_RESERVE } from '../../core/blunzinger/types';
 
 const RESERVE_WITH_KNIGHT: PlayerReserve = { ...EMPTY_RESERVE, n: 1 };
 const RESERVE_WITH_PIECES: PlayerReserve = { p: 2, n: 1, b: 0, r: 1, q: 0 };

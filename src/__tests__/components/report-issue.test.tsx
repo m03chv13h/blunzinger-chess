@@ -2,8 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReportIssue } from '../../components/ReportIssue';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameSetupConfig } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { GameSetupConfig } from '../../core/blunzinger/types';
 import type { Move } from 'chess.js';
 
 function makeConfig(overrides: Partial<GameSetupConfig> = {}): GameSetupConfig {

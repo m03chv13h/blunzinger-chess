@@ -48,7 +48,7 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
 
       <nav className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar-header">
-          <h2><BlutwurstIcon /> Blunziger Chess</h2>
+          <h2><BlutwurstIcon /> Blunzinger Chess</h2>
         </div>
 
         <ul className="sidebar-nav">

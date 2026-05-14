@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('Blunziger Chess crashed:', error, info.componentStack);
+    console.error('Blunzinger Chess crashed:', error, info.componentStack);
   }
 
   private handleReload = () => {

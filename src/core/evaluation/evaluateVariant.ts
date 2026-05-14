@@ -13,19 +13,19 @@
  */
 
 import { Chess } from 'chess.js';
-import type { GameState, Color, CrazyhousePieceType } from '../blunziger/types';
+import type { GameState, Color, CrazyhousePieceType } from '../blunzinger/types';
 import {
   isClassicForcedCheck,
   isReverseForcedCheckMode,
   isKingHuntVariant,
-} from '../blunziger/types';
+} from '../blunzinger/types';
 import {
   getCheckingMoves,
   getNonCheckingMoves,
   getLegalMoves,
   isKingOfTheHillEnabled,
   isHillSquare,
-} from '../blunziger/engine';
+} from '../blunzinger/engine';
 import type { Square } from 'chess.js';
 
 interface Adjustment {

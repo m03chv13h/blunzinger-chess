@@ -10,8 +10,8 @@ import type {
   GameSetupConfig,
   MatchConfig,
   Square,
-} from './blunziger/types';
-import { buildMatchConfig } from './blunziger/types';
+} from './blunzinger/types';
+import { buildMatchConfig } from './blunzinger/types';
 import type { GameRecord } from './gameRecord';
 import { createGameRecord } from './gameRecord';
 import {
@@ -23,7 +23,7 @@ import {
   applyPieceRemoval,
   selectBestPieceForRemoval,
   determineNoMoveResult,
-} from './blunziger/engine';
+} from './blunzinger/engine';
 import { selectBotMove, selectBotDropMove, shouldBotReport } from '../bot/botEngine';
 
 /**

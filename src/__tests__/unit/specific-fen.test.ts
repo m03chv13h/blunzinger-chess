@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { selectBotMove } from '../../bot/botEngine';
-import type { Chess960State, MatchConfig, Square } from '../../core/blunziger/types';
-import { DEFAULT_CONFIG, buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import { applyMoveWithRules, createInitialState } from '../../core/blunziger/engine';
-import { identifyChess960Castling } from '../../core/blunziger/chess960';
+import type { Chess960State, MatchConfig, Square } from '../../core/blunzinger/types';
+import { DEFAULT_CONFIG, buildMatchConfig, DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import { applyMoveWithRules, createInitialState } from '../../core/blunzinger/engine';
+import { identifyChess960Castling } from '../../core/blunzinger/chess960';
 
 const CHESS960_FEN = 'nrbbqkrn/pp1p1p1p/B1p3p1/8/4pP2/2P4P/PP1PP1P1/NRB1QKRN b - - 1 7';
 

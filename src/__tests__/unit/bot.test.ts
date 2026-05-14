@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { selectBotMove, shouldBotReport } from '../../bot/botEngine';
-import { getCheckingMoves, getNonCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../../core/blunziger/engine';
-import type { MatchConfig, ViolationRecord } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunziger/types';
+import { getCheckingMoves, getNonCheckingMoves, getLegalMoves, createInitialState, applyMoveWithRules, canReport, reportViolation } from '../../core/blunzinger/engine';
+import type { MatchConfig, ViolationRecord } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunzinger/types';
 
 const kothConfig: MatchConfig = buildMatchConfig({
   ...DEFAULT_SETUP_CONFIG,

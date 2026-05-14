@@ -14,7 +14,7 @@
  *   - Check counting (King Hunt)    — ✅ native
  *
  * Reverse Blunzinger (must avoid giving check) is NOT supported natively by
- * ffish. The app's authoritative rules in `core/blunziger/` enforce that
+ * ffish. The app's authoritative rules in `core/blunzinger/` enforce that
  * mechanic. For Reverse mode, the engine provides standard chess move
  * generation and the app filters moves client-side.
  *
@@ -22,7 +22,7 @@
  * the adapter gracefully falls back to heuristic analysis.
  *
  * IMPORTANT: This engine is **advisory only**. The app's authoritative rules
- * (violations, penalties, overlays) remain in `core/blunziger/`.
+ * (violations, penalties, overlays) remain in `core/blunzinger/`.
  *
  * ## Updating the ffish WASM
  *
@@ -57,22 +57,22 @@ export const FFISH_WASM_VERSION = '0.1';
  *
  * Supported ffish variant keys with mustCheck (defined in public/variants.ini):
  *   - "chess"                       — standard chess (default, no mustCheck)
- *   - "blunziger"                   — base Blunziger (mustCheck = true)
- *   - "blunziger_kinghunt"          — King Hunt with check counting + mustCheck
- *   - "blunziger_koth"              — King of the Hill + mustCheck
- *   - "blunziger_atomic"            — Atomic (blastOnCapture) + mustCheck
- *   - "blunziger_crazyhouse"        — Crazyhouse + mustCheck
- *   - "blunziger_960"               — Chess960 + mustCheck
- *   - "blunziger_koth_atomic"       — KotH + Atomic + mustCheck
- *   - "blunziger_crazyhouse_koth"   — Crazyhouse + KotH + mustCheck
- *   - "blunziger_kinghunt_koth"     — King Hunt + KotH + mustCheck
- *   - "blunziger_atomic_crazyhouse" — Atomic + Crazyhouse + mustCheck
- *   - "blunziger_960_crazyhouse"    — Chess960 + Crazyhouse + mustCheck
- *   - "blunziger_960_koth"          — Chess960 + KotH + mustCheck
+ *   - "blunzinger"                   — base Blunzinger (mustCheck = true)
+ *   - "blunzinger_kinghunt"          — King Hunt with check counting + mustCheck
+ *   - "blunzinger_koth"              — King of the Hill + mustCheck
+ *   - "blunzinger_atomic"            — Atomic (blastOnCapture) + mustCheck
+ *   - "blunzinger_crazyhouse"        — Crazyhouse + mustCheck
+ *   - "blunzinger_960"               — Chess960 + mustCheck
+ *   - "blunzinger_koth_atomic"       — KotH + Atomic + mustCheck
+ *   - "blunzinger_crazyhouse_koth"   — Crazyhouse + KotH + mustCheck
+ *   - "blunzinger_kinghunt_koth"     — King Hunt + KotH + mustCheck
+ *   - "blunzinger_atomic_crazyhouse" — Atomic + Crazyhouse + mustCheck
+ *   - "blunzinger_960_crazyhouse"    — Chess960 + Crazyhouse + mustCheck
+ *   - "blunzinger_960_koth"          — Chess960 + KotH + mustCheck
  *
  * Reverse Blunzinger does NOT have native mustCheck support in ffish.
  * The app uses "chess" as the variant key for Reverse mode and enforces
- * the reverse forced-check rule entirely in core/blunziger/.
+ * the reverse forced-check rule entirely in core/blunzinger/.
  */
 function resolveVariant(variantKey?: string): string {
   return variantKey ?? 'chess';
@@ -83,7 +83,7 @@ function resolveVariant(variantKey?: string): string {
 /**
  * Detects whether the loaded ffish WASM build supports the mustCheck option.
  *
- * Strategy: Create a Board with the 'blunziger' variant (which has
+ * Strategy: Create a Board with the 'blunzinger' variant (which has
  * mustCheck = true in variants.ini) using a position where a checking move
  * exists. If mustCheck is supported, legalMoves() returns only checking moves
  * (significantly fewer than the full set of legal moves).
@@ -97,7 +97,7 @@ function detectMustCheckSupport(ffish: FairyStockfish): boolean {
   const testFen = 'r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4';
   let board: FfishBoard | null = null;
   try {
-    board = new ffish.Board('blunziger', testFen);
+    board = new ffish.Board('blunzinger', testFen);
     const moves = board.legalMoves();
     if (!moves) return false;
 

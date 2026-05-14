@@ -1,4 +1,4 @@
-import type { MissedCheckEntry } from '../core/blunziger/types';
+import type { MissedCheckEntry } from '../core/blunzinger/types';
 
 /** Format available checking moves grouped by category for the tooltip. */
 export function formatCategorizedMoves(mc: MissedCheckEntry): string {

@@ -1,11 +1,11 @@
 /**
  * Blunznforön bot — type definitions.
  *
- * Blunznforön is the app's strong custom tactical bot for Blunziger + Crazyhouse.
+ * Blunznforön is the app's strong custom tactical bot for Blunzinger + Crazyhouse.
  * These types define its configuration, search parameters, and evaluation interface.
  */
 
-import type { Move, Square, Color, DropMove, MatchConfig, CrazyhouseState } from '../../blunziger/types';
+import type { Move, Square, Color, DropMove, MatchConfig, CrazyhouseState } from '../../blunzinger/types';
 
 // ── Difficulty levels ────────────────────────────────────────────────
 

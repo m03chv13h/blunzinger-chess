@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Square } from '../core/blunziger/types';
+import type { Square } from '../core/blunzinger/types';
 
 /** A queued premove: from-square, to-square, optional promotion piece. */
 export interface PreMove {

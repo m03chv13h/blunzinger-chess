@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Chessboard } from '../../components/Chessboard';
-import type { Square } from '../../core/blunziger/types';
+import type { Square } from '../../core/blunzinger/types';
 import type { PreMove } from '../../hooks/usePreMoves';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';

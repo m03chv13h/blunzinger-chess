@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 export type ThemeMode = 'system' | 'light' | 'dark' | 'blunznstyle';
 
-const STORAGE_KEY = 'blunziger-chess-theme';
+const STORAGE_KEY = 'blunzinger-chess-theme';
 
 function getStoredTheme(): ThemeMode {
   try {

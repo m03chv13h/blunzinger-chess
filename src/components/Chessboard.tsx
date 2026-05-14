@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Chess } from 'chess.js';
-import type { Square, Color, CrazyhousePieceType } from '../core/blunziger/types';
+import type { Square, Color, CrazyhousePieceType } from '../core/blunzinger/types';
 import type { PreMove } from '../hooks/usePreMoves';
 import './Chessboard.css';
 

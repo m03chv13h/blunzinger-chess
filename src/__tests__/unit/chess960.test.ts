@@ -21,7 +21,7 @@ import {
   identifyChess960Castling,
   updateChess960CastlingState,
   updateChess960StateAfterCastle,
-} from '../../core/blunziger/chess960';
+} from '../../core/blunzinger/chess960';
 import {
   createInitialState,
   applyMoveWithRules,
@@ -29,14 +29,14 @@ import {
   getCheckingMoves,
   getNonCheckingMoves,
   isChess960Enabled,
-} from '../../core/blunziger/engine';
+} from '../../core/blunzinger/engine';
 import {
   DEFAULT_SETUP_CONFIG,
   DEFAULT_CONFIG,
   buildMatchConfig,
   INITIAL_FEN,
-} from '../../core/blunziger/types';
-import type { MatchConfig, GameSetupConfig, Square } from '../../core/blunziger/types';
+} from '../../core/blunzinger/types';
+import type { MatchConfig, GameSetupConfig, Square } from '../../core/blunzinger/types';
 import { selectBotMove } from '../../bot/botEngine';
 import { Chess } from 'chess.js';
 

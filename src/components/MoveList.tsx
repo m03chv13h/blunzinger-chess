@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry } from '../core/blunziger/types';
+import type { Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry } from '../core/blunzinger/types';
 import { BlutwurstIcon } from './BlutwurstIcon';
 import { GspritztIcon } from './GspritztIcon';
 import { formatCategorizedMoves } from './formatViolation';

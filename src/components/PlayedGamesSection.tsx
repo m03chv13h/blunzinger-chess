@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameRecord } from '../core/gameRecord';
-import type { GameSetupConfig } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
 import { getGameModeLabel, getVariantLabel, getGameTypeLabel, getResultLabel, getUserOutcome, getUserResultLabel } from '../core/gameRecord';
 import { MiniBoard } from './MiniBoard';
 import './PlayedGamesSection.css';

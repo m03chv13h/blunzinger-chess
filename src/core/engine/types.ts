@@ -3,7 +3,7 @@
  *
  * Engines are **advisory** — they provide evaluation scores, candidate move
  * rankings, and bot-play support.  The app's authoritative rules, violation
- * handling, and match-state logic remain in `core/blunziger/`.
+ * handling, and match-state logic remain in `core/blunzinger/`.
  */
 
 // ── Engine identification ────────────────────────────────────────────
@@ -87,7 +87,7 @@ export interface VariantEngineAdapter {
   /**
    * Whether the engine natively supports the mustCheck (forced-check) rule.
    * When true, the engine's legal move generation already filters moves
-   * according to the Blunziger forced-check mechanic. Optional — defaults
+   * according to the Blunzinger forced-check mechanic. Optional — defaults
    * to false when not implemented.
    */
   readonly mustCheckSupported?: boolean;

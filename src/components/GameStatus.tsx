@@ -1,5 +1,5 @@
-import type { GameState, MissedCheckEntry } from '../core/blunziger/types';
-import { isKingHuntVariant } from '../core/blunziger/types';
+import type { GameState, MissedCheckEntry } from '../core/blunzinger/types';
+import { isKingHuntVariant } from '../core/blunzinger/types';
 import { GspritztIcon } from './GspritztIcon';
 import './GameStatus.css';
 

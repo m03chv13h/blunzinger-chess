@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { createChess960State, generateChess960BackRank } from '../../core/blunziger/chess960';
-import { getFilteredCandidates } from '../../core/bots/blunznforon/blunziger';
+import { createChess960State, generateChess960BackRank } from '../../core/blunzinger/chess960';
+import { getFilteredCandidates } from '../../core/bots/blunznforon/blunzinger';
 import { searchMoves } from '../../core/bots/blunznforon/search';
 import { getBlunznforonConfig } from '../../core/bots/blunznforon/config';
 import { selectBotMove } from '../../bot/botEngine';
-import type { MatchConfig } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
+import type { MatchConfig } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunzinger/types';
 import type { SearchContext } from '../../core/bots/blunznforon/types';
 
 /**

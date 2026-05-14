@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getUserOutcome, getUserResultLabel } from '../../core/gameRecord';
-import { DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import type { GameResult, GameSetupConfig } from '../../core/blunziger/types';
+import { DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import type { GameResult, GameSetupConfig } from '../../core/blunzinger/types';
 
 describe('getUserOutcome', () => {
   const baseConfig: GameSetupConfig = { ...DEFAULT_SETUP_CONFIG };

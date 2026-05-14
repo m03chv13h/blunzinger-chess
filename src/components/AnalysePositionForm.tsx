@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Chess, validateFen } from 'chess.js';
-import type { GameSetupConfig, VariantMode, GameType } from '../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, INITIAL_FEN } from '../core/blunziger/types';
+import type { GameSetupConfig, VariantMode, GameType } from '../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, INITIAL_FEN } from '../core/blunzinger/types';
 import { MiniBoard } from './MiniBoard';
 import './AnalysePositionForm.css';
 

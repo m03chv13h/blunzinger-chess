@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePreMoves } from '../../hooks/usePreMoves';
-import type { Square } from '../../core/blunziger/types';
+import type { Square } from '../../core/blunzinger/types';
 
 describe('usePreMoves', () => {
   it('should start with an empty premove queue', () => {

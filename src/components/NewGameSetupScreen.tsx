@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunziger/types';
-import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunziger/types';
+import type { GameSetupConfig, GameMode, BotLevel, Color, VariantMode, GameType } from '../core/blunzinger/types';
+import { VARIANT_MODE_DEFINITIONS, getVariantModeDefinition } from '../core/blunzinger/types';
 import { isConnectedMode } from '../config/deployMode';
 import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';

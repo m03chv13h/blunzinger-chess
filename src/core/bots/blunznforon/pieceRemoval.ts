@@ -6,12 +6,12 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Color, MatchConfig } from '../../blunziger/types';
-import { isReverseForcedCheckMode } from '../../blunziger/types';
+import type { Color, MatchConfig } from '../../blunzinger/types';
+import { isReverseForcedCheckMode } from '../../blunzinger/types';
 import {
   getRemovablePieces,
   getCheckCreatingRemovals,
-} from '../../blunziger/engine';
+} from '../../blunzinger/engine';
 import type { PieceRemovalDecision } from './types';
 
 /** Piece values for removal scoring. */

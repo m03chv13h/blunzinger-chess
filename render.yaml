@@ -1,10 +1,10 @@
-# Render Blueprint — Blunziger Chess
+# Render Blueprint — Blunzinger Chess
 # https://render.com/docs/blueprint-spec
 
 services:
   # ── Frontend (Static Site) ────────────────────────────────────────
   - type: web
-    name: blunziger-frontend
+    name: blunzinger-frontend
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
@@ -15,8 +15,8 @@ services:
     envVars:
       - key: VITE_DEPLOY_MODE
         value: connected
-      # Set this to the public URL of the blunziger-api service
-      # (e.g. https://blunziger-api.onrender.com).  Do NOT use fromService
+      # Set this to the public URL of the blunzinger-api service
+      # (e.g. https://blunzinger-api.onrender.com).  Do NOT use fromService
       # here — its `host` property returns a private hostname that browsers
       # cannot resolve.
       - key: VITE_API_BASE_URL
@@ -24,9 +24,9 @@ services:
 
   # ── .NET API Backend ──────────────────────────────────────────────
   - type: web
-    name: blunziger-api
+    name: blunzinger-api
     runtime: docker
-    dockerfilePath: backend/dotnet-api/BlunzigerChess.Api/Dockerfile
+    dockerfilePath: backend/dotnet-api/BlunzingerChess.Api/Dockerfile
     dockerContext: .
     plan: free
     healthCheckPath: /health
@@ -38,7 +38,7 @@ services:
       - key: NodeWorker__Url
         fromService:
           type: pserv
-          name: blunziger-node-worker
+          name: blunzinger-node-worker
           property: hostport
       - key: Jwt__Secret
         generateValue: true
@@ -58,8 +58,8 @@ services:
         sync: false
       - key: OAuth__Microsoft__ClientSecret
         sync: false
-      # Set this to the public URL of the blunziger-frontend service
-      # (e.g. https://blunziger-frontend.onrender.com).  Do NOT use
+      # Set this to the public URL of the blunzinger-frontend service
+      # (e.g. https://blunzinger-frontend.onrender.com).  Do NOT use
       # fromService — its `host` property returns a private hostname,
       # not the public origin the browser sends in CORS requests.
       - key: Cors__AllowedOrigins__0
@@ -67,7 +67,7 @@ services:
 
   # ── Node.js Game Engine Worker (Private Service) ──────────────────
   - type: pserv
-    name: blunziger-node-worker
+    name: blunzinger-node-worker
     runtime: docker
     dockerfilePath: backend/node-worker/Dockerfile
     dockerContext: .

@@ -10,8 +10,8 @@
  */
 
 import { Chess } from 'chess.js';
-import type { Move, Color, DropMove } from '../../blunziger/types';
-import { isHillSquare, applyDropToFen } from '../../blunziger/engine';
+import type { Move, Color, DropMove } from '../../blunzinger/types';
+import { isHillSquare, applyDropToFen } from '../../blunzinger/engine';
 import { evaluatePosition, evaluatePositionFull } from './evaluate';
 import { orderMoves } from './moveOrdering';
 import { MATE_SCORE, KOTH_WIN_SCORE } from './tactical';

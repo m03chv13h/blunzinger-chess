@@ -1,4 +1,4 @@
-import { VARIANT_MODE_DEFINITIONS } from '../core/blunziger/types';
+import { VARIANT_MODE_DEFINITIONS } from '../core/blunzinger/types';
 import './RulesPage.css';
 
 export function RulesPage() {
@@ -7,7 +7,7 @@ export function RulesPage() {
       <div className="rules-page-card">
         <h2>📖 Rules</h2>
         <p className="rules-page-intro">
-          Blunziger Chess adds forced-check rules on top of standard chess.
+          Blunzinger Chess adds forced-check rules on top of standard chess.
           Below are all variant modes, game types, and overlays explained.
         </p>
 

@@ -5,7 +5,7 @@
  * guidance on when to prefer forcing/practical moves.
  */
 
-import type { Color } from '../../blunziger/types';
+import type { Color } from '../../blunzinger/types';
 
 /**
  * Evaluate clock-based adjustments from a given perspective.

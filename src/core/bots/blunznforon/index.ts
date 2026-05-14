@@ -1,11 +1,11 @@
 /**
- * Blunznforön — the app's strong custom tactical bot for Blunziger + Crazyhouse.
+ * Blunznforön — the app's strong custom tactical bot for Blunzinger + Crazyhouse.
  *
  * Blunznforön is a variant-aware search bot that:
  * - Uses authoritative app-side move generation
  * - Searches legal candidate moves via negamax + alpha-beta pruning
  * - Evaluates positions with full variant awareness
- * - Is especially strong in Crazyhouse + Blunziger combinations
+ * - Is especially strong in Crazyhouse + Blunzinger combinations
  *
  * PUBLIC API:
  * - selectBlunznforonMove()  — Select best regular move
@@ -24,15 +24,15 @@ import type {
   ViolationRecord,
   Square,
   Chess960State,
-} from '../../blunziger/types';
+} from '../../blunzinger/types';
 import {
   isKingHuntVariant,
   isReverseForcedCheckMode,
-} from '../../blunziger/types';
-import { isKingOfTheHillEnabled, isHillSquare } from '../../blunziger/engine';
+} from '../../blunzinger/types';
+import { isKingOfTheHillEnabled, isHillSquare } from '../../blunzinger/engine';
 import type { BlunznforonLevel, SearchContext, ScoredMove } from './types';
 import { getBlunznforonConfig } from './config';
-import { getFilteredCandidates, getViolationMoves } from './blunziger';
+import { getFilteredCandidates, getViolationMoves } from './blunzinger';
 import { searchMoves, searchDropMoves } from './search';
 import { shouldReport } from './reportLogic';
 import { selectPieceForRemoval } from './pieceRemoval';

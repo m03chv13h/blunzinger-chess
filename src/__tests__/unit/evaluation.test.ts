@@ -14,9 +14,9 @@ import {
   evaluateVariantAdjustments,
 } from '../../core/evaluation/evaluateVariant';
 import { evaluateGameState } from '../../core/evaluation/evaluate';
-import { createInitialState } from '../../core/blunziger/engine';
-import type { GameState, MatchConfig, Move } from '../../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunziger/types';
+import { createInitialState } from '../../core/blunzinger/engine';
+import type { GameState, MatchConfig, Move } from '../../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunzinger/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

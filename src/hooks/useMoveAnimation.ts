@@ -1,7 +1,7 @@
 import { useRef, useMemo } from 'react';
-import type { Square, Move, GameState } from '../core/blunziger/types';
+import type { Square, Move, GameState } from '../core/blunzinger/types';
 import type { MoveAnimationInfo } from '../components/Chessboard';
-import { getExplosionSquares } from '../core/blunziger/atomic';
+import { getExplosionSquares } from '../core/blunzinger/atomic';
 
 /**
  * Derive animation props for the Chessboard from the current game state.

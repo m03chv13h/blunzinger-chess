@@ -8,8 +8,8 @@ import {
   getNonCheckingMoves,
   getRemovablePieces,
   selectBestPieceForRemoval,
-} from '../../core/blunziger/engine';
-import type { Square } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { Square } from '../../core/blunzinger/types';
 
 // A valid FEN where black's king has been "exploded" (Atomic chess scenario)
 const MISSING_BLACK_KING_FEN = 'rnbq3r/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1';

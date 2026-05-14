@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { GameSetupConfig, CrazyhousePieceType } from './core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunziger/types';
-import { getRandomChess960Index, chess960IndexToFen } from './core/blunziger/chess960';
-import type { Square, Color } from './core/blunziger/types';
+import type { GameSetupConfig, CrazyhousePieceType } from './core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from './core/blunzinger/types';
+import { getRandomChess960Index, chess960IndexToFen } from './core/blunzinger/chess960';
+import type { Square, Color } from './core/blunzinger/types';
 import type { GameRecord, SimulationRecord } from './core/gameRecord';
 import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
@@ -89,7 +89,7 @@ function App() {
   const [showEvalBar, setShowEvalBar] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>(() => {
     try {
-      const stored = localStorage.getItem('blunziger-chess-game-history');
+      const stored = localStorage.getItem('blunzinger-chess-game-history');
       if (stored) {
         const parsed: GameRecord[] = JSON.parse(stored);
         if (Array.isArray(parsed)) return parsed;
@@ -113,7 +113,7 @@ function App() {
     try {
       // Cap at 200 most-recent games to prevent localStorage overflow.
       const toStore = gameHistory.length > 200 ? gameHistory.slice(0, 200) : gameHistory;
-      localStorage.setItem('blunziger-chess-game-history', JSON.stringify(toStore));
+      localStorage.setItem('blunzinger-chess-game-history', JSON.stringify(toStore));
     } catch {
       // Ignore quota-exceeded or other storage errors
     }

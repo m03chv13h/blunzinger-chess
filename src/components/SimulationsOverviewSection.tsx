@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { SimulationListItem } from '../services/simulationService';
 import type { SimulationRecord } from '../core/gameRecord';
 import { getVariantLabel, getGameTypeLabel } from '../core/gameRecord';
-import type { GameSetupConfig } from '../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import type { GameSetupConfig } from '../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG } from '../core/blunzinger/types';
 import { SimulationDetailsTable } from './SimulationDetailsTable';
 import './SimulationsOverviewSection.css';
 

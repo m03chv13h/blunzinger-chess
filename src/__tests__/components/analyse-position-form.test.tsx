@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AnalysePositionForm } from '../../components/AnalysePositionForm';
-import { INITIAL_FEN, DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
+import { INITIAL_FEN, DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunzinger/types';
 
 describe('AnalysePositionForm', () => {
   it('renders FEN input with default starting position', () => {

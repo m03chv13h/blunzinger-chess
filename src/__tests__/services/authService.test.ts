@@ -41,7 +41,7 @@ describe('createGuest', () => {
     expect(result.userId).toBe('uid-1');
     expect(result.displayName).toBe('Guest_abc');
     // Token should be stored
-    expect(store['blunziger_token']).toBe('guest-jwt-123');
+    expect(store['blunzinger_token']).toBe('guest-jwt-123');
     // Should have been called as anonymous (no existing token)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/auth/guest');
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
@@ -52,7 +52,7 @@ describe('createGuest', () => {
 
 describe('fetchMe', () => {
   it('calls GET /api/auth/me with Authorization header', async () => {
-    store['blunziger_token'] = 'my-jwt';
+    store['blunzinger_token'] = 'my-jwt';
     const profile = {
       userId: 'u1',
       displayName: 'Alice',

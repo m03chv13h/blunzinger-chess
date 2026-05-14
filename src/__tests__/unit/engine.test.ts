@@ -16,11 +16,11 @@ import {
   isHillSquare,
   didKingReachHill,
   isKingOfTheHillEnabled,
-} from '../../core/blunziger/engine';
-import type { GameState, MatchConfig } from '../../core/blunziger/types';
-import { DEFAULT_CONFIG, DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunziger/types';
+} from '../../core/blunzinger/engine';
+import type { GameState, MatchConfig } from '../../core/blunzinger/types';
+import { DEFAULT_CONFIG, DEFAULT_SETUP_CONFIG, buildMatchConfig, INITIAL_FEN } from '../../core/blunzinger/types';
 
-describe('Core Blunziger Engine', () => {
+describe('Core Blunzinger Engine', () => {
   describe('createInitialState', () => {
     it('should create a valid initial state', () => {
       const state = createInitialState();
@@ -859,7 +859,7 @@ describe('Core Blunziger Engine', () => {
       });
     });
 
-    describe('KOTH + Blunziger interaction', () => {
+    describe('KOTH + Blunzinger interaction', () => {
       it('forced-check still works when KOTH is enabled', () => {
         const state = createInitialState('hvh', kothConfig);
         let s = applyMoveWithRules(state, 'e4');

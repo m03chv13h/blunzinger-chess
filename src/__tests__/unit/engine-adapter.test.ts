@@ -10,8 +10,8 @@ import {
 import { createHeuristicAdapter } from '../../core/engine/adapters/heuristicAdapter';
 import { createBlunznforönAdapter } from '../../core/engine/adapters/blunznforönAdapter';
 import { createBlunznfishAdapter } from '../../core/engine/adapters/blunznfishAdapter';
-import { INITIAL_FEN, DEFAULT_SETUP_CONFIG } from '../../core/blunziger/types';
-import { createInitialState } from '../../core/blunziger/engine';
+import { INITIAL_FEN, DEFAULT_SETUP_CONFIG } from '../../core/blunzinger/types';
+import { createInitialState } from '../../core/blunzinger/engine';
 
 describe('Engine Abstraction Layer', () => {
   // ── Registry ───────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ describe('Engine Abstraction Layer', () => {
       await adapter.initialize();
       const lines = await adapter.analyzePosition({
         fen: INITIAL_FEN,
-        variantKey: 'blunziger',
+        variantKey: 'blunzinger',
         depth: 8,
       });
       expect(lines.length).toBeGreaterThan(0);

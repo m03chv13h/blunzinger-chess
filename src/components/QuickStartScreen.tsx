@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { GameSetupConfig, GameMode, BotLevel, Color } from '../core/blunziger/types';
-import { DEFAULT_SETUP_CONFIG } from '../core/blunziger/types';
+import type { GameSetupConfig, GameMode, BotLevel, Color } from '../core/blunzinger/types';
+import { DEFAULT_SETUP_CONFIG } from '../core/blunzinger/types';
 import { isConnectedMode } from '../config/deployMode';
 import { TimeInput } from './TimeInput';
 import './QuickStartScreen.css';

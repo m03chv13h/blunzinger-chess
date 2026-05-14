@@ -3,8 +3,8 @@ import { render, screen, fireEvent, within, cleanup } from '@testing-library/rea
 import '@testing-library/jest-dom';
 import App from '../../App';
 import { GameStatus } from '../../components/GameStatus';
-import { createInitialState } from '../../core/blunziger/engine';
-import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunziger/types';
+import { createInitialState } from '../../core/blunzinger/engine';
+import { DEFAULT_SETUP_CONFIG, buildMatchConfig } from '../../core/blunzinger/types';
 
 // Mock useAuth so App skips the welcome screen and lands on quick-start.
 vi.mock('../../hooks/useAuth', () => ({
@@ -716,7 +716,7 @@ describe('App game flow', () => {
       expect(screen.getByText('Black wins')).toBeInTheDocument();
 
       // Verify the game was saved to localStorage
-      const stored = localStorage.getItem('blunziger-chess-game-history');
+      const stored = localStorage.getItem('blunzinger-chess-game-history');
       expect(stored).not.toBeNull();
       const parsed = JSON.parse(stored!);
       expect(parsed).toHaveLength(1);

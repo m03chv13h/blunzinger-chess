@@ -1,4 +1,4 @@
-import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry, ScoreState, GameMode, VariantMode, GameType, Color } from '../core/blunziger/types';
+import type { GameSetupConfig, GameResult, PositionHistoryEntry, Move, ViolationReportEntry, MissedCheckEntry, PieceRemovalEntry, TimeReductionEntry, GspritztReportEntry, ScoreState, GameMode, VariantMode, GameType, Color } from '../core/blunzinger/types';
 
 /** A completed game record stored for analysis. */
 export interface GameRecord {

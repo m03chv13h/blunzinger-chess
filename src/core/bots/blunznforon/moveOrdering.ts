@@ -14,8 +14,8 @@
  * during move ordering. The search itself handles check bonuses.
  */
 
-import type { Move, MatchConfig } from '../../blunziger/types';
-import { isKingOfTheHillEnabled, isHillSquare } from '../../blunziger/engine';
+import type { Move, MatchConfig } from '../../blunzinger/types';
+import { isKingOfTheHillEnabled, isHillSquare } from '../../blunzinger/engine';
 
 /** Piece values for MVV-LVA ordering. */
 const ORDER_VALUES: Record<string, number> = {

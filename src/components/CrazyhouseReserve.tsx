@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Color, CrazyhousePieceType, PlayerReserve } from '../core/blunziger/types';
+import type { Color, CrazyhousePieceType, PlayerReserve } from '../core/blunzinger/types';
 import './CrazyhouseReserve.css';
 
 const PIECE_UNICODE: Record<string, Record<CrazyhousePieceType, string>> = {

@@ -1,10 +1,10 @@
-# Blunziger Chess ♟
+# Blunzinger Chess ♟
 
 A browser-based chess variant application with a **normalized variant architecture**, online multiplayer, and a full backend — built on top of standard chess.
 
-## What is Blunziger Chess?
+## What is Blunzinger Chess?
 
-Blunziger Chess is standard chess with additional variant rules organized into three clean, composable layers:
+Blunzinger Chess is standard chess with additional variant rules organized into three clean, composable layers:
 
 1. **Variant Mode** — defines the core rule objective
 2. **Game Type** — defines what happens when the player misses the required move behavior
@@ -112,7 +112,7 @@ When enabled, captured pieces go into the capturing player's **reserve** and can
 **Reserves:**
 Each player has a reserve that tracks: pawns, knights, bishops, rooks, and queens.
 
-**Interaction with Blunziger rules:**
+**Interaction with Blunzinger rules:**
 - Drop moves are included in checking/non-checking move detection
 - In Classic mode: if a checking drop exists, the player must give check (via drop or regular move)
 - In Reverse mode: if non-checking drops exist, the player must avoid giving check
@@ -166,7 +166,7 @@ When enabled, every capture triggers an **explosion** on the destination square.
 - A player wins immediately by exploding the opponent's king without exploding their own
 - Standard checkmate and other terminal conditions still apply when no king explosion occurs
 
-**Interaction with Blunziger rules:**
+**Interaction with Blunzinger rules:**
 - Checking/non-checking move detection uses Atomic-aware legality
 - A capture that explodes the opponent's king counts as a "checking" move for variant rule purposes
 - In Classic Blunzinger: if an explosion-check move exists, the player must play it
@@ -364,12 +364,12 @@ The bot system is powered by **Blunznforön**, the app's native custom tactical 
 | Engine | Status | Description |
 |--------|--------|-------------|
 | **Heuristic** | ✅ Available | Built-in lightweight evaluator using material balance and mobility. Powers the evaluation bar and 1-ply best-move hints. |
-| **Blunznforön** | ✅ Available | Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunziger + Crazyhouse combinations. |
+| **Blunznforön** | ✅ Available | Native custom tactical bot with negamax search, variant-aware evaluation, and Crazyhouse specialization. Especially strong in Blunzinger + Crazyhouse combinations. |
 | **Blunznfish** | ✅ Available | Variant-aware engine powered by Fairy-Stockfish (ffish.js). Provides native support for Atomic, Crazyhouse, King of the Hill, Chess960, and check-counting overlays. Forced-check rule is enforced by the app. |
 
 ### Blunznforön
 
-Blunznforön is the app's strong custom tactical bot for all Blunziger variants and Crazyhouse. It features:
+Blunznforön is the app's strong custom tactical bot for all Blunzinger variants and Crazyhouse. It features:
 
 - **Negamax search** with alpha-beta pruning for efficient tree traversal
 - **Quiescence search** to avoid the horizon effect in tactical positions
@@ -391,7 +391,7 @@ Blunznfish integrates [Fairy-Stockfish](https://github.com/fairy-stockfish/Fairy
 - **Custom variant definitions** loaded from `public/variants.ini` at initialization
 - **Graceful fallback** — if WASM cannot load, the adapter falls back to heuristic analysis
 
-**Note:** The core Blunziger forced-check rule (must give check / must avoid check) is NOT natively supported by Fairy-Stockfish. This mechanic is enforced by the app's authoritative rules engine in `core/blunziger/`. Blunznfish's value-add is overlay-specific move generation and evaluation.
+**Note:** The core Blunzinger forced-check rule (must give check / must avoid check) is NOT natively supported by Fairy-Stockfish. This mechanic is enforced by the app's authoritative rules engine in `core/blunzinger/`. Blunznfish's value-add is overlay-specific move generation and evaluation.
 
 ### Engine Architecture
 
@@ -401,7 +401,7 @@ Engines implement the `VariantEngineAdapter` interface (`src/core/engine/types.t
 - **Best-move hints** — suggest the best move in UCI notation
 - **Variant awareness** — factor variant rules into analysis (Blunznforön, Blunznfish)
 
-Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunziger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
+Engines are **advisory only** — the app's authoritative rules, violations, and match-state logic remain in `core/blunzinger/`. Engine selection is available in Human vs Bot and Bot vs Bot modes, with per-side selection in Bot vs Bot.
 
 ## Deployment Modes
 
@@ -548,7 +548,7 @@ Requires the backend services to be running. The Vite dev server proxies `/api` 
 
 ```bash
 # .NET API (from repository root)
-dotnet run --project backend/dotnet-api/BlunzigerChess.Api/BlunzigerChess.Api.csproj
+dotnet run --project backend/dotnet-api/BlunzingerChess.Api/BlunzingerChess.Api.csproj
 
 # Node.js Worker
 cd backend/node-worker
@@ -559,7 +559,7 @@ npx tsx src/server.ts
 Or use .NET Aspire to orchestrate all backend services:
 
 ```bash
-dotnet run --project backend/aspire/BlunzigerChess.AppHost/BlunzigerChess.AppHost.csproj
+dotnet run --project backend/aspire/BlunzingerChess.AppHost/BlunzingerChess.AppHost.csproj
 ```
 
 ### Build for Production
@@ -583,7 +583,7 @@ npm run lint
 npm run test:system:local
 
 # Backend API tests
-dotnet test backend/dotnet-api/BlunzigerChess.Api.Tests/BlunzigerChess.Api.Tests.csproj
+dotnet test backend/dotnet-api/BlunzingerChess.Api.Tests/BlunzingerChess.Api.Tests.csproj
 
 # Node worker type-check
 cd backend/node-worker && npx tsc --noEmit
@@ -636,7 +636,7 @@ Deployment is managed via the Render dashboard using the `render.yaml` blueprint
 
 ```
 src/
-├── core/blunziger/     # Pure TypeScript — no React/DOM deps
+├── core/blunzinger/     # Pure TypeScript — no React/DOM deps
 │   ├── types.ts        # VariantMode, GameType, MatchConfig, OverlayConfig, GameState, setup config
 │   ├── engine.ts       # All pure game logic functions (variant-mode-aware)
 │   ├── atomic.ts       # Atomic Chess explosion and legality logic
@@ -665,7 +665,7 @@ src/
 │   ├── moveOrdering.ts # MVV-LVA move ordering for search efficiency
 │   ├── tactical.ts     # Tactical pattern detectors (mate, KOTH, checks)
 │   ├── crazyhouse.ts   # Reserve evaluation, drop scoring, king vulnerability
-│   ├── blunziger.ts    # Variant mode filtering (classic/reverse/King Hunt)
+│   ├── blunzinger.ts    # Variant mode filtering (classic/reverse/King Hunt)
 │   ├── kingHunt.ts     # King Hunt scoring evaluation
 │   ├── clock.ts        # Time-aware evaluation adjustments
 │   ├── pieceRemoval.ts # Piece removal decision logic
@@ -748,7 +748,7 @@ src/
 
 ```
 backend/
-├── dotnet-api/BlunzigerChess.Api/
+├── dotnet-api/BlunzingerChess.Api/
 │   ├── Controllers/        # REST API endpoints
 │   │   ├── AuthController.cs       # OAuth login, guest tokens, JWT
 │   │   ├── GamesController.cs      # Game record CRUD
@@ -769,15 +769,15 @@ backend/
 │   ├── Models/
 │   │   ├── User.cs, Game.cs, MultiplayerRoom.cs, MatchmakingEntry.cs
 │   └── Dockerfile          # Multi-stage .NET 10 build
-├── dotnet-api/BlunzigerChess.Api.Tests/  # Backend unit tests
+├── dotnet-api/BlunzingerChess.Api.Tests/  # Backend unit tests
 ├── node-worker/
 │   ├── src/
 │   │   ├── server.ts       # gRPC server entry point
 │   │   └── services/       # Game logic, bot, evaluation, simulation
 │   └── Dockerfile          # Node 22 Alpine build
 ├── aspire/                 # .NET Aspire local orchestration
-│   ├── BlunzigerChess.AppHost/
-│   └── BlunzigerChess.ServiceDefaults/
+│   ├── BlunzingerChess.AppHost/
+│   └── BlunzingerChess.ServiceDefaults/
 └── proto/                  # gRPC service definitions
     ├── common.proto, game_logic.proto, bot.proto
     ├── evaluation.proto, simulation.proto
@@ -785,9 +785,9 @@ backend/
 
 ### Separation of Concerns
 
-- **`core/blunziger/`**: Pure functions, zero dependencies on React or the DOM. Reused server-side by the Node.js worker.
+- **`core/blunzinger/`**: Pure functions, zero dependencies on React or the DOM. Reused server-side by the Node.js worker.
 - **`core/evaluation/`**: Pure evaluation functions. Combines base chess evaluation with variant-aware adjustments.
-- **`core/engine/`**: Pluggable engine adapters for evaluation bar and best-move hints. Engines are advisory — game rules stay in `core/blunziger/`.
+- **`core/engine/`**: Pluggable engine adapters for evaluation bar and best-move hints. Engines are advisory — game rules stay in `core/blunzinger/`.
 - **`bot/`**: Bot logic, depends only on `core/` and `chess.js`.
 - **`config/`**: Deploy mode configuration and React context.
 - **`services/`**: Backend API client layer — all REST and auth communication.
