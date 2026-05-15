@@ -609,8 +609,8 @@ The app deploys to two platforms:
 
 The Render blueprint (`render.yaml`) provisions:
 - **Frontend** — static site with SPA rewrites
-- **.NET API** — Docker web service on port 8080
-- **Node Worker** — private gRPC service on port 50051
+- **.NET API** — Docker web service on the Render free plan
+- **Node Worker** — Docker web service (Render free plan) on port 50051
 - **PostgreSQL** — managed database
 
 ### Render Deployment & CONNECTION_STRING
