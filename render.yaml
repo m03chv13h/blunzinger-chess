@@ -25,6 +25,7 @@ services:
   # ── .NET API Backend ──────────────────────────────────────────────
   - type: web
     name: blunzinger-api
+    plan: free
     runtime: docker
     dockerfilePath: backend/dotnet-api/BlunzingerChess.Api/Dockerfile
     dockerContext: .
@@ -36,7 +37,7 @@ services:
         sync: false  # Set to external PostgreSQL connection URI
       - key: NodeWorker__Url
         fromService:
-          type: pserv
+          type: web
           name: blunzinger-node-worker
           property: hostport
       - key: Jwt__Secret
@@ -64,9 +65,10 @@ services:
       - key: Cors__AllowedOrigins__0
         sync: false
 
-  # ── Node.js Game Engine Worker (Private Service) ──────────────────
-  - type: pserv
+  # ── Node.js Game Engine Worker (Web Service) ──────────────────────
+  - type: web
     name: blunzinger-node-worker
+    plan: free
     runtime: docker
     dockerfilePath: backend/node-worker/Dockerfile
     dockerContext: .
