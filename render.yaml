@@ -28,7 +28,6 @@ services:
     runtime: docker
     dockerfilePath: backend/dotnet-api/BlunzingerChess.Api/Dockerfile
     dockerContext: .
-    plan: free
     healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
@@ -71,7 +70,6 @@ services:
     runtime: docker
     dockerfilePath: backend/node-worker/Dockerfile
     dockerContext: .
-    plan: free
     envVars:
       - key: PORT
         value: "50051"
