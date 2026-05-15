@@ -13,6 +13,7 @@ import { gameLogicHandlers } from './services/gameLogic.js';
 import { botHandlers } from './services/bot.js';
 import { evaluationHandlers } from './services/evaluation.js';
 import { simulationHandlers } from './services/simulation.js';
+import { createHealthHttpServer, resolveHealthPort } from './healthHttp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,8 @@ function loadProto(filename: string) {
 
 const PORT = process.env.PORT ?? '50051';
 const HOST = process.env.HOST ?? '0.0.0.0';
+const HEALTH_PORT = process.env.HEALTH_PORT ?? resolveHealthPort(PORT);
+const HEALTH_HOST = process.env.HEALTH_HOST ?? HOST;
 
 async function main() {
   const server = new grpc.Server();
@@ -95,6 +98,11 @@ async function main() {
       console.log(`Blunzinger Chess Node Worker listening on ${HOST}:${port}`);
     },
   );
+
+  const healthServer = createHealthHttpServer(PORT);
+  healthServer.listen(Number(HEALTH_PORT), HEALTH_HOST, () => {
+    console.log(`Health endpoint listening on http://${HEALTH_HOST}:${HEALTH_PORT}/health`);
+  });
 }
 
 main().catch((err) => {

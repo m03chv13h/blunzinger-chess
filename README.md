@@ -556,6 +556,11 @@ npm install
 npx tsx src/server.ts
 ```
 
+Node worker health endpoint:
+
+- `GET http://localhost:50052/health` (defaults to `PORT + 1`)
+- Override with `HEALTH_PORT` (and optional `HEALTH_HOST`)
+
 Or use .NET Aspire to orchestrate all backend services:
 
 ```bash
