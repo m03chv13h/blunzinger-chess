@@ -132,10 +132,10 @@ export function Sidebar({ activeSection, onNavigate, gameCount, isConnected, use
             value={theme ?? 'system'}
             onChange={(e) => onThemeChange?.(e.target.value as ThemeMode)}
           >
-            <option value="system">System</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="blunznstyle">Blunznstyle</option>
+            <option value="system">🖥️ System</option>
+            <option value="light">☀️ Light</option>
+            <option value="dark">🌙 Dark</option>
+            <option value="blunznstyle">🩸 Blunznstyle</option>
           </select>
         </div>
 
