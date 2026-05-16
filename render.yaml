@@ -77,3 +77,5 @@ services:
         value: "50051"
       - key: HOST
         value: "0.0.0.0"
+      - key: CONNECTION_STRING
+        sync: false  # Required to restore open simulations from PostgreSQL on worker startup

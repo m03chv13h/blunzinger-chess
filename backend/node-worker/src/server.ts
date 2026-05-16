@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { gameLogicHandlers } from './services/gameLogic.js';
 import { botHandlers } from './services/bot.js';
 import { evaluationHandlers } from './services/evaluation.js';
-import { simulationHandlers } from './services/simulation.js';
+import { restoreSimulationJobs, simulationHandlers } from './services/simulation.js';
+import { loadOpenSimulationJobs } from './services/simulationPersistence.js';
 import { createHealthHttpServer, resolveHealthPort } from './healthHttp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,6 +66,16 @@ async function main() {
   server.addService(botService.service, botHandlers);
   server.addService(evaluationService.service, evaluationHandlers);
   server.addService(simulationService.service, simulationHandlers);
+
+  try {
+    const openSimulationJobs = await loadOpenSimulationJobs();
+    const restoredCount = restoreSimulationJobs(openSimulationJobs);
+    if (restoredCount > 0) {
+      console.log(`Restored ${restoredCount} open simulation job(s) from database`);
+    }
+  } catch (err) {
+    console.error('Failed to restore open simulation jobs from database:', err);
+  }
 
   // Add gRPC health check (simple implementation without external health proto)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

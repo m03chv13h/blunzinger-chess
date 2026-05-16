@@ -35,6 +35,13 @@ interface SimulationJob {
   finishedAt?: number;
 }
 
+export interface RestorableSimulationJob {
+  simulationId: string;
+  config: GameSetupConfig;
+  totalGames: number;
+  completedRecords: GameRecord[];
+}
+
 /** In-memory map of active simulation jobs keyed by simulation ID. */
 const simulationJobs = new Map<string, SimulationJob>();
 
@@ -46,6 +53,24 @@ let lastProcessedId: string | null = null;
 
 /** Grace period (ms) to keep finished jobs before cleanup. */
 const FINISHED_JOB_TTL_MS = 60_000;
+
+function createSimulationJob(
+  config: GameSetupConfig,
+  totalGames: number,
+  completedRecords: GameRecord[],
+): SimulationJob {
+  const clampedTotalGames = Math.max(1, Math.min(totalGames, 200));
+  const clampedCompletedRecords = completedRecords.slice(0, clampedTotalGames);
+  const finished = clampedCompletedRecords.length >= clampedTotalGames;
+
+  return {
+    config,
+    totalGames: clampedTotalGames,
+    completedRecords: clampedCompletedRecords,
+    finished,
+    finishedAt: finished ? Date.now() : undefined,
+  };
+}
 
 /**
  * Process the next pending game across all queued simulations.
@@ -206,14 +231,7 @@ export const simulationHandlers = {
     try {
       const req = call.request as { simulationId: string; configJson: string; count: number };
       const config = JSON.parse(req.configJson) as GameSetupConfig;
-      const count = Math.max(1, Math.min(req.count, 200));
-
-      simulationJobs.set(req.simulationId, {
-        config,
-        totalGames: count,
-        completedRecords: [],
-        finished: false,
-      });
+      simulationJobs.set(req.simulationId, createSimulationJob(config, req.count, []));
 
       // Start processing the queue (no-op if already running)
       processQueue();
@@ -252,6 +270,28 @@ export const simulationHandlers = {
     }
   },
 };
+
+export function restoreSimulationJobs(jobs: readonly RestorableSimulationJob[]): number {
+  let restoredCount = 0;
+
+  for (const job of jobs) {
+    if (!job.simulationId) {
+      continue;
+    }
+
+    simulationJobs.set(
+      job.simulationId,
+      createSimulationJob(job.config, job.totalGames, job.completedRecords),
+    );
+    restoredCount += 1;
+  }
+
+  if (restoredCount > 0) {
+    processQueue();
+  }
+
+  return restoredCount;
+}
 
 function toGrpcError(err: unknown): { code: number; message: string } {
   const message = err instanceof Error ? err.message : String(err);
