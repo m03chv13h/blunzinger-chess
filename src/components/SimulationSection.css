@@ -2,9 +2,20 @@
 
 .simulation-section {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
   padding: 20px;
+}
+
+/* ── Active simulations list (rendered below setup card) ── */
+
+.simulation-active-list {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .simulation-card {
@@ -295,6 +306,10 @@
 /* ── Responsive ── */
 
 @media (max-width: 600px) {
+  .simulation-section {
+    padding: 12px 8px;
+  }
+
   .simulation-card {
     padding: 18px 16px;
   }
@@ -306,5 +321,35 @@
 
   .sim-game-reason {
     width: 100%;
+  }
+
+  .sim-analyse-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .sim-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sim-stop-btn,
+  .sim-back-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .sim-game-number {
+    min-width: 28px;
+  }
+
+  .sim-game-moves {
+    min-width: 56px;
+  }
+
+  .sim-game-result {
+    min-width: 60px;
   }
 }
