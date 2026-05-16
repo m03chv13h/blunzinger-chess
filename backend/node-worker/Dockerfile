@@ -31,6 +31,7 @@ RUN ln -s /app/backend/node-worker/node_modules /app/node_modules
 WORKDIR /app/backend/node-worker
 
 ENV PORT=50051
+# CONNECTION_STRING: PostgreSQL URI used to restore open simulations on startup
 EXPOSE 50051
 
 CMD ["npx", "tsx", "src/server.ts"]

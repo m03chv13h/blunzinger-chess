@@ -560,6 +560,7 @@ Node worker health endpoint:
 
 - `GET http://localhost:50052/health` (defaults to `PORT + 1`)
 - Override with `HEALTH_PORT` (and optional `HEALTH_HOST`)
+- Set `CONNECTION_STRING` on the node worker to let it restore and continue open simulations after restart
 
 Or use .NET Aspire to orchestrate all backend services:
 
@@ -620,7 +621,10 @@ The Render blueprint (`render.yaml`) provisions:
 
 ### Render Deployment & CONNECTION_STRING
 
-The `.NET API` connects to PostgreSQL using the `CONNECTION_STRING` environment variable.
+Both backend services use the `CONNECTION_STRING` environment variable:
+- **.NET API** — primary PostgreSQL access for app data
+- **Node Worker** — restores open simulation jobs on startup and resumes processing
+
 The connection string is a standard PostgreSQL URI (e.g. `postgres://user:pass@host:port/db`)
 supplied by the database provider.
 
@@ -630,8 +634,9 @@ supplied by the database provider.
 2. `ConnectionStringHelper.Normalize()` converts the `postgres://` URI to ADO.NET key-value
    format (`Host=…;Port=…;Database=…;Username=…;Password=…;SSL Mode=Require;Trust Server Certificate=true`).
 3. Npgsql uses the normalized connection string to connect to PostgreSQL.
+4. `backend/node-worker/src/services/simulationPersistence.ts` reads `CONNECTION_STRING`, loads unfinished simulations from the `Simulations` table, and re-enqueues them.
 
-**Render environment variable:** `CONNECTION_STRING` — configure this directly in the Render dashboard with your PostgreSQL connection URI (e.g. `postgres://user:pass@host:port/db`).
+**Render environment variable:** set `CONNECTION_STRING` on both `blunzinger-api` and `blunzinger-node-worker` in the Render dashboard (or `render.yaml`) with your PostgreSQL connection URI (e.g. `postgres://user:pass@host:port/db`).
 
 Deployment is managed via the Render dashboard using the `render.yaml` blueprint. No GitHub Actions workflow is required.
 
