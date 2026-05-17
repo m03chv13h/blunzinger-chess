@@ -4,6 +4,8 @@
   margin-top: 24px;
   border-top: 1px solid #e0e0e0;
   padding-top: 18px;
+  width: 100%;
+  max-width: 600px;
 }
 
 .sim-overview-heading {
@@ -232,4 +234,22 @@
 .sim-overview-page-info {
   font-size: 12px;
   color: #666;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  .sim-overview-icon {
+    font-size: 22px;
+    min-width: 32px;
+  }
+
+  .sim-overview-item {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .sim-overview-expanded {
+    padding: 8px 12px 12px 12px;
+  }
 }
