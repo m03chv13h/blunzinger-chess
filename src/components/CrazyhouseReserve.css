@@ -98,3 +98,61 @@
   gap: 4px;
   margin-bottom: 4px;
 }
+
+/* ── Reserve piece color styling ─────────────────────────────────── */
+
+/* White reserve: pieces shown as white with dark outline */
+.crazyhouse-reserve-white .reserve-piece {
+  color: #fff;
+  -webkit-text-stroke: 0.4px #333;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Black reserve: pieces shown as dark */
+.crazyhouse-reserve-black .reserve-piece {
+  color: #1a1a1a;
+  -webkit-text-stroke: 0.4px #000;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Dark theme overrides for reserve */
+[data-theme="dark"] .crazyhouse-reserve-white {
+  background: #3a3530;
+  border-color: #5a5040;
+}
+
+[data-theme="dark"] .crazyhouse-reserve-white .reserve-piece {
+  color: #fff;
+  -webkit-text-stroke: 0.4px #555;
+}
+
+[data-theme="dark"] .crazyhouse-reserve-black {
+  background: #1a1a22;
+  border-color: #333340;
+}
+
+[data-theme="dark"] .crazyhouse-reserve-black .reserve-piece {
+  color: #2a2a2a;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+/* Blunznstyle theme overrides for reserve */
+[data-theme="blunznstyle"] .crazyhouse-reserve-white {
+  background: #3a2820;
+  border-color: #5a3828;
+}
+
+[data-theme="blunznstyle"] .crazyhouse-reserve-white .reserve-piece {
+  color: #f5ece4;
+  -webkit-text-stroke: 0.4px #4a2020;
+}
+
+[data-theme="blunznstyle"] .crazyhouse-reserve-black {
+  background: #1a0e0e;
+  border-color: #3a2020;
+}
+
+[data-theme="blunznstyle"] .crazyhouse-reserve-black .reserve-piece {
+  color: #2a1010;
+  text-shadow: 0 0 2px rgba(200, 150, 100, 0.2);
+}

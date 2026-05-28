@@ -30,3 +30,13 @@
 .mini-cell--dark {
   background: #b58863;
 }
+
+.mini-piece--white {
+  color: #fff;
+  -webkit-text-stroke: 0.3px #333;
+}
+
+.mini-piece--black {
+  color: #1a1a1a;
+  -webkit-text-stroke: 0.3px #000;
+}
