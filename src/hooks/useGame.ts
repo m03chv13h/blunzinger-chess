@@ -159,14 +159,15 @@ export function useGame(
   }, []);
 
   // Sync display clocks and committed ref from state whenever state.clocks changes.
-  // When lastTimestamp is null (fresh game), fall back to Date.now() so the
-  // clock tick interval starts counting immediately.
+  // When lastTimestamp is null (fresh game / before white's first move), keep
+  // clockActiveRef as null so the clock does not start counting down until
+  // white makes the first move.
   useEffect(() => {
     if (state.clocks) {
       clockCommittedRef.current = { whiteMs: state.clocks.whiteMs, blackMs: state.clocks.blackMs };
       setClockWhiteMs(state.clocks.whiteMs);
       setClockBlackMs(state.clocks.blackMs);
-      clockActiveRef.current = state.clocks.lastTimestamp ?? Date.now();
+      clockActiveRef.current = state.clocks.lastTimestamp;
     } else {
       clockCommittedRef.current = null;
     }
@@ -197,9 +198,9 @@ export function useGame(
       if (pausedRef.current && cur.mode === 'botvbot') return;
 
       const now = Date.now();
-      // clockActiveRef is null only on the very first tick of a fresh game
-      // (before the sync effect has run). Falling back to `now` yields
-      // elapsed = 0 which is correct — no time has been consumed yet.
+      // clockActiveRef is null before white's first move (clock not yet
+      // started). Falling back to `now` yields elapsed = 0, so the display
+      // shows the full initial time without counting down.
       const turnStart = clockActiveRef.current ?? now;
       const elapsed = now - turnStart;
 
