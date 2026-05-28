@@ -58,10 +58,16 @@
 }
 
 .white-piece {
+  color: #fff;
+  -webkit-text-stroke: 0.5px #333;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
 }
 
 .black-piece {
+  color: #1a1a1a;
+  -webkit-text-stroke: 0.5px #000;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
 }
 
@@ -276,4 +282,30 @@
 
 .piece-premove-dimmed {
   opacity: 0.3;
+}
+
+/* ── Theme-specific piece styling ────────────────────────────────── */
+
+/* Dark theme: lighten the white piece outline for contrast */
+[data-theme="dark"] .white-piece {
+  -webkit-text-stroke: 0.5px #555;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .black-piece {
+  color: #2a2a2a;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/* Blunznstyle theme: warm tones with strong contrast */
+[data-theme="blunznstyle"] .white-piece {
+  color: #f5ece4;
+  -webkit-text-stroke: 0.5px #4a2020;
+  text-shadow: 0 0 3px rgba(60, 10, 10, 0.5);
+}
+
+[data-theme="blunznstyle"] .black-piece {
+  color: #2a1010;
+  -webkit-text-stroke: 0.5px #1a0808;
+  text-shadow: 0 0 3px rgba(200, 150, 100, 0.3);
 }
