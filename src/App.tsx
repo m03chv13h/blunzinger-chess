@@ -721,6 +721,7 @@ function App() {
                         games={sim.games}
                         standing={sim.standing}
                         running={sim.running}
+                        error={sim.error}
                         onStop={() => simulation.stop(sim.id)}
                         onAnalyseGame={handleSelectGameForReview}
                       />
