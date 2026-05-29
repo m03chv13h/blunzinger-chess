@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 
 function isHealthRequest(req: IncomingMessage): boolean {
   if (req.method !== 'GET') {
@@ -19,9 +19,24 @@ function writeJson(
   res.end(JSON.stringify(body));
 }
 
-export function createHealthHttpServer(grpcPort: string) {
-  return createServer((req, res) => {
+export interface HealthHttpServer extends Server {
+  /** Signal that the gRPC server is ready to accept connections. */
+  setReady(): void;
+}
+
+export function createHealthHttpServer(grpcPort: string): HealthHttpServer {
+  let ready = false;
+
+  const server = createServer((req, res) => {
     if (isHealthRequest(req)) {
+      if (!ready) {
+        writeJson(res, 503, {
+          status: 'starting',
+          grpcPort,
+        });
+        return;
+      }
+
       writeJson(res, 200, {
         status: 'ok',
         grpcPort,
@@ -30,7 +45,13 @@ export function createHealthHttpServer(grpcPort: string) {
     }
 
     writeJson(res, 404, { error: 'not_found' });
-  });
+  }) as HealthHttpServer;
+
+  server.setReady = () => {
+    ready = true;
+  };
+
+  return server;
 }
 
 export function resolveHealthPort(grpcPort: string): string {

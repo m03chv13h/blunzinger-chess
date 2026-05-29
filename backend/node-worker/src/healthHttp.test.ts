@@ -32,7 +32,7 @@ describe('resolveHealthPort', () => {
 });
 
 describe('createHealthHttpServer', () => {
-  it('returns 200 status payload on /health', async () => {
+  it('returns 503 on /health before setReady is called', async () => {
     const server = createHealthHttpServer('50051');
     startedServers.push(server);
 
@@ -40,6 +40,25 @@ describe('createHealthHttpServer', () => {
       server.listen(0, '127.0.0.1', () => resolve());
     });
     const { port } = server.address() as AddressInfo;
+
+    const response = await fetch(`http://127.0.0.1:${port}/health`);
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      status: 'starting',
+      grpcPort: '50051',
+    });
+  });
+
+  it('returns 200 on /health after setReady is called', async () => {
+    const server = createHealthHttpServer('50051');
+    startedServers.push(server);
+
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', () => resolve());
+    });
+    const { port } = server.address() as AddressInfo;
+
+    server.setReady();
 
     const response = await fetch(`http://127.0.0.1:${port}/health`);
     expect(response.status).toBe(200);

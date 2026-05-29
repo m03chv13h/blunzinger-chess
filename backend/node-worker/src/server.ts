@@ -101,6 +101,9 @@ async function main() {
     },
   });
 
+  // Health HTTP server handles /health for HTTP/1.1 requests
+  const healthServer = createHealthHttpServer(PORT);
+
   // Start gRPC server on loopback — the port mux will proxy HTTP/2 traffic here
   server.bindAsync(
     `127.0.0.1:${GRPC_INTERNAL_PORT}`,
@@ -111,11 +114,10 @@ async function main() {
         process.exit(1);
       }
       console.log(`gRPC server listening on 127.0.0.1:${port}`);
+      // Signal readiness only after gRPC is bound and accepting connections
+      healthServer.setReady();
     },
   );
-
-  // Health HTTP server handles /health for HTTP/1.1 requests
-  const healthServer = createHealthHttpServer(PORT);
 
   // Port multiplexer on the external PORT — routes HTTP/1.1 to health server,
   // HTTP/2 (gRPC) to the internal gRPC port.  This allows Render to
