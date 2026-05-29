@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { Chess, validateFen } from 'chess.js';
-import type { GameSetupConfig, VariantMode, GameType } from '../core/blunzinger/types';
+import type { GameSetupConfig, GameMode, VariantMode, GameType } from '../core/blunzinger/types';
 import { DEFAULT_SETUP_CONFIG, VARIANT_MODE_DEFINITIONS, INITIAL_FEN } from '../core/blunzinger/types';
 import { MiniBoard } from './MiniBoard';
+import { TimeInput } from './TimeInput';
 import './AnalysePositionForm.css';
 
 interface AnalysePositionFormProps {
@@ -11,11 +12,18 @@ interface AnalysePositionFormProps {
 
 export function AnalysePositionForm({ onStartAnalysis }: AnalysePositionFormProps) {
   const [fen, setFen] = useState(INITIAL_FEN);
+  const [mode, setMode] = useState<GameMode>('hvh');
   const [variantMode, setVariantMode] = useState<VariantMode>('classic_blunzinger');
   const [gameType, setGameType] = useState<GameType>('report_incorrectness');
   const [enableKingOfTheHill, setEnableKingOfTheHill] = useState(false);
+  const [enableClock, setEnableClock] = useState(false);
+  const [initialTimeMs, setInitialTimeMs] = useState(5 * 60 * 1000);
+  const [incrementMs, setIncrementMs] = useState(0);
+  const [decrementMs, setDecrementMs] = useState(0);
   const [enableCrazyhouse, setEnableCrazyhouse] = useState(false);
   const [enableDoubleCheckPressure, setEnableDoubleCheckPressure] = useState(false);
+  const [enableChess960, setEnableChess960] = useState(false);
+  const [enableAtomic, setEnableAtomic] = useState(false);
 
   const fenValidation = validateFen(fen);
   const fenValid = fenValidation.ok;
@@ -41,16 +49,22 @@ export function AnalysePositionForm({ onStartAnalysis }: AnalysePositionFormProp
     if (!fenValid || !positionPlayable) return;
     const config: GameSetupConfig = {
       ...DEFAULT_SETUP_CONFIG,
-      mode: 'hvh',
+      mode,
       variantMode,
       gameType,
       enableKingOfTheHill,
+      enableClock,
+      initialTimeMs,
+      incrementMs,
+      decrementMs,
       enableCrazyhouse,
       enableDoubleCheckPressure,
+      enableChess960,
+      enableAtomic,
       initialFen: fen === INITIAL_FEN ? undefined : fen,
     };
     onStartAnalysis(config);
-  }, [fen, fenValid, positionPlayable, variantMode, gameType, enableKingOfTheHill, enableCrazyhouse, enableDoubleCheckPressure, onStartAnalysis]);
+  }, [fen, fenValid, positionPlayable, mode, variantMode, gameType, enableKingOfTheHill, enableClock, initialTimeMs, incrementMs, decrementMs, enableCrazyhouse, enableDoubleCheckPressure, enableChess960, enableAtomic, onStartAnalysis]);
 
   return (
     <div className="analyse-position-form">
@@ -73,6 +87,19 @@ export function AnalysePositionForm({ onStartAnalysis }: AnalysePositionFormProp
               aria-label="FEN string for analysis"
             />
             {fenError && <p className="analyse-fen-error">{fenError}</p>}
+          </div>
+
+          <div className="analyse-field">
+            <label htmlFor="analyse-mode-select">Player Mode</label>
+            <select
+              id="analyse-mode-select"
+              value={mode}
+              onChange={(e) => setMode(e.target.value as GameMode)}
+            >
+              <option value="hvh">Human vs Human</option>
+              <option value="hvbot">Human vs Bot</option>
+              <option value="botvbot">Bot vs Bot</option>
+            </select>
           </div>
 
           <div className="analyse-field">
@@ -115,6 +142,59 @@ export function AnalysePositionForm({ onStartAnalysis }: AnalysePositionFormProp
             <label>
               <input
                 type="checkbox"
+                checked={enableClock}
+                onChange={(e) => setEnableClock(e.target.checked)}
+              />
+              Clock
+            </label>
+            {enableClock && (
+              <div className="analyse-clock-settings">
+                <div className="analyse-field">
+                  <label htmlFor="analyse-initial-time">Initial time (MM:SS)</label>
+                  <TimeInput
+                    id="analyse-initial-time"
+                    valueMs={initialTimeMs}
+                    onChange={setInitialTimeMs}
+                    minSeconds={10}
+                    maxSeconds={3600}
+                    fallbackMs={5 * 60 * 1000}
+                  />
+                </div>
+                <div className="analyse-field">
+                  <label htmlFor="analyse-increment">Increment per move (MM:SS)</label>
+                  <TimeInput
+                    id="analyse-increment"
+                    valueMs={incrementMs}
+                    onChange={setIncrementMs}
+                    minSeconds={0}
+                    maxSeconds={600}
+                    fallbackMs={0}
+                  />
+                </div>
+                <div className="analyse-field">
+                  <label htmlFor="analyse-decrement">Decrement per move (MM:SS)</label>
+                  <TimeInput
+                    id="analyse-decrement"
+                    valueMs={decrementMs}
+                    onChange={setDecrementMs}
+                    minSeconds={0}
+                    maxSeconds={600}
+                    fallbackMs={0}
+                  />
+                </div>
+              </div>
+            )}
+            <label>
+              <input
+                type="checkbox"
+                checked={enableDoubleCheckPressure}
+                onChange={(e) => setEnableDoubleCheckPressure(e.target.checked)}
+              />
+              Double Check Pressure
+            </label>
+            <label>
+              <input
+                type="checkbox"
                 checked={enableCrazyhouse}
                 onChange={(e) => setEnableCrazyhouse(e.target.checked)}
               />
@@ -123,10 +203,18 @@ export function AnalysePositionForm({ onStartAnalysis }: AnalysePositionFormProp
             <label>
               <input
                 type="checkbox"
-                checked={enableDoubleCheckPressure}
-                onChange={(e) => setEnableDoubleCheckPressure(e.target.checked)}
+                checked={enableChess960}
+                onChange={(e) => setEnableChess960(e.target.checked)}
               />
-              Double Check Pressure
+              Chess960
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={enableAtomic}
+                onChange={(e) => setEnableAtomic(e.target.checked)}
+              />
+              Atomic Chess
             </label>
           </fieldset>
         </div>

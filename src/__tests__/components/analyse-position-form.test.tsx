@@ -11,17 +11,21 @@ describe('AnalysePositionForm', () => {
     expect(input.value).toBe(INITIAL_FEN);
   });
 
-  it('renders variant mode and game type selects', () => {
+  it('renders player mode, variant mode and game type selects', () => {
     render(<AnalysePositionForm onStartAnalysis={() => {}} />);
+    expect(screen.getByLabelText('Player Mode')).toBeInTheDocument();
     expect(screen.getByLabelText('Variant Mode')).toBeInTheDocument();
     expect(screen.getByLabelText('Game Type')).toBeInTheDocument();
   });
 
-  it('renders overlay checkboxes', () => {
+  it('renders all overlay checkboxes', () => {
     render(<AnalysePositionForm onStartAnalysis={() => {}} />);
     expect(screen.getByLabelText(/King of the Hill/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Crazyhouse/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Clock/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Double Check Pressure/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Crazyhouse/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Chess960/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Atomic Chess/)).toBeInTheDocument();
   });
 
   it('shows mini board preview for valid FEN', () => {
@@ -98,6 +102,59 @@ describe('AnalysePositionForm', () => {
     expect(config.enableKingOfTheHill).toBe(true);
     expect(config.enableCrazyhouse).toBe(true);
     expect(config.enableDoubleCheckPressure).toBe(false);
+  });
+
+  it('calls onStartAnalysis with selected player mode', () => {
+    const onStart = vi.fn();
+    render(<AnalysePositionForm onStartAnalysis={onStart} />);
+
+    fireEvent.change(screen.getByLabelText('Player Mode'), {
+      target: { value: 'hvbot' },
+    });
+
+    fireEvent.click(screen.getByText('▶ Start Analysis'));
+    const config = onStart.mock.calls[0][0];
+    expect(config.mode).toBe('hvbot');
+  });
+
+  it('calls onStartAnalysis with Chess960 and Atomic overlays', () => {
+    const onStart = vi.fn();
+    render(<AnalysePositionForm onStartAnalysis={onStart} />);
+
+    fireEvent.click(screen.getByLabelText(/Chess960/));
+    fireEvent.click(screen.getByLabelText(/Atomic Chess/));
+
+    fireEvent.click(screen.getByText('▶ Start Analysis'));
+    const config = onStart.mock.calls[0][0];
+    expect(config.enableChess960).toBe(true);
+    expect(config.enableAtomic).toBe(true);
+  });
+
+  it('shows clock settings when Clock is enabled', () => {
+    render(<AnalysePositionForm onStartAnalysis={() => {}} />);
+
+    // Clock settings should not be visible initially
+    expect(screen.queryByLabelText('Initial time (MM:SS)')).not.toBeInTheDocument();
+
+    // Enable clock
+    fireEvent.click(screen.getByLabelText(/Clock/));
+
+    // Clock settings should now be visible
+    expect(screen.getByLabelText('Initial time (MM:SS)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Increment per move (MM:SS)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Decrement per move (MM:SS)')).toBeInTheDocument();
+  });
+
+  it('calls onStartAnalysis with clock config when clock is enabled', () => {
+    const onStart = vi.fn();
+    render(<AnalysePositionForm onStartAnalysis={onStart} />);
+
+    fireEvent.click(screen.getByLabelText(/Clock/));
+    fireEvent.click(screen.getByText('▶ Start Analysis'));
+
+    const config = onStart.mock.calls[0][0];
+    expect(config.enableClock).toBe(true);
+    expect(config.initialTimeMs).toBe(5 * 60 * 1000);
   });
 
   it('shows game-over error for checkmate position', () => {
