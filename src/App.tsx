@@ -939,6 +939,7 @@ function App() {
               pieceRemovals={game.state.pieceRemovals}
               timeReductions={game.state.timeReductions}
               gspritztReports={game.state.gspritztReports}
+              gspritztEnabled={game.state.config.reportConfig.enableGspritzt}
               defaultCollapsed={isStandaloneReview || (!gameIsOver && !review.isReviewing)}
             />
           </aside>
