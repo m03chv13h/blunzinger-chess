@@ -27,7 +27,8 @@ public class SimulationController(
     /// <summary>
     /// Check whether the simulation worker is up and reachable.
     /// This also wakes the worker if it is sleeping (Render free plan).
-    /// Uses the worker's public /health REST endpoint instead of gRPC.
+    /// Uses the worker's public /health REST endpoint to wake it, then verifies
+    /// gRPC connectivity with a Ping call before reporting "ready".
     /// </summary>
     [HttpGet("worker-status")]
     [AllowAnonymous]
@@ -45,13 +46,25 @@ public class SimulationController(
             var healthUrl = externalUrl.TrimEnd('/') + "/health";
             var response = await client.GetAsync(healthUrl);
 
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                return Ok(new { status = "ready" });
+                logger.LogDebug("Worker /health returned status code {StatusCode}", response.StatusCode);
+                return Ok(new { status = "unavailable" });
             }
 
-            logger.LogDebug("Worker /health returned status code {StatusCode}", response.StatusCode);
-            return Ok(new { status = "unavailable" });
+            // Health endpoint is up — verify gRPC connectivity with a lightweight ping.
+            // This catches the case where HTTP health passes but gRPC subchannel is not yet connected.
+            try
+            {
+                await engineClient.PingWorkerAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (RpcException ex)
+            {
+                logger.LogDebug(ex, "Worker /health is OK but gRPC Ping failed — not fully ready yet");
+                return Ok(new { status = "unavailable" });
+            }
+
+            return Ok(new { status = "ready" });
         }
         catch (Exception ex)
         {

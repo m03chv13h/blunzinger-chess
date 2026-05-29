@@ -104,29 +104,37 @@ async function main() {
   // Health HTTP server handles /health for HTTP/1.1 requests
   const healthServer = createHealthHttpServer(PORT);
 
-  // Start gRPC server on loopback — the port mux will proxy HTTP/2 traffic here
-  server.bindAsync(
-    `127.0.0.1:${GRPC_INTERNAL_PORT}`,
-    grpc.ServerCredentials.createInsecure(),
-    (err, port) => {
-      if (err) {
-        console.error('Failed to start gRPC server:', err);
-        process.exit(1);
-      }
-      console.log(`gRPC server listening on 127.0.0.1:${port}`);
-      // Signal readiness only after gRPC is bound and accepting connections
-      healthServer.setReady();
-    },
-  );
+  // Start gRPC server on loopback — the port mux will proxy HTTP/2 traffic here.
+  // IMPORTANT: We must wait for gRPC to bind before starting the port mux,
+  // otherwise incoming HTTP/2 connections get proxied to a port that isn't
+  // listening yet, causing "Error connecting to subchannel" on the client side.
+  const grpcPort = await new Promise<number>((resolve, reject) => {
+    server.bindAsync(
+      `127.0.0.1:${GRPC_INTERNAL_PORT}`,
+      grpc.ServerCredentials.createInsecure(),
+      (err, port) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(port);
+      },
+    );
+  });
+  console.log(`gRPC server listening on 127.0.0.1:${grpcPort}`);
 
   // Port multiplexer on the external PORT — routes HTTP/1.1 to health server,
   // HTTP/2 (gRPC) to the internal gRPC port.  This allows Render to
   // health-check the service via plain HTTP on the same PORT and also allows
   // the .NET API's wake-up request to receive a valid response.
-  const mux = createPortMux(healthServer, '127.0.0.1', Number(GRPC_INTERNAL_PORT));
+  // Started AFTER gRPC binds to avoid proxying to an unready backend.
+  const mux = createPortMux(healthServer, '127.0.0.1', grpcPort);
   mux.listen(Number(PORT), HOST, () => {
     console.log(`Port mux listening on ${HOST}:${PORT} (HTTP/1.1 → health, HTTP/2 → gRPC)`);
   });
+
+  // Signal readiness only after gRPC is bound AND the mux is configured
+  healthServer.setReady();
 
   // Also keep the standalone health endpoint on HEALTH_PORT for backward compat
   healthServer.listen(Number(HEALTH_PORT), HEALTH_HOST, () => {
