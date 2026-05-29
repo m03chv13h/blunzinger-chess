@@ -35,11 +35,12 @@ services:
         value: Production
       - key: CONNECTION_STRING
         sync: false  # Set to external PostgreSQL connection URI
+      # gRPC address of the node worker.  On the free plan Render does NOT
+      # provide private networking, so the internal hostname returned by
+      # fromService/hostport cannot be resolved.  Set this to the worker's
+      # public URL (e.g. https://blunzinger-node-worker.onrender.com).
       - key: NodeWorker__Url
-        fromService:
-          type: web
-          name: blunzinger-node-worker
-          property: hostport
+        sync: false
       # Public URL of the node worker — used to wake it from Render free-plan
       # sleep.  Set this to the worker's onrender.com URL (e.g.
       # https://blunzinger-node-worker.onrender.com).
