@@ -48,7 +48,7 @@ interface MoveRow {
 
 export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavigatePrev, onNavigateNext, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], gspritztEnabled = false, defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
+  // Sync collapsed state when the defaultCollapsed prop changes (e.g. user toggles details panel).
   useEffect(() => {
     setCollapsed(defaultCollapsed);
   }, [defaultCollapsed]);
@@ -137,8 +137,8 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
     const report = reportByMove.get(moveIndex);
     if (!report) return null;
     return report.valid
-      ? <span className="report-icon report-valid" title="Correct violation report" data-tooltip="Correct violation report" tabIndex={0}>✅</span>
-      : <span className="report-icon report-invalid" title="Incorrect violation report" data-tooltip="Incorrect violation report" tabIndex={0}>❌</span>;
+      ? <span className="report-icon report-valid" aria-label="Correct violation report" data-tooltip="Correct violation report" tabIndex={0}>✅</span>
+      : <span className="report-icon report-invalid" aria-label="Incorrect violation report" data-tooltip="Incorrect violation report" tabIndex={0}>❌</span>;
   };
 
   /**
@@ -172,7 +172,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
         title = `Gave a forbidden check-creating removal${movesInfo}`;
         break;
     }
-    return <span className="report-icon missed-check" title={title} data-tooltip={title} tabIndex={0}><BlutwurstIcon /></span>;
+    return <span className="report-icon missed-check" aria-label={title} data-tooltip={title} tabIndex={0}><BlutwurstIcon /></span>;
   };
 
   /** Map piece type + color to a Unicode chess symbol. */
@@ -189,7 +189,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
     const entries = removalsByMove.get(moveIndex);
     if (!entries || entries.length === 0) return null;
     return entries.map((entry, i) => (
-      <span key={`pr-${i}`} className="report-icon piece-removal" title={`Piece removed (penalty)`} data-tooltip="Piece removed (penalty)" tabIndex={0}>
+      <span key={`pr-${i}`} className="report-icon piece-removal" aria-label="Piece removed (penalty)" data-tooltip="Piece removed (penalty)" tabIndex={0}>
         {pieceSymbol(entry.pieceType, entry.pieceColor)}
       </span>
     ));
@@ -200,7 +200,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
     const tr = timeReductionByMove.get(moveIndex);
     if (!tr) return null;
     return (
-      <span className="report-icon time-reduction" title={`−${tr.seconds}s time penalty`} data-tooltip={`−${tr.seconds}s time penalty`} tabIndex={0}>⏱️</span>
+      <span className="report-icon time-reduction" aria-label={`−${tr.seconds}s time penalty`} data-tooltip={`−${tr.seconds}s time penalty`} tabIndex={0}>⏱️</span>
     );
   };
 
@@ -209,8 +209,8 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
     const gr = gspritztByMove.get(moveIndex);
     if (!gr) return null;
     return gr.valid
-      ? <span className="report-icon report-valid" title="Correct Blunzinger G'spritzt report" data-tooltip="Correct Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ✅</span>
-      : <span className="report-icon report-invalid" title="Incorrect Blunzinger G'spritzt report" data-tooltip="Incorrect Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ❌</span>;
+      ? <span className="report-icon report-valid" aria-label="Correct Blunzinger G'spritzt report" data-tooltip="Correct Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ✅</span>
+      : <span className="report-icon report-invalid" aria-label="Incorrect Blunzinger G'spritzt report" data-tooltip="Incorrect Blunzinger G'spritzt report" tabIndex={0}><GspritztIcon /> ❌</span>;
   };
 
   const renderMoveCell = (entry: MoveEntry | undefined, colorClass: string) => {
@@ -231,7 +231,7 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
         tabIndex={onMoveClick ? 0 : undefined}
       >
         {move.san}
-        {isExtra && <span className="extra-label" title="Extra move (penalty)" data-tooltip="Extra move (penalty)" tabIndex={0}>&nbsp;⚡</span>}
+        {isExtra && <span className="extra-label" aria-label="Extra move (penalty)" data-tooltip="Extra move (penalty)" tabIndex={0}>&nbsp;⚡</span>}
         {renderReportIcon(moveIndex)}
         {renderMissedCheckIcon(moveIndex)}
         {renderPieceRemovalIcons(moveIndex)}

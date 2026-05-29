@@ -694,7 +694,8 @@ describe('App game flow', () => {
       fireEvent.click(screen.getByText('▶ Start Game'));
       playFoolsMate();
 
-      // After game ends, the panel is auto-expanded (game over + review mode).
+      // After game ends, expand the panel to access game controls.
+      expandDetails();
       // Restart the game (flushes the first record into history).
       vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
       fireEvent.click(screen.getByText('🔁 Restart'));
