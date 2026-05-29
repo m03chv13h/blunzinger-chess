@@ -13,6 +13,8 @@ interface SimulationViewProps {
   onAnalyseGame: (record: GameRecord) => void;
   /** When provided, shows a "Back to Setup" button when not running. */
   onBackToSetup?: () => void;
+  /** Error message when the simulation fails to start. */
+  error?: string;
 }
 
 export function SimulationView({
@@ -23,6 +25,7 @@ export function SimulationView({
   onStop,
   onAnalyseGame,
   onBackToSetup,
+  error,
 }: SimulationViewProps) {
   const progressPct = standing.total > 0
     ? Math.round((standing.completed / standing.total) * 100)
@@ -34,6 +37,14 @@ export function SimulationView({
 
       {/* ── Game details table ── */}
       <SimulationDetailsTable config={config} />
+
+      {/* ── Error message ── */}
+      {error && (
+        <div className="sim-error">
+          <span className="sim-error-icon">⚠️</span>
+          <span className="sim-error-message">{error}</span>
+        </div>
+      )}
 
       {/* ── Standing ── */}
       <div className="sim-standing">

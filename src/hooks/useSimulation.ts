@@ -36,6 +36,8 @@ export interface SimulationInstance {
   running: boolean;
   completedRecords: GameRecord[];
   savedRecord: SimulationRecord | null;
+  /** Error message when the simulation fails to start or encounters an error. */
+  error?: string;
 }
 
 export interface UseSimulationReturn {
@@ -184,27 +186,14 @@ export function useSimulation(): UseSimulationReturn {
             poll();
             state.pollTimer = setInterval(poll, POLL_INTERVAL_MS);
           })
-          .catch(() => {
+          .catch((err: unknown) => {
             if (state.cancelled) return;
-            // Fall back to local simulation if the backend call fails
-            const records: GameRecord[] = [];
-            for (let i = 0; i < count; i++) {
-              if (state.cancelled) break;
-              records.push(runSimulatedGame(cfg));
-            }
-            const finishedGames: SimulationGameEntry[] = records.map((record, i) => ({
-              index: i + 1,
-              moveCount: record.moveCount,
-              finished: true,
-              resultLabel: getResultLabel(record.result),
-              record,
-            }));
+            const message =
+              err instanceof Error ? err.message : 'Failed to start simulation on backend';
             updateInstance(localId, (inst) => ({
               ...inst,
-              games: finishedGames,
-              standing: computeStanding(finishedGames),
-              completedRecords: computeCompletedRecords(finishedGames),
               running: false,
+              error: message,
             }));
             internalStateRef.current.delete(localId);
           });
