@@ -1,4 +1,5 @@
 using BlunzingerChess.Proto;
+using Grpc.Core;
 
 namespace BlunzingerChess.Api.GrpcClients;
 
@@ -141,9 +142,11 @@ public class GameEngineClient(
 
     /// <summary>
     /// Lightweight ping to check if the worker is up (and wake it from sleep).
+    /// Uses a short deadline so the caller isn't blocked during cold starts.
     /// </summary>
-    public async Task PingWorkerAsync()
+    public async Task PingWorkerAsync(TimeSpan? timeout = null)
     {
-        await simulation.PingAsync(new PingRequest());
+        var deadline = DateTime.UtcNow.Add(timeout ?? TimeSpan.FromSeconds(10));
+        await simulation.PingAsync(new PingRequest(), new CallOptions(deadline: deadline));
     }
 }
