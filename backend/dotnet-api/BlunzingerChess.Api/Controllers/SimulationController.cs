@@ -33,9 +33,9 @@ public class SimulationController(
     public async Task<IActionResult> GetWorkerStatus()
     {
         // On Render's free plan, sleeping services only wake on external HTTP
-        // requests to their public URL.  Fire a best-effort wake request so
-        // that subsequent gRPC pings via the private network can succeed.
-        _ = TryWakeWorkerAsync();
+        // requests to their public URL.  Await the wake request so the worker
+        // has a chance to start up before we attempt the gRPC ping.
+        await TryWakeWorkerAsync();
 
         try
         {
