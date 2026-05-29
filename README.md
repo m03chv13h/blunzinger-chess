@@ -640,6 +640,18 @@ supplied by the database provider.
 
 Deployment is managed via the Render dashboard using the `render.yaml` blueprint. No GitHub Actions workflow is required.
 
+### Render gRPC Configuration (Free Plan)
+
+On the Render **free plan**, private networking is not available.  The internal
+hostnames returned by `fromService`/`hostport` cannot be resolved between
+services.  Both `NodeWorker__Url` and `NodeWorker__ExternalUrl` must be set to
+the worker's **public** URL (e.g. `https://blunzinger-node-worker.onrender.com`).
+
+| Variable | Purpose | Example |
+|----------|---------|----------|
+| `NodeWorker__Url` | gRPC endpoint used by the .NET API | `https://blunzinger-node-worker.onrender.com` |
+| `NodeWorker__ExternalUrl` | HTTP health/wake-up endpoint | `https://blunzinger-node-worker.onrender.com` |
+
 ## Architecture
 
 ### Frontend
