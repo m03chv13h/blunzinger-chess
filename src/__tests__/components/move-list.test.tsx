@@ -87,7 +87,7 @@ describe('MoveList – extra move column placement', () => {
     const moves = [w('e4'), b('e5'), w('d4'), w('Nf3'), b('d5')];
     render(<MoveList moves={moves} />);
     // Nf3 at index 3 is extra (prev at index 2 is also white)
-    const extraLabels = screen.getAllByTitle('Extra move (penalty)');
+    const extraLabels = screen.getAllByLabelText('Extra move (penalty)');
     expect(extraLabels).toHaveLength(1);
   });
 });
@@ -95,7 +95,7 @@ describe('MoveList – extra move column placement', () => {
 describe('MoveList – missed-check blutwurst icon', () => {
   it('should not show blutwurst icon when there are no missed checks', () => {
     render(<MoveList moves={[w('e4'), b('e5')]} />);
-    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Missed a possible check')).not.toBeInTheDocument();
   });
 
   it('should show blutwurst icon for a missed check once opponent has moved', () => {
@@ -109,7 +109,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should NOT show blutwurst icon before opponent has moved', () => {
@@ -123,7 +123,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Missed a possible check')).not.toBeInTheDocument();
   });
 
   it('should show blutwurst icon before opponent moves if game is over', () => {
@@ -138,7 +138,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         gameOver={true}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should show gave_forbidden_check title for reverse mode violations', () => {
@@ -151,7 +151,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Gave a forbidden check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gave a forbidden check')).toBeInTheDocument();
   });
 
   it('should show multiple blutwurst icons for multiple missed checks', () => {
@@ -166,7 +166,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    const icons = screen.getAllByTitle('Missed a possible check');
+    const icons = screen.getAllByLabelText('Missed a possible check');
     expect(icons).toHaveLength(2);
   });
 
@@ -182,7 +182,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
       />,
     );
     // Black move at index 1, no move at index 2 yet → hidden
-    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Missed a possible check')).not.toBeInTheDocument();
   });
 
   it('should show blutwurst icon on black move after white replies', () => {
@@ -196,7 +196,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should include available moves in missed check tooltip', () => {
@@ -209,7 +209,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
   });
 
   it('should include available moves in gave forbidden check tooltip', () => {
@@ -222,7 +222,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Gave a forbidden check (e4, d4)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gave a forbidden check (e4, d4)')).toBeInTheDocument();
   });
 
   it('should include available squares in missed check removal tooltip', () => {
@@ -235,7 +235,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a check-creating removal (e2, d2)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a check-creating removal (e2, d2)')).toBeInTheDocument();
   });
 
   it('should include available squares in gave forbidden check removal tooltip', () => {
@@ -248,7 +248,7 @@ describe('MoveList – missed-check blutwurst icon', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Gave a forbidden check-creating removal (a2, b2)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gave a forbidden check-creating removal (a2, b2)')).toBeInTheDocument();
   });
 });
 
@@ -266,7 +266,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gspritztEnabled={true}
       />,
     );
-    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Missed a possible check')).not.toBeInTheDocument();
   });
 
   it('should show blutwurst icon after 2 moves when gspritztEnabled', () => {
@@ -281,7 +281,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gspritztEnabled={true}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should show blutwurst icon before 2 moves if game is over with gspritztEnabled', () => {
@@ -297,7 +297,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gameOver={true}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should NOT show blutwurst for black missed check after only 1 reply in gspritzt mode', () => {
@@ -312,7 +312,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gspritztEnabled={true}
       />,
     );
-    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Missed a possible check')).not.toBeInTheDocument();
   });
 
   it('should show blutwurst for black missed check after 2 replies in gspritzt mode', () => {
@@ -327,7 +327,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gspritztEnabled={true}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 
   it('should still show blutwurst after 1 move when gspritztEnabled is false (default)', () => {
@@ -342,7 +342,7 @@ describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => 
         gspritztEnabled={false}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check')).toBeInTheDocument();
   });
 });
 
@@ -357,7 +357,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Normal moves: Qh5+, Bb5+)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Normal moves: Qh5+, Bb5+)')).toBeInTheDocument();
   });
 
   it('should show drop moves under "Piece placement" category', () => {
@@ -370,7 +370,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Piece placement: N@d4)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Piece placement: N@d4)')).toBeInTheDocument();
   });
 
   it('should show removal squares under "Piece removal" category', () => {
@@ -383,7 +383,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a check-creating removal (Piece removal: e2, d2)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a check-creating removal (Piece removal: e2, d2)')).toBeInTheDocument();
   });
 
   it('should separate regular moves and drop moves with pipe', () => {
@@ -396,7 +396,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Normal moves: Nf3+ | Piece placement: N@d4)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Normal moves: Nf3+ | Piece placement: N@d4)')).toBeInTheDocument();
   });
 
   it('should omit empty categories', () => {
@@ -410,8 +410,8 @@ describe('MoveList – categorized missed-check tooltip', () => {
       />,
     );
     // Should not contain "Piece placement" since it's empty
-    const icon = screen.getByTitle(/Missed a possible check/);
-    expect(icon.getAttribute('title')).toBe('Missed a possible check (Normal moves: Qh5+)');
+    const icon = screen.getByLabelText(/Missed a possible check/);
+    expect(icon.getAttribute('aria-label')).toBe('Missed a possible check (Normal moves: Qh5+)');
   });
 
   it('should fall back to flat list for entries without categorized fields', () => {
@@ -424,7 +424,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Qh5+, Bb5+)')).toBeInTheDocument();
   });
 
   it('should show gave_forbidden_check with categorized moves', () => {
@@ -437,7 +437,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Gave a forbidden check (Normal moves: e4, d4)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gave a forbidden check (Normal moves: e4, d4)')).toBeInTheDocument();
   });
 
   it('should show "Additional move" label when isAdditionalMove is true', () => {
@@ -450,7 +450,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Additional move: Bb4+)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Additional move: Bb4+)')).toBeInTheDocument();
   });
 
   it('should show "Additional move" and "Piece placement" when both exist during extra turn', () => {
@@ -463,7 +463,7 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Additional move: Bb4+ | Piece placement: N@d4)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Additional move: Bb4+ | Piece placement: N@d4)')).toBeInTheDocument();
   });
 
   it('should use "Normal moves" label when isAdditionalMove is false', () => {
@@ -476,14 +476,14 @@ describe('MoveList – categorized missed-check tooltip', () => {
         missedChecks={missedChecks}
       />,
     );
-    expect(screen.getByTitle('Missed a possible check (Normal moves: Nf3+)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Missed a possible check (Normal moves: Nf3+)')).toBeInTheDocument();
   });
 });
 
 describe('MoveList – piece removal penalty icon', () => {
   it('should not show piece removal icon when there are no removals', () => {
     render(<MoveList moves={[w('e4'), b('e5')]} />);
-    expect(screen.queryByTitle('Piece removed (penalty)')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Piece removed (penalty)')).not.toBeInTheDocument();
   });
 
   it('should show a white pawn removal icon', () => {
@@ -496,7 +496,7 @@ describe('MoveList – piece removal penalty icon', () => {
         pieceRemovals={pieceRemovals}
       />,
     );
-    const icon = screen.getByTitle('Piece removed (penalty)');
+    const icon = screen.getByLabelText('Piece removed (penalty)');
     expect(icon).toBeInTheDocument();
     expect(icon.textContent).toBe('♙');
   });
@@ -511,7 +511,7 @@ describe('MoveList – piece removal penalty icon', () => {
         pieceRemovals={pieceRemovals}
       />,
     );
-    const icon = screen.getByTitle('Piece removed (penalty)');
+    const icon = screen.getByLabelText('Piece removed (penalty)');
     expect(icon).toBeInTheDocument();
     expect(icon.textContent).toBe('♛');
   });
@@ -527,7 +527,7 @@ describe('MoveList – piece removal penalty icon', () => {
         pieceRemovals={pieceRemovals}
       />,
     );
-    const icons = screen.getAllByTitle('Piece removed (penalty)');
+    const icons = screen.getAllByLabelText('Piece removed (penalty)');
     expect(icons).toHaveLength(2);
     expect(icons[0].textContent).toBe('♘');
     expect(icons[1].textContent).toBe('♗');
@@ -537,7 +537,7 @@ describe('MoveList – piece removal penalty icon', () => {
 describe('MoveList – time reduction penalty icon', () => {
   it('should not show time reduction icon when there are no reductions', () => {
     render(<MoveList moves={[w('e4'), b('e5')]} />);
-    expect(screen.queryByTitle(/time penalty/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/time penalty/)).not.toBeInTheDocument();
   });
 
   it('should show time reduction icon with seconds in title', () => {
@@ -550,7 +550,7 @@ describe('MoveList – time reduction penalty icon', () => {
         timeReductions={timeReductions}
       />,
     );
-    const icon = screen.getByTitle('−60s time penalty');
+    const icon = screen.getByLabelText('−60s time penalty');
     expect(icon).toBeInTheDocument();
   });
 
@@ -568,8 +568,8 @@ describe('MoveList – time reduction penalty icon', () => {
         timeReductions={timeReductions}
       />,
     );
-    expect(screen.getByTitle('Piece removed (penalty)')).toBeInTheDocument();
-    expect(screen.getByTitle('−30s time penalty')).toBeInTheDocument();
+    expect(screen.getByLabelText('Piece removed (penalty)')).toBeInTheDocument();
+    expect(screen.getByLabelText('−30s time penalty')).toBeInTheDocument();
   });
 });
 
