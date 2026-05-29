@@ -250,6 +250,20 @@ forwardedHeadersOptions.KnownIPNetworks.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseCors();
 
+// Catch unhandled exceptions and produce a JSON 500 response so that the
+// CORS middleware (above) still attaches Access-Control-Allow-Origin headers.
+// Without this, an exception in a controller causes Kestrel to send a bare 500
+// with no CORS headers, which browsers block as a cross-origin failure.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"error\":\"An internal server error occurred.\"}");
+    });
+});
+
 app.Logger.LogInformation("CORS allowed origins: {Origins}", string.Join(", ", allowedOrigins));
 
 app.UseAuthentication();
