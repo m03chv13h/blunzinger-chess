@@ -6,25 +6,25 @@
 }
 
 .online-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
 }
 
 .online-card h2 {
   margin: 0 0 4px 0;
   font-size: 22px;
   text-align: center;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .online-subtitle {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0 0 20px 0;
 }
@@ -38,7 +38,7 @@
 .online-section h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #444;
+  color: var(--text-secondary);
   margin: 0 0 8px 0;
 }
 
@@ -52,7 +52,7 @@
 .online-join-input {
   flex: 1;
   padding: 8px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 14px;
   text-transform: uppercase;
@@ -60,7 +60,7 @@
 }
 
 .online-join-btn {
-  background: #5b8def;
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -73,7 +73,7 @@
 }
 
 .online-join-btn:hover {
-  background: #4a7cde;
+  background: var(--accent-hover);
 }
 
 .online-join-btn:disabled {
@@ -84,25 +84,25 @@
 /* ── Active Room / Waiting ────────────────────────────────────────── */
 
 .online-active-room {
-  border: 2px solid #5b8def;
+  border: 2px solid var(--accent-color);
   border-radius: 10px;
   padding: 16px;
   text-align: center;
-  background: #f0f4ff;
+  background: var(--bg-accent);
 }
 
 .online-room-code {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 3px;
-  color: #1a1a2e;
+  color: var(--text-heading);
   margin: 8px 0;
   font-family: monospace;
 }
 
 .online-room-status {
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
   margin: 0 0 12px 0;
 }
 
@@ -148,7 +148,7 @@
 
 .online-refresh-btn {
   background: none;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 12px;
@@ -157,7 +157,7 @@
 }
 
 .online-refresh-btn:hover {
-  background: #f0f0f5;
+  background: var(--bg-hover);
 }
 
 .online-refresh-btn:disabled {
@@ -174,19 +174,19 @@
 .online-room-table th {
   text-align: left;
   padding: 6px 8px;
-  border-bottom: 2px solid #ddd;
-  color: #666;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 12px;
 }
 
 .online-room-table td {
   padding: 6px 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .online-room-table .online-join-list-btn {
-  background: #5b8def;
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 4px 12px;
@@ -197,7 +197,7 @@
 }
 
 .online-room-table .online-join-list-btn:hover {
-  background: #4a7cde;
+  background: var(--accent-hover);
 }
 
 .online-room-table .online-join-list-btn:disabled {
@@ -207,7 +207,7 @@
 
 .online-empty {
   text-align: center;
-  color: #999;
+  color: var(--text-dimmed);
   font-size: 13px;
   padding: 12px 0;
 }
@@ -219,7 +219,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 14px;
 }
 
@@ -245,7 +245,7 @@
   align-items: center;
   gap: 12px;
   margin: 18px 0;
-  color: #999;
+  color: var(--text-dimmed);
   font-size: 12px;
 }
 
@@ -253,7 +253,7 @@
 .online-divider::after {
   content: '';
   flex: 1;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-color);
 }
 
 /* ── Error ────────────────────────────────────────────────────────── */

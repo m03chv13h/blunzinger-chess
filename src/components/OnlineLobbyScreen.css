@@ -8,25 +8,25 @@
 }
 
 .online-lobby-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--card-shadow);
 }
 
 .online-lobby-card h2 {
   margin: 0 0 4px 0;
   font-size: 22px;
   text-align: center;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .online-lobby-subtitle {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0 0 20px 0;
 }
@@ -38,7 +38,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 14px;
 }
 
@@ -66,18 +66,18 @@
 /* ── Room Display ── */
 
 .online-lobby-room {
-  border: 2px solid #5b8def;
+  border: 2px solid var(--accent-color);
   border-radius: 10px;
   padding: 16px;
   text-align: center;
-  background: #f0f4ff;
+  background: var(--bg-accent);
   margin-bottom: 16px;
 }
 
 .online-lobby-room-title {
   font-weight: 600;
   font-size: 13px;
-  color: #444;
+  color: var(--text-secondary);
   margin: 0 0 8px 0;
 }
 
@@ -85,7 +85,7 @@
   font-size: 32px;
   font-weight: 700;
   letter-spacing: 4px;
-  color: #1a1a2e;
+  color: var(--text-heading);
   margin: 8px 0;
   font-family: monospace;
   user-select: all;
@@ -93,13 +93,13 @@
 
 .online-lobby-waiting {
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .online-lobby-countdown {
   font-size: 12px;
-  color: #999;
+  color: var(--text-dimmed);
   margin: 6px 0 0 0;
 }
 
@@ -123,7 +123,7 @@
 
 .online-lobby-creating {
   text-align: center;
-  color: #999;
+  color: var(--text-dimmed);
   font-size: 14px;
   padding: 20px 0;
 }
@@ -143,8 +143,8 @@
   display: block;
   margin: 0 auto;
   background: none;
-  border: 1px solid #888;
-  color: #666;
+  border: 1px solid var(--text-faint);
+  color: var(--text-muted);
   padding: 8px 20px;
   border-radius: 8px;
   font-size: 14px;
@@ -153,8 +153,8 @@
 }
 
 .online-lobby-cancel-btn:hover {
-  background: #f0f0f5;
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
