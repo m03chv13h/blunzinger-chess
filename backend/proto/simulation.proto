@@ -25,6 +25,9 @@ service SimulationService {
 
   // Query the progress of a previously enqueued batch simulation.
   rpc GetSimulationProgress(GetSimulationProgressRequest) returns (GetSimulationProgressResponse);
+
+  // Lightweight ping to check if the worker is up and wake it from sleep.
+  rpc Ping(PingRequest) returns (PingResponse);
 }
 
 // ── Requests & Responses ─────────────────────────────────────────────
@@ -71,3 +74,6 @@ message GetSimulationProgressResponse {
   string completed_records_json = 3;
   bool finished = 4;
 }
+
+message PingRequest {}
+message PingResponse {}

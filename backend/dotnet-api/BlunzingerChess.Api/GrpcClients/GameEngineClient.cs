@@ -138,4 +138,12 @@ public class GameEngineClient(
         return await simulation.GetSimulationProgressAsync(
             new GetSimulationProgressRequest { SimulationId = simulationId });
     }
+
+    /// <summary>
+    /// Lightweight ping to check if the worker is up (and wake it from sleep).
+    /// </summary>
+    public async Task PingWorkerAsync()
+    {
+        await simulation.PingAsync(new PingRequest());
+    }
 }
