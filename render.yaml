@@ -40,6 +40,11 @@ services:
           type: web
           name: blunzinger-node-worker
           property: hostport
+      # Public URL of the node worker — used to wake it from Render free-plan
+      # sleep.  Set this to the worker's onrender.com URL (e.g.
+      # https://blunzinger-node-worker.onrender.com).
+      - key: NodeWorker__ExternalUrl
+        sync: false
       - key: Jwt__Secret
         generateValue: true
       - key: OAuth__Google__ClientId
@@ -77,6 +82,7 @@ services:
     runtime: docker
     dockerfilePath: backend/node-worker/Dockerfile
     dockerContext: .
+    healthCheckPath: /health
     envVars:
       - key: PORT
         value: "50051"

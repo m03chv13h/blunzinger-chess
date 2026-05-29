@@ -191,6 +191,10 @@ builder.Services.AddGrpcClient<SimulationService.SimulationServiceClient>(o =>
 
 builder.Services.AddScoped<GameEngineClient>();
 
+// ── HTTP Client (for worker wake-up on Render free plan) ─────────────
+
+builder.Services.AddHttpClient("WorkerWake");
+
 // ── Application Services ─────────────────────────────────────────────
 
 builder.Services.AddScoped<AuthService>();

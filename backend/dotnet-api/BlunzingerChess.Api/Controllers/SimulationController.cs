@@ -17,7 +17,12 @@ namespace BlunzingerChess.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class SimulationController(GameEngineClient engineClient, AppDbContext db) : ControllerBase
+public class SimulationController(
+    GameEngineClient engineClient,
+    AppDbContext db,
+    IConfiguration configuration,
+    IHttpClientFactory httpClientFactory,
+    ILogger<SimulationController> logger) : ControllerBase
 {
     /// <summary>
     /// Check whether the simulation worker is up and reachable.
@@ -27,14 +32,42 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
     [AllowAnonymous]
     public async Task<IActionResult> GetWorkerStatus()
     {
+        // On Render's free plan, sleeping services only wake on external HTTP
+        // requests to their public URL.  Fire a best-effort wake request so
+        // that subsequent gRPC pings via the private network can succeed.
+        _ = TryWakeWorkerAsync();
+
         try
         {
             await engineClient.PingWorkerAsync();
             return Ok(new { status = "ready" });
         }
-        catch (RpcException)
+        catch (Exception ex)
         {
+            logger.LogDebug(ex, "Worker ping failed");
             return Ok(new { status = "unavailable" });
+        }
+    }
+
+    /// <summary>
+    /// Fire-and-forget HTTP GET to the worker's public URL to wake it from
+    /// Render free-plan sleep.  Failures are silently ignored.
+    /// </summary>
+    private async Task TryWakeWorkerAsync()
+    {
+        var externalUrl = configuration["NodeWorker:ExternalUrl"];
+        if (string.IsNullOrWhiteSpace(externalUrl))
+            return;
+
+        try
+        {
+            using var client = httpClientFactory.CreateClient("WorkerWake");
+            client.Timeout = TimeSpan.FromSeconds(5);
+            await client.GetAsync(externalUrl);
+        }
+        catch
+        {
+            // Best-effort — ignore all failures
         }
     }
 

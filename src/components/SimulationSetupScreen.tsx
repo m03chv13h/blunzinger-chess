@@ -418,7 +418,7 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
               <span className="sim-worker-spinner" title="Checking worker availability…" />
             )}
             {workerStatus === 'unavailable' && (
-              <span className="sim-worker-spinner" title="Worker unavailable – retrying…" />
+              <span className="sim-worker-spinner" title="Worker is waking up — this may take up to 60 seconds on the free plan…" />
             )}
             {workerStatus === 'ready' && (
               <span className="sim-worker-ready" title="Worker available">✔</span>

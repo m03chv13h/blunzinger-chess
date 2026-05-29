@@ -15,6 +15,7 @@ import { evaluationHandlers } from './services/evaluation.js';
 import { restoreSimulationJobs, simulationHandlers } from './services/simulation.js';
 import { loadOpenSimulationJobs } from './services/simulationPersistence.js';
 import { createHealthHttpServer, resolveHealthPort } from './healthHttp.js';
+import { createPortMux } from './portMux.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +43,9 @@ const PORT = process.env.PORT ?? '50051';
 const HOST = process.env.HOST ?? '0.0.0.0';
 const HEALTH_PORT = process.env.HEALTH_PORT ?? resolveHealthPort(PORT);
 const HEALTH_HOST = process.env.HEALTH_HOST ?? HOST;
+// Internal-only port for gRPC when the port mux is active.
+// The mux listens on PORT and proxies HTTP/2 traffic here.
+const GRPC_INTERNAL_PORT = process.env.GRPC_INTERNAL_PORT ?? '50061';
 
 async function main() {
   const server = new grpc.Server();
@@ -97,20 +101,32 @@ async function main() {
     },
   });
 
-  // Start server
+  // Start gRPC server on loopback — the port mux will proxy HTTP/2 traffic here
   server.bindAsync(
-    `${HOST}:${PORT}`,
+    `127.0.0.1:${GRPC_INTERNAL_PORT}`,
     grpc.ServerCredentials.createInsecure(),
     (err, port) => {
       if (err) {
         console.error('Failed to start gRPC server:', err);
         process.exit(1);
       }
-      console.log(`Blunzinger Chess Node Worker listening on ${HOST}:${port}`);
+      console.log(`gRPC server listening on 127.0.0.1:${port}`);
     },
   );
 
+  // Health HTTP server handles /health for HTTP/1.1 requests
   const healthServer = createHealthHttpServer(PORT);
+
+  // Port multiplexer on the external PORT — routes HTTP/1.1 to health server,
+  // HTTP/2 (gRPC) to the internal gRPC port.  This allows Render to
+  // health-check the service via plain HTTP on the same PORT and also allows
+  // the .NET API's wake-up request to receive a valid response.
+  const mux = createPortMux(healthServer, '127.0.0.1', Number(GRPC_INTERNAL_PORT));
+  mux.listen(Number(PORT), HOST, () => {
+    console.log(`Port mux listening on ${HOST}:${PORT} (HTTP/1.1 → health, HTTP/2 → gRPC)`);
+  });
+
+  // Also keep the standalone health endpoint on HEALTH_PORT for backward compat
   healthServer.listen(Number(HEALTH_PORT), HEALTH_HOST, () => {
     console.log(`Health endpoint listening on http://${HEALTH_HOST}:${HEALTH_PORT}/health`);
   });
