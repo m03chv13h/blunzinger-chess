@@ -13,8 +13,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f0f4ff;
-  border-bottom: 1px solid #d0d8e8;
+  background: var(--bg-accent);
+  border-bottom: 1px solid var(--border-color);
   padding: 8px 16px;
   font-size: 13px;
   flex-wrap: wrap;
@@ -44,11 +44,11 @@
 
 .online-game-opponent-name {
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .online-game-opponent-status {
-  color: #666;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -59,18 +59,18 @@
 }
 
 .online-game-room-label {
-  color: #888;
+  color: var(--text-faint);
 }
 
 .online-game-room-code {
   font-family: monospace;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #1a1a2e;
+  color: var(--text-heading);
 }
 
 .online-game-color-label {
-  color: #555;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -137,8 +137,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 
@@ -147,7 +147,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #444;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -169,8 +169,8 @@
 
 .online-game-cancel-btn {
   background: none;
-  border: 1px solid #888;
-  color: #666;
+  border: 1px solid var(--text-faint);
+  color: var(--text-muted);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -179,8 +179,8 @@
 
 .online-game-draw-btn {
   background: none;
-  border: 1px solid #5b8def;
-  color: #5b8def;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 13px;
@@ -189,13 +189,13 @@
 }
 
 .online-game-draw-btn:hover {
-  background: #5b8def;
+  background: var(--accent-color);
   color: white;
 }
 
 .online-game-draw-pending {
   font-size: 12px;
-  color: #888;
+  color: var(--text-faint);
   margin: 0;
 }
 
@@ -285,19 +285,19 @@
 
 .online-game-result-reason {
   font-size: 14px;
-  color: #444;
+  color: var(--text-secondary);
   margin: 4px 0;
 }
 
 .online-game-result-detail {
   font-size: 12px;
-  color: #777;
+  color: var(--text-faint);
   margin: 4px 0;
 }
 
 .online-game-leave-btn {
   margin-top: 10px;
-  background: #5b8def;
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 8px 18px;
@@ -309,7 +309,7 @@
 }
 
 .online-game-leave-btn:hover {
-  background: #4a7cde;
+  background: var(--accent-hover);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
