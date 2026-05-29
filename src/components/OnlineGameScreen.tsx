@@ -436,7 +436,7 @@ export function OnlineGameScreen({
     : null;
 
   const flipped = playerColor === 'b';
-  const showDetails = gameIsOver || review.isReviewing || leftPanelExpanded;
+  const showDetails = review.isReviewing || leftPanelExpanded;
 
   // ── Perspective-aware feedback ─────────────────────────────────────
   // Report-feedback messages are written from the reporter's perspective
@@ -550,7 +550,7 @@ export function OnlineGameScreen({
       <div className="online-game-main">
         {/* ── Left Panel ── */}
         <aside className="left-panel">
-          {!gameIsOver && !review.isReviewing && (
+          {!review.isReviewing && (
             <button
               className="panel-collapse-toggle"
               onClick={() => setLeftPanelExpanded(e => !e)}
@@ -736,7 +736,7 @@ export function OnlineGameScreen({
             timeReductions={game.state.timeReductions}
             gspritztReports={game.state.gspritztReports}
             gspritztEnabled={config.enableGspritzt}
-            defaultCollapsed={!gameIsOver && !review.isReviewing}
+            defaultCollapsed={!review.isReviewing && !leftPanelExpanded}
           />
         </aside>
       </div>
