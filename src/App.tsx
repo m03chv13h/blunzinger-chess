@@ -794,7 +794,7 @@ function App() {
   const isStandaloneReview = screen.type === 'analyse-review' || screen.type === 'games-review';
   const showDetails = isStandaloneReview
     ? leftPanelExpanded
-    : gameIsOver || review.isReviewing || leftPanelExpanded;
+    : review.isReviewing || leftPanelExpanded;
 
   // Playing screen
   return (
@@ -830,7 +830,7 @@ function App() {
                 ← Back to Games
               </button>
             )}
-            {(isStandaloneReview || (!gameIsOver && !review.isReviewing)) && (
+            {(isStandaloneReview || !review.isReviewing) && (
               <button
                 className="panel-collapse-toggle"
                 onClick={() => setLeftPanelExpanded(e => !e)}
@@ -940,7 +940,7 @@ function App() {
               timeReductions={game.state.timeReductions}
               gspritztReports={game.state.gspritztReports}
               gspritztEnabled={game.state.config.reportConfig.enableGspritzt}
-              defaultCollapsed={isStandaloneReview || (!gameIsOver && !review.isReviewing)}
+              defaultCollapsed={isStandaloneReview || (!review.isReviewing && !leftPanelExpanded)}
             />
           </aside>
         </main>
