@@ -463,7 +463,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                   checked={config.enableGspritzt}
                   onChange={(e) => update({ enableGspritzt: e.target.checked })}
                 />
-                Blunzinger G&apos;spritzt
+                Blunzinger G&apos;spritzt <GspritztIcon />
               </label>
             </div>
           )}
