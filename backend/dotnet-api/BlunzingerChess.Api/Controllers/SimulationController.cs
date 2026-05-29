@@ -3,6 +3,7 @@ using System.Text.Json;
 using BlunzingerChess.Api.Data;
 using BlunzingerChess.Api.GrpcClients;
 using BlunzingerChess.Api.Models;
+using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,11 +24,18 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
     /// The request body is the GameSetupConfig JSON (frontend format).
     /// </summary>
     [HttpPost("run")]
-    public async Task<ContentResult> RunGame([FromBody] JsonElement config)
+    public async Task<IActionResult> RunGame([FromBody] JsonElement config)
     {
-        var configJson = config.GetRawText();
-        var recordJson = await engineClient.RunSimulatedGameJsonAsync(configJson);
-        return Content(recordJson, "application/json");
+        try
+        {
+            var configJson = config.GetRawText();
+            var recordJson = await engineClient.RunSimulatedGameJsonAsync(configJson);
+            return Content(recordJson, "application/json");
+        }
+        catch (RpcException ex)
+        {
+            return StatusCode(503, new { error = "Simulation worker is unavailable. Please try again shortly.", detail = ex.Status.Detail });
+        }
     }
 
     /// <summary>
@@ -61,9 +69,20 @@ public class SimulationController(GameEngineClient engineClient, AppDbContext db
         db.Simulations.Add(simulation);
         await db.SaveChangesAsync();
 
-        // Enqueue the batch on the worker — returns immediately
-        await engineClient.EnqueueBatchSimulationAsync(
-            simulation.Id.ToString(), configJson, count);
+        try
+        {
+            // Enqueue the batch on the worker — returns immediately
+            await engineClient.EnqueueBatchSimulationAsync(
+                simulation.Id.ToString(), configJson, count);
+        }
+        catch (RpcException ex)
+        {
+            // Worker unreachable — mark the simulation as abandoned so it doesn't
+            // stay in "running" state forever, and return a clear error to the client.
+            simulation.CompletedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return StatusCode(503, new { error = "Simulation worker is unavailable. Please try again shortly.", detail = ex.Status.Detail });
+        }
 
         return Ok(new
         {
