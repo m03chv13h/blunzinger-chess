@@ -110,3 +110,17 @@ export async function listSimulations(page = 1, pageSize = 20): Promise<Paginate
 export async function getSimulation(id: string): Promise<SimulationRecord> {
   return apiFetch<SimulationRecord>(`/api/simulation/${encodeURIComponent(id)}`);
 }
+
+/** Worker status response from the backend. */
+export interface WorkerStatusResponse {
+  status: 'ready' | 'unavailable';
+}
+
+/**
+ * Ping the simulation worker via the backend to check if it's up.
+ * This also wakes the worker if it is sleeping (Render free plan).
+ * The call is fire-and-forget from the caller's perspective — failures are swallowed.
+ */
+export async function checkWorkerStatus(): Promise<WorkerStatusResponse> {
+  return apiFetch<WorkerStatusResponse>('/api/simulation/worker-status', { anonymous: true });
+}

@@ -8,7 +8,7 @@ import { createGameRecord, createSimulationRecord } from './core/gameRecord';
 import { isStaticMode, isConnectedMode } from './config/deployMode';
 import { DeployModeProvider } from './config/DeployModeContext';
 import { getActiveRoom } from './services/lobbyService';
-import { listSimulations, getSimulation } from './services/simulationService';
+import { listSimulations, getSimulation, checkWorkerStatus } from './services/simulationService';
 import type { SimulationListItem } from './services/simulationService';
 import { useNavigation, getScreenFromHash } from './hooks/useNavigation';
 import type { NavigableScreen } from './hooks/useNavigation';
@@ -627,6 +627,8 @@ function App() {
   useEffect(() => {
     if (screen.type === 'simulate' && isConnectedMode) {
       fetchSimulationPage(1);
+      // Wake the worker if it's sleeping (Render free plan cold start)
+      checkWorkerStatus().catch(() => { /* swallow — best-effort wake */ });
     }
   }, [screen.type, fetchSimulationPage]);
 

@@ -269,6 +269,10 @@ export const simulationHandlers = {
       callback(toGrpcError(err));
     }
   },
+
+  Ping(_call: Call<unknown>, callback: Callback<unknown>) {
+    callback(null, {});
+  },
 };
 
 export function restoreSimulationJobs(jobs: readonly RestorableSimulationJob[]): number {

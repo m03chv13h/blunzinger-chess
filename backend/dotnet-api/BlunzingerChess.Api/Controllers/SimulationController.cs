@@ -20,6 +20,25 @@ namespace BlunzingerChess.Api.Controllers;
 public class SimulationController(GameEngineClient engineClient, AppDbContext db) : ControllerBase
 {
     /// <summary>
+    /// Check whether the simulation worker is up and reachable.
+    /// This also wakes the worker if it is sleeping (Render free plan).
+    /// </summary>
+    [HttpGet("worker-status")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetWorkerStatus()
+    {
+        try
+        {
+            await engineClient.PingWorkerAsync();
+            return Ok(new { status = "ready" });
+        }
+        catch (RpcException)
+        {
+            return Ok(new { status = "unavailable" });
+        }
+    }
+
+    /// <summary>
     /// Run a single simulated bot-vs-bot game and return the game record.
     /// The request body is the GameSetupConfig JSON (frontend format).
     /// </summary>
