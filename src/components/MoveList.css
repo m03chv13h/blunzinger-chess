@@ -169,12 +169,15 @@
   }
 }
 
-/* ── Mobile: remove scroll container so tooltips are not clipped ── */
+/* ── Prevent scroll container from clipping tooltips ── */
+.move-list {
+  overflow: visible;
+  max-height: none;
+}
+
 @media (max-width: 900px) {
   .move-list {
     width: 100%;
-    max-height: none;
-    overflow-y: visible;
   }
 
   .report-icon[data-tooltip]::after,
