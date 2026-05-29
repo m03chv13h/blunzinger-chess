@@ -27,49 +27,39 @@ public class SimulationController(
     /// <summary>
     /// Check whether the simulation worker is up and reachable.
     /// This also wakes the worker if it is sleeping (Render free plan).
+    /// Uses the worker's public /health REST endpoint instead of gRPC.
     /// </summary>
     [HttpGet("worker-status")]
     [AllowAnonymous]
     public async Task<IActionResult> GetWorkerStatus()
     {
-        // On Render's free plan, sleeping services only wake on external HTTP
-        // requests to their public URL.  Await the wake request so the worker
-        // has a chance to start up before we attempt the gRPC ping.
-        await TryWakeWorkerAsync();
-
-        try
-        {
-            await engineClient.PingWorkerAsync();
-            return Ok(new { status = "ready" });
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Worker ping failed");
-            return Ok(new { status = "unavailable" });
-        }
-    }
-
-    /// <summary>
-    /// Fire-and-forget HTTP GET to the worker's public URL to wake it from
-    /// Render free-plan sleep.  Failures are silently ignored.
-    /// </summary>
-    private async Task TryWakeWorkerAsync()
-    {
         var externalUrl = configuration["NodeWorker:ExternalUrl"];
         if (string.IsNullOrWhiteSpace(externalUrl))
-            return;
+            return Ok(new { status = "unavailable" });
 
         try
         {
             using var client = httpClientFactory.CreateClient("WorkerWake");
-            client.Timeout = TimeSpan.FromSeconds(5);
-            await client.GetAsync(externalUrl);
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            var healthUrl = externalUrl.TrimEnd('/') + "/health";
+            var response = await client.GetAsync(healthUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(new { status = "ready" });
+            }
+
+            logger.LogDebug("Worker /health returned status code {StatusCode}", response.StatusCode);
+            return Ok(new { status = "unavailable" });
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort — ignore all failures
+            logger.LogDebug(ex, "Worker /health check failed");
+            return Ok(new { status = "unavailable" });
         }
     }
+
 
     /// <summary>
     /// Run a single simulated bot-vs-bot game and return the game record.
