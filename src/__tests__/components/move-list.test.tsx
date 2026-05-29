@@ -252,6 +252,100 @@ describe('MoveList – missed-check blutwurst icon', () => {
   });
 });
 
+describe('MoveList – missed-check blutwurst icon with gspritztEnabled', () => {
+  it('should NOT show blutwurst icon after only 1 move when gspritztEnabled', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Two moves: white (index 0) missed check, black (index 1) has replied
+    // In g'spritzt mode, need moveIndex+2 (i.e., move at index 2) to be present
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={true}
+      />,
+    );
+    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+  });
+
+  it('should show blutwurst icon after 2 moves when gspritztEnabled', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Three moves: white(0) missed check, black(1) replied, white(2) played again
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6'), w('Nf3')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={true}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+
+  it('should show blutwurst icon before 2 moves if game is over with gspritztEnabled', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Only one move after violation, but game is over
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={true}
+        gameOver={true}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+
+  it('should NOT show blutwurst for black missed check after only 1 reply in gspritzt mode', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 1, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Three moves: white(0), black(1) missed check, white(2) replied — only 1 move after
+    render(
+      <MoveList
+        moves={[w('e4'), b('d5'), w('Nf3')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={true}
+      />,
+    );
+    expect(screen.queryByTitle('Missed a possible check')).not.toBeInTheDocument();
+  });
+
+  it('should show blutwurst for black missed check after 2 replies in gspritzt mode', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 1, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Four moves: white(0), black(1) missed check, white(2), black(3) → 2 moves after index 1
+    render(
+      <MoveList
+        moves={[w('e4'), b('d5'), w('Nf3'), b('Nc6')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={true}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+
+  it('should still show blutwurst after 1 move when gspritztEnabled is false (default)', () => {
+    const missedChecks: MissedCheckEntry[] = [
+      { moveIndex: 0, violationType: 'missed_check', availableMoves: [] },
+    ];
+    // Two moves: same as original behavior
+    render(
+      <MoveList
+        moves={[w('d3'), b('e6')]}
+        missedChecks={missedChecks}
+        gspritztEnabled={false}
+      />,
+    );
+    expect(screen.getByTitle('Missed a possible check')).toBeInTheDocument();
+  });
+});
+
 describe('MoveList – categorized missed-check tooltip', () => {
   it('should show regular moves under "Normal moves" category', () => {
     const missedChecks: MissedCheckEntry[] = [

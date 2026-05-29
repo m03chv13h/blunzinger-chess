@@ -27,6 +27,9 @@ interface MoveListProps {
   timeReductions?: TimeReductionEntry[];
   /** G'spritzt reports to display as icons next to moves. */
   gspritztReports?: GspritztReportEntry[];
+  /** Whether Blunzinger G'spritzt mode is enabled. When true, the blutwurst icon is delayed
+   *  by one extra move so it only appears when the violating player has their turn again. */
+  gspritztEnabled?: boolean;
   /** When true, the move list starts collapsed and shows only the header. */
   defaultCollapsed?: boolean;
 }
@@ -43,7 +46,7 @@ interface MoveRow {
   black?: MoveEntry;
 }
 
-export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavigatePrev, onNavigateNext, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], defaultCollapsed = false }: MoveListProps) {
+export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavigatePrev, onNavigateNext, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], gspritztEnabled = false, defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
   useEffect(() => {
@@ -142,12 +145,16 @@ export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavi
    * Render blutwurst icon for a missed-check violation, but only once the opponent's
    * next move is complete (or the game is over) so we don't reveal information
    * the opponent could use to report the violation.
+   * In G'spritzt mode, delay by one additional move (moveIndex+2) so the icon only
+   * appears when the violating player has their turn again — this prevents helping
+   * the opponent notice the missed check for reporting purposes.
    */
   const renderMissedCheckIcon = (moveIndex: number) => {
     const mc = missedCheckByMove.get(moveIndex);
     if (!mc) return null;
-    // Only reveal after the opponent has made their next move (moveIndex+1 exists) or game ended
-    const isVisible = moves.length > moveIndex + 1 || gameOver;
+    // In G'spritzt mode, delay by 2 moves; otherwise delay by 1 move
+    const delayMoves = gspritztEnabled ? 2 : 1;
+    const isVisible = moves.length > moveIndex + delayMoves || gameOver;
     if (!isVisible) return null;
     const movesInfo = formatCategorizedMoves(mc);
     let title: string;

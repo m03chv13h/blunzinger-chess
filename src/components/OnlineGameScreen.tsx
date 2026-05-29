@@ -735,6 +735,7 @@ export function OnlineGameScreen({
             pieceRemovals={game.state.pieceRemovals}
             timeReductions={game.state.timeReductions}
             gspritztReports={game.state.gspritztReports}
+            gspritztEnabled={config.enableGspritzt}
             defaultCollapsed={!gameIsOver && !review.isReviewing}
           />
         </aside>
