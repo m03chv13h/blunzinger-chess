@@ -6,6 +6,7 @@ import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
+import { useWorkerStatus } from '../hooks/useWorkerStatus';
 import './SimulationSection.css';
 
 function formatEngineName(info: EngineInfo): string {
@@ -25,6 +26,7 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
     botDifficulty: 'easy',
   });
   const [gameCount, setGameCount] = useState(10);
+  const workerStatus = useWorkerStatus(2000);
 
   const update = (patch: Partial<GameSetupConfig>) =>
     setConfig((prev) => ({ ...prev, ...patch }));
@@ -403,9 +405,26 @@ export function SimulationSetupScreen({ onStart, children }: SimulationSetupScre
           )}
         </fieldset>
 
-        <button className="sim-start-btn" onClick={handleStart}>
-          ▶ Start Simulation
-        </button>
+        <div className="sim-start-wrapper">
+          <button
+            className="sim-start-btn"
+            onClick={handleStart}
+            disabled={workerStatus !== 'ready'}
+          >
+            ▶ Start Simulation
+          </button>
+          <span className="sim-worker-status" aria-live="polite">
+            {workerStatus === 'checking' && (
+              <span className="sim-worker-spinner" title="Checking worker availability…" />
+            )}
+            {workerStatus === 'unavailable' && (
+              <span className="sim-worker-spinner" title="Worker unavailable – retrying…" />
+            )}
+            {workerStatus === 'ready' && (
+              <span className="sim-worker-ready" title="Worker available">✔</span>
+            )}
+          </span>
+        </div>
       </div>
 
       {children}

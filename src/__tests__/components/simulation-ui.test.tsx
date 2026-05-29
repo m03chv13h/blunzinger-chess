@@ -16,6 +16,11 @@ vi.mock('../../hooks/useAuth', () => ({
   }),
 }));
 
+// Mock useWorkerStatus so the Start Simulation button is always enabled in tests.
+vi.mock('../../hooks/useWorkerStatus', () => ({
+  useWorkerStatus: () => 'ready',
+}));
+
 describe('Simulation UI', () => {
   beforeEach(() => {
     render(<App />);

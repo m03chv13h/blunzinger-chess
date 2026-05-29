@@ -91,8 +91,52 @@
   transition: background 0.15s;
 }
 
-.sim-start-btn:hover {
+.sim-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sim-start-btn:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+/* ── Worker status indicator next to start button ── */
+
+.sim-start-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.sim-start-wrapper .sim-start-btn {
+  margin-top: 0;
+  flex: 1;
+}
+
+.sim-worker-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.sim-worker-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: sim-spin 0.6s linear infinite;
+}
+
+.sim-worker-ready {
+  color: #22c55e;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
 }
 
 /* ── Config summary tags ── */
