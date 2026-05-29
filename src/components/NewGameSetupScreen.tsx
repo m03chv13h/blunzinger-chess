@@ -6,6 +6,7 @@ import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
+import { GspritztIcon } from './GspritztIcon';
 import './NewGameSetupScreen.css';
 
 const MODE_DESCRIPTIONS: Record<GameMode, string> = {
