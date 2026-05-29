@@ -29,6 +29,7 @@ describe('createPortMux', () => {
     }));
 
     const healthServer = createHealthHttpServer('50051');
+    healthServer.setReady();
     const mux = createPortMux(healthServer, '127.0.0.1', grpcPort);
 
     await new Promise<void>((resolve) => {
@@ -66,6 +67,7 @@ describe('createPortMux', () => {
     }));
 
     const healthServer = createHealthHttpServer('50051');
+    healthServer.setReady();
     const mux = createPortMux(healthServer, '127.0.0.1', grpcPort);
 
     await new Promise<void>((resolve) => {
