@@ -85,6 +85,21 @@
   padding: 3px 0;
 }
 
+/* ── Clock settings ── */
+
+.analyse-clock-settings {
+  margin: 6px 0 4px 22px;
+}
+
+.analyse-clock-settings .analyse-field input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
 /* ── Start button ── */
 
 .analyse-start-btn {
