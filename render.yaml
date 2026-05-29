@@ -58,12 +58,17 @@ services:
         sync: false
       - key: OAuth__Microsoft__ClientSecret
         sync: false
-      # Set this to the public URL of the blunzinger-frontend service
-      # (e.g. https://blunzinger-frontend.onrender.com).  Do NOT use
-      # fromService — its `host` property returns a private hostname,
-      # not the public origin the browser sends in CORS requests.
+      # CORS allowed origins — every public origin the browser may send.
+      # The frontend is served from blunzinger-frontend.onrender.com but
+      # accessed via the custom domain www.blunzinger.com (and apex
+      # blunzinger.com which redirects).  All must be listed so the API
+      # returns the correct Access-Control-Allow-Origin header.
       - key: Cors__AllowedOrigins__0
-        sync: false
+        sync: false  # e.g. https://blunzinger-frontend.onrender.com
+      - key: Cors__AllowedOrigins__1
+        value: "https://www.blunzinger.com"
+      - key: Cors__AllowedOrigins__2
+        value: "https://blunzinger.com"
 
   # ── Node.js Game Engine Worker (Web Service) ──────────────────────
   - type: web
