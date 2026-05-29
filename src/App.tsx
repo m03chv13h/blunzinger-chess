@@ -792,10 +792,7 @@ function App() {
     );
   }
 
-  const isStandaloneReview = screen.type === 'analyse-review' || screen.type === 'games-review';
-  const showDetails = isStandaloneReview
-    ? leftPanelExpanded
-    : review.isReviewing || leftPanelExpanded;
+  const showDetails = leftPanelExpanded;
 
   // Playing screen
   return (
@@ -831,14 +828,12 @@ function App() {
                 ← Back to Games
               </button>
             )}
-            {(isStandaloneReview || !review.isReviewing) && (
-              <button
-                className="panel-collapse-toggle"
-                onClick={() => setLeftPanelExpanded(e => !e)}
-              >
-                {leftPanelExpanded ? '▴ Hide details' : '▾ Show details'}
-              </button>
-            )}
+            <button
+              className="panel-collapse-toggle"
+              onClick={() => setLeftPanelExpanded(e => !e)}
+            >
+              {leftPanelExpanded ? '▴ Hide details' : '▾ Show details'}
+            </button>
             {showDetails && (
               <>
                 <GameSummaryPanel config={screen.config} />
@@ -941,7 +936,7 @@ function App() {
               timeReductions={game.state.timeReductions}
               gspritztReports={game.state.gspritztReports}
               gspritztEnabled={game.state.config.reportConfig.enableGspritzt}
-              defaultCollapsed={isStandaloneReview || (!review.isReviewing && !leftPanelExpanded)}
+              defaultCollapsed={!leftPanelExpanded}
             />
           </aside>
         </main>

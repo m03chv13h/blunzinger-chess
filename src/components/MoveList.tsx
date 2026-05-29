@@ -48,7 +48,7 @@ interface MoveRow {
 
 export function MoveList({ moves, highlightedMoveIndex = -1, onMoveClick, onNavigatePrev, onNavigateNext, violationReports = [], missedChecks = [], gameOver = false, pieceRemovals = [], timeReductions = [], gspritztReports = [], gspritztEnabled = false, defaultCollapsed = false }: MoveListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  // Sync collapsed state when the defaultCollapsed prop changes (e.g. game ends → expand).
+  // Sync collapsed state when the defaultCollapsed prop changes (e.g. user toggles details panel).
   useEffect(() => {
     setCollapsed(defaultCollapsed);
   }, [defaultCollapsed]);
