@@ -6,6 +6,7 @@ import type { EngineId, EngineInfo } from '../core/engine/types';
 import { getAllEngineInfos, getEngineInfo } from '../core/engine/engineRegistry';
 import { NumericInput } from './NumericInput';
 import { TimeInput } from './TimeInput';
+import { GspritztIcon } from './GspritztIcon';
 import './NewGameSetupScreen.css';
 
 const MODE_DESCRIPTIONS: Record<GameMode, string> = {
@@ -462,7 +463,7 @@ export function NewGameSetupScreen({ initialConfig, onStartGame }: NewGameSetupS
                   checked={config.enableGspritzt}
                   onChange={(e) => update({ enableGspritzt: e.target.checked })}
                 />
-                Blunzinger G&apos;spritzt
+                Blunzinger G&apos;spritzt <GspritztIcon />
               </label>
             </div>
           )}
